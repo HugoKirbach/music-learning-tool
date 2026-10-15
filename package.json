@@ -1,0 +1,13 @@
+{
+  "name": "beatforge",
+  "version": "1.0.0",
+  "description": "BeatForge — entraînement ludique à la composition (PWA mobile + PC)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.js",
+    "check": "node scripts/check-imports.mjs"
+  },
+  "license": "MIT"
+}

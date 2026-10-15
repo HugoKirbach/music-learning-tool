@@ -1,0 +1,174 @@
+// État persistant de l'application (localStorage) + événements.
+import { levelFromXp, updateStreak, dayKey, newBadges, SKILLS } from './core/progress.js';
+import { gridFromPatterns } from './core/rhythm.js';
+import { genreById } from './data/genres.js';
+import { MELODY_STEPS } from './core/arrange.js';
+import { kitForGenre } from './core/audio.js';
+import { stepMatches } from './core/daily.js';
+
+const KEY = 'beatforge.v1';
+const listeners = new Set();
+
+export function projectFromGenre(id) {
+  const g = genreById(id);
+  return {
+    genre: g.id,
+    bpm: g.bpm,
+    swing: g.swing,
+    rootPc: g.rootPc,
+    scale: g.scale,
+    drums: gridFromPatterns(g.drums),
+    chords: g.prog.map((s) => ({ ...s })),
+    ext: g.id === 'lofi' || g.id === 'deephouse' || g.id === 'bossa' ? 4 : 3,
+    voicing: 'lead',
+    chordStyle: g.chordStyle,
+    bassStyle: g.bassStyle,
+    sounds: { ...g.sounds },
+    kit: kitForGenre(g.id),
+    melody: new Array(MELODY_STEPS).fill(null),
+    mutes: {},
+  };
+}
+
+function fresh() {
+  return {
+    v: 1,
+    createdAt: Date.now(),
+    xp: 0,
+    skills: Object.fromEntries(Object.keys(SKILLS).map((k) => [k, 0])),
+    streak: { count: 0, last: null, best: 0 },
+    days: {},
+    badges: {},
+    genres: {},
+    missions: {},
+    later: [],
+    stats: { exercises: 0, sessions: 0, earCorrect: 0, earTotal: 0, hints: 0, noHintWins: 0, beatPerfect: 0, bestCatchy: 0, bestMatch: 0, exports: 0, midiNotes: 0 },
+    notebook: [],
+    project: projectFromGenre('house'),
+    settings: { volume: 0.8, hints: 'auto', dailyGoal: 150, onboarded: false },
+    session: null,
+    sessionCount: {},
+  };
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return fresh();
+    const s = JSON.parse(raw);
+    const f = fresh();
+    // fusion défensive (nouvelles clés ajoutées dans des versions futures)
+    return {
+      ...f, ...s,
+      stats: { ...f.stats, ...(s.stats || {}) },
+      settings: { ...f.settings, ...(s.settings || {}) },
+      skills: { ...f.skills, ...(s.skills || {}) },
+      project: { ...f.project, ...(s.project || {}) },
+    };
+  } catch (e) {
+    console.warn('État corrompu, réinitialisation', e);
+    return fresh();
+  }
+}
+
+let state = load();
+
+export function getState() {
+  return state;
+}
+
+export function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { console.warn(e); }
+  listeners.forEach((l) => l(state));
+}
+
+export function update(fn) {
+  fn(state);
+  save();
+}
+
+export function subscribe(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function level() {
+  return levelFromXp(state.xp).level;
+}
+
+export function today() {
+  return state.days[dayKey()] || { xp: 0, sessions: 0, exercises: 0 };
+}
+
+/**
+ * Enregistre un exercice terminé et attribue l'XP.
+ * @param {{key:string, xp:number, skill?:string, genre?:string, hintUsed?:boolean, success?:boolean}} r
+ * @returns {{levelUp:boolean, level:number, badges:object[], sessionAdvanced:boolean, sessionDone:boolean}}
+ */
+export function recordExercise(r) {
+  const before = levelFromXp(state.xp).level;
+  const d = dayKey();
+  const day = state.days[d] || { xp: 0, sessions: 0, exercises: 0 };
+  const xp = Math.max(0, Math.round(r.xp));
+  state.xp += xp;
+  day.xp += xp;
+  day.exercises++;
+  state.days[d] = day;
+  state.stats.exercises++;
+  if (r.skill && state.skills[r.skill] != null) state.skills[r.skill] += xp;
+  if (r.genre) state.genres[r.genre] = (state.genres[r.genre] || 0) + 1;
+  if (r.hintUsed) state.stats.hints++;
+  else if (r.success) state.stats.noHintWins++;
+  state.streak = updateStreak(state.streak, d);
+
+  // Session en cours
+  let sessionAdvanced = false, sessionDone = false;
+  const sess = state.session;
+  if (sess && sess.day === d && stepMatches(sess.steps[sess.idx], r.key)) {
+    sess.done[sess.idx] = true;
+    sess.idx++;
+    sessionAdvanced = true;
+    if (sess.idx >= sess.steps.length) {
+      sessionDone = true;
+      const bonus = 40;
+      state.xp += bonus;
+      day.xp += bonus;
+      day.sessions++;
+      state.stats.sessions++;
+      state.session = { ...sess, finished: true };
+    }
+  }
+
+  const badges = newBadges(state);
+  badges.forEach((b) => { state.badges[b.id] = d; });
+  save();
+  const after = levelFromXp(state.xp).level;
+  return { levelUp: after > before, level: after, badges, sessionAdvanced, sessionDone, xp };
+}
+
+/** Vérifie les badges hors exercice (export, notes MIDI…). */
+export function checkBadges() {
+  const badges = newBadges(state);
+  if (badges.length) {
+    badges.forEach((b) => { state.badges[b.id] = dayKey(); });
+    save();
+  }
+  return badges;
+}
+
+export function exportBackup() {
+  return JSON.stringify(state, null, 1);
+}
+
+export function importBackup(json) {
+  const s = JSON.parse(json);
+  if (!s || s.v !== 1 || typeof s.xp !== 'number') throw new Error('Fichier de sauvegarde invalide');
+  localStorage.setItem(KEY, JSON.stringify(s));
+  state = load();
+  save();
+}
+
+export function resetAll() {
+  state = fresh();
+  save();
+}
