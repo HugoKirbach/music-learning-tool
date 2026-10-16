@@ -230,6 +230,8 @@ li.done .step-num { background: var(--good); color: #052e16; }
 .key.black { position: absolute; top: 0; height: 60%; background: #15151f; z-index: 2; border-radius: 0 0 4px 4px; color: #888; }
 .key.down { background: var(--accent); }
 .key.black.down { background: #7c4dff; }
+.key.mark { background: #4ade80; }
+.key.black.mark { background: #16a34a; }
 .key.inscale::after { content: ''; position: absolute; bottom: 18px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); }
 
 /* Indices, leçons, résultats */

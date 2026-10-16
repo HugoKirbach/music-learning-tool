@@ -1,13 +1,14 @@
 import { el, card, header, finishExercise, shuffle } from '../ui.js';
 import { update, level } from '../store.js';
-import { INTERVALS, midiToName, slotChord, voiceLead, mod } from '../core/theory.js';
+import { INTERVALS, midiToName, slotChord, voiceLead, mod, detectChord } from '../core/theory.js';
 import { gridFromPatterns, DRUM_ROWS, VEL } from '../core/rhythm.js';
 import { ensureAudio, now, playSynth, playDrum, kitForGenre } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { GENRES } from '../data/genres.js';
 import { PRESETS } from '../data/presets.js';
 import { paramById, getPath, setPath, normalizeParams, CHALLENGE_VALUES } from '../core/synthparams.js';
-import { phrase } from './synth.js';
+import { phrase, keyboard } from './synth.js';
+import { onMidi } from '../midiin.js';
 
 const MODES = {
   intervals: { name: 'Intervalles', emoji: '📏', skill: 'oreille', desc: 'Distance entre deux notes : la base pour relever des mélodies.' },
@@ -53,7 +54,7 @@ function makeQuestion(mode, lv, i) {
   if (mode === 'intervals') {
     const pool = lv < 3 ? [3, 4, 5, 7, 12] : lv < 6 ? [2, 3, 4, 5, 7, 9, 10, 12] : INTERVALS.map((x) => x.st);
     const st = pool[Math.floor(Math.random() * pool.length)];
-    const root = 52 + Math.floor(Math.random() * 12);
+    const root = 48 + Math.floor(Math.random() * 13);
     const harmonic = lv >= 8 && Math.random() < 0.4;
     const desc = lv >= 5 && Math.random() < 0.3;
     const info = INTERVALS.find((x) => x.st === st);
@@ -68,6 +69,7 @@ function makeQuestion(mode, lv, i) {
       },
       options: opts.map((x) => ({ value: x, label: INTERVALS.find((y) => y.st === x).name })),
       answer: st,
+      notes: desc ? [root + st, root] : [root, root + st],
       explain: `${info.name} (${info.st} demi-tons) — repère : ${info.hint}. Ici ${midiToName(root)} → ${midiToName(desc ? root : root + st)}.`,
     };
   }
@@ -85,6 +87,7 @@ function makeQuestion(mode, lv, i) {
       },
       options: ids.map((id) => ({ value: id, label: CHORD_SETS.find((x) => x.id === id).label })),
       answer: c.id,
+      notes: c.iv.map((iv) => root + iv),
       explain: `${c.label} : ${c.tip}. Intervalles : ${c.iv.join('-')} demi-tons.`,
     };
   }
@@ -157,6 +160,81 @@ function makeQuestion(mode, lv, i) {
   };
 }
 
+/** Nom d'intervalle entre deux notes (au-delà de l'octave : « + octave »). */
+function intervalLabel(a, b) {
+  const d = Math.abs(b - a);
+  if (d === 0) return 'Unisson (même note)';
+  const base = d > 12 ? d % 12 || 12 : d;
+  const name = INTERVALS.find((x) => x.st === base).name;
+  return `${name}${d > 12 ? ' + octave' : ''} (${d} demi-tons, ${b > a ? 'montant' : 'descendant'})`;
+}
+
+/**
+ * Clavier pour chercher les notes avant de répondre : affiche les notes jouées,
+ * l'intervalle entre les deux dernières et l'accord formé (notes tenues ou tapées rapidement).
+ */
+function practicePad(mode, getQ) {
+  const info = el('div.lesson', el('div.lesson-title', '🎹 Cherche au clavier'),
+    el('p.small.muted', mode === 'intervals'
+      ? 'Rejoue la 1re note, puis cherche la 2e. L’app te dit l’intervalle que tu viens de jouer.'
+      : 'Joue (ou tape vite) les notes de l’accord : l’app te dit lequel tu as formé.'));
+  const out = el('p.pad-out', ' ');
+  const recent = [];
+  const held = new Map();
+  const midiHeld = new Set();
+  const piano = presetParams('piano');
+
+  const analyze = () => {
+    const t = performance.now();
+    const names = (arr) => arr.map(midiToName).join(' · ');
+    if (mode === 'intervals') {
+      const last = recent.slice(-2).map((r) => r.m);
+      out.replaceChildren(last.length < 2
+        ? el('span', last.length ? `Note : ${midiToName(last[0])}` : ' ')
+        : el('span', `${midiToName(last[0])} → ${midiToName(last[1])} = `, el('b', intervalLabel(last[0], last[1]))));
+      return;
+    }
+    const pressed = [...held.keys()].concat([...midiHeld]);
+    let group = pressed.length >= 2 ? pressed : recent.filter((r) => t - r.t < 1600).map((r) => r.m);
+    group = [...new Set(group)].sort((a, b) => a - b);
+    if (group.length < 3) { out.replaceChildren(el('span', group.length ? `Notes : ${names(group)}` : ' ')); return; }
+    const d = detectChord(group);
+    out.replaceChildren(el('span', `${names(group)} = `, el('b', d ? `${d.symbol} (${d.quality.label})` : 'accord non reconnu')));
+  };
+  const push = (m) => { recent.push({ m, t: performance.now() }); if (recent.length > 8) recent.shift(); analyze(); };
+
+  const kb = keyboard({
+    base: 48, octaves: 2,
+    onDown: (m) => { ensureAudio(); held.set(m, playSynth(piano, m, now(), null, 0.8, { send: 0.15 })); push(m); },
+    onUp: (m) => { held.get(m)?.release(); held.delete(m); },
+  });
+  const offMidi = onMidi({
+    noteOn: (m, v) => { ensureAudio(); midiHeld.add(m); held.get('m' + m)?.release(); held.set('m' + m, playSynth(piano, m, now(), null, v, { send: 0.15 })); kb.light(m, true); push(m); },
+    noteOff: (m) => { midiHeld.delete(m); held.get('m' + m)?.release(); held.delete('m' + m); kb.light(m, false); },
+  });
+
+  let markTimer = null;
+  const mark = (notes, ms = 2500) => {
+    clearTimeout(markTimer);
+    kb.clearMarks();
+    notes.forEach((m) => kb.mark(m, true));
+    markTimer = setTimeout(() => kb.clearMarks(), ms);
+  };
+  const firstBtn = el('button.btn.small', {
+    onclick: () => { const q = getQ(); if (!q) return; ensureAudio(); playSynth(piano, q.notes[0], now() + 0.02, 0.9, 0.8); mark([q.notes[0]], 1500); },
+  }, '🎯 Rejouer la 1re note');
+  const clearBtn = el('button.btn.small.ghost', { onclick: () => { recent.length = 0; analyze(); } }, 'Effacer');
+
+  const node = el('div', { style: { marginTop: '14px' } }, info, el('div.row.gap.wrap', firstBtn, clearBtn), out, kb.node);
+  return {
+    node,
+    /** Après la réponse : montre (et rejoue) les notes de la question sur le clavier. */
+    reveal: (q) => { mark(q.notes, 4000); },
+    reset: () => { recent.length = 0; kb.clearMarks(); analyze(); },
+    destroy: () => { kb.destroy(); offMidi(); clearTimeout(markTimer); held.forEach((v) => v.release()); },
+  };
+}
+
 export function render(root, params) {
   const mode = params.mode;
   if (!MODES[mode]) {
@@ -172,6 +250,7 @@ export function render(root, params) {
   let q = null, answered = false;
   const progress = el('div.quiz-progress');
   const body = el('div');
+  const pad = ['intervals', 'chords'].includes(mode) ? practicePad(mode, () => q) : null;
 
   const drawProgress = () => {
     progress.replaceChildren(...Array.from({ length: n }, (_, i) => el('span' + (results[i] === true ? '.ok' : results[i] === false ? '.ko' : i === idx ? '.cur' : ''))));
@@ -181,6 +260,7 @@ export function render(root, params) {
     if (idx >= n) return done();
     q = makeQuestion(mode, lv, idx);
     answered = false;
+    pad?.reset();
     drawProgress();
     const fb = el('div');
     const listen = el('button.btn.primary.listen', { onclick: () => { ensureAudio(); q.play(); } }, '▶');
@@ -199,9 +279,11 @@ export function render(root, params) {
             if (!ok) body.querySelectorAll('.answer').forEach((x) => { if (x.dataset.v === String(q.answer)) x.classList.add('right'); });
             update((s) => { s.stats.earTotal++; if (ok) s.stats.earCorrect++; if (q.genre && ok) s.genres[q.genre] = (s.genres[q.genre] || 0) + 1; });
             fb.replaceChildren(
-              el('div.lesson', el('div.lesson-title', ok ? '✅ Bien joué' : '❌ Pas tout à fait'), el('p', q.explain)),
+              el('div.lesson', el('div.lesson-title', ok ? '✅ Bien joué' : '❌ Pas tout à fait'), el('p', q.explain),
+                pad ? el('p.small.muted', `Notes : ${q.notes.map(midiToName).join(' · ')} — surlignées sur le clavier, rejoue-les pour les mémoriser.`) : null),
               el('div.row.gap', el('button.btn', { onclick: () => q.play() }, '↻ Réécouter'), el('button.btn.primary', { style: { flex: 1 }, onclick: () => { idx++; next(); } }, idx + 1 >= n ? 'Voir le résultat' : 'Suivant →')),
             );
+            if (pad) pad.reveal(q);
             drawProgress();
           },
         }, o.label);
@@ -234,9 +316,11 @@ export function render(root, params) {
       }[mode],
       onRetry: () => { location.hash = `#/ear?mode=${mode}&n=${n}&r=${Date.now()}`; },
     });
+    if (pad) pad.node.remove();
     body.replaceChildren(el('div.row.gap.center', el('a.btn', { href: '#/ear' }, '← Autres entraînements'), el('a.btn.primary', { href: `#/ear?mode=${mode}&n=${n}&r=${Date.now()}` }, '↻ Encore')));
   };
 
-  root.append(header(`${M.emoji} ${M.name}`, M.desc, '#/ear'), card(progress, body));
+  root.append(header(`${M.emoji} ${M.name}`, M.desc, '#/ear'), card(progress, body, pad?.node));
   next();
+  return () => pad?.destroy();
 }

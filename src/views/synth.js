@@ -62,7 +62,13 @@ export function keyboard({ base = 48, octaves = 2, onDown, onUp, inScale }) {
   const ku = (e) => up('k' + e.key);
   window.addEventListener('keydown', kd);
   window.addEventListener('keyup', ku);
-  return { node: wrap, destroy: () => { window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); }, light: (m, on) => keys[m]?.classList.toggle('down', on) };
+  return {
+    node: wrap,
+    destroy: () => { window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); },
+    light: (m, on) => keys[m]?.classList.toggle('down', on),
+    mark: (m, on) => keys[m]?.classList.toggle('mark', on),
+    clearMarks: () => Object.values(keys).forEach((k) => k.classList.remove('mark')),
+  };
 }
 
 function paramControl(def, getP, onChange) {
