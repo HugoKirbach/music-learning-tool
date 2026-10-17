@@ -34,80 +34,121 @@ export function onsetStrength(env) {
   return res;
 }
 
+/** FFT radix-2 en place. */
+export function fft(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = (-2 * Math.PI) / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const ur = re[i + k], ui = im[i + k];
+        const vr = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci;
+        const vi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+        re[i + k] = ur + vr; im[i + k] = ui + vi;
+        re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
+        const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+      }
+    }
+  }
+}
+
 /**
- * Détection de tempo par autocorrélation de la fonction d'attaque.
+ * Flux spectral : somme des hausses de magnitude (log) sur toutes les fréquences, ~200 images/s.
+ * Bien plus robuste que l'énergie globale quand une basse tenue masque la batterie.
+ */
+export function spectralFlux(samples, sampleRate) {
+  const D = Math.max(1, Math.floor(sampleRate / 11025));
+  const sr = sampleRate / D;
+  const len = Math.floor(samples.length / D);
+  const x = new Float32Array(len);
+  for (let i = 0; i < len; i++) { let s = 0; for (let k = 0; k < D; k++) s += samples[i * D + k]; x[i] = s / D; }
+  const size = 512, hop = Math.max(16, Math.round(sr / 200));
+  const win = new Float32Array(size).map((_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (size - 1)));
+  const frames = Math.max(0, Math.floor((len - size) / hop));
+  const out = new Float32Array(frames);
+  let prev = new Float32Array(size / 2);
+  const re = new Float64Array(size), im = new Float64Array(size);
+  for (let f = 0; f < frames; f++) {
+    const o = f * hop;
+    for (let i = 0; i < size; i++) { re[i] = x[o + i] * win[i]; im[i] = 0; }
+    fft(re, im);
+    let flux = 0;
+    const cur = new Float32Array(size / 2);
+    for (let k = 1; k < size / 2; k++) {
+      cur[k] = Math.log1p(100 * Math.hypot(re[k], im[k]));
+      const d = cur[k] - prev[k];
+      if (d > 0) flux += d;
+    }
+    out[f] = flux;
+    prev = cur;
+  }
+  // retrait de la tendance locale (moyenne glissante ~80 ms)
+  const w = 16, res = new Float32Array(frames);
+  let acc = 0;
+  for (let i = 0; i < frames; i++) {
+    acc += out[i]; if (i >= w) acc -= out[i - w];
+    res[i] = Math.max(0, out[i] - acc / Math.min(i + 1, w));
+  }
+  // latence : une attaque apparaît dans le flux quand elle atteint le centre de la fenêtre (size/2)
+  return { onset: res, fps: sr / hop, latency: size / 2 / sr };
+}
+
+/**
+ * Détection de tempo : enveloppe d'attaques à ~200 images/s (indépendante de la fréquence d'échantillonnage),
+ * puis recherche exhaustive (pas de 0,1 BPM) du peigne d'impulsions (tempo + phase) qui colle le mieux
+ * aux attaques, en moyenne par battement (pas de biais vers les tempos rapides). Légère préférence autour de 120.
  * @returns {{bpm:number, confidence:number, offset:number}} offset = position (s) d'un premier temps probable
  */
 export function detectBpm(samples, sampleRate, { min = 70, max = 180 } = {}) {
-  const { env, fps } = energyEnvelope(samples, sampleRate);
-  const onset = onsetStrength(env);
+  const { onset: raw, fps, latency } = spectralFlux(samples, sampleRate);
+  const mean0 = raw.reduce((a, b) => a + b, 0) / (raw.length || 1) || 1e-9;
+  // Compression logarithmique : les premiers temps de mesure (tout tombe ensemble) ne doivent pas tout écraser
+  const onset = raw.map((v) => Math.log1p(v / mean0));
   const n = onset.length;
-  const minLag = Math.floor((60 * fps) / max);
-  const maxLag = Math.ceil((60 * fps) / min);
-  const ac = new Float32Array(maxLag + 2);
-  for (let lag = Math.max(1, minLag - 1); lag <= maxLag + 1; lag++) {
-    let s = 0;
-    for (let i = lag; i < n; i++) s += onset[i] * onset[i - lag];
-    ac[lag] = s / (n - lag);
-  }
-  // Score d'un tempo : autocorrélation au battement + à 2 et 4 battements (renforce le bon tempo)
-  const at = (x) => { const i = Math.floor(x); const f = x - i; return (ac[i] || 0) * (1 - f) + (ac[i + 1] || 0) * f; };
-  let best = { lag: minLag, score: -1 };
-  let total = 0, count = 0;
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    const bpm = (60 * fps) / lag;
-    const prior = Math.exp(-0.5 * Math.pow(Math.log2(bpm / 125) / 0.9, 2)); // préférence douce autour de 125
-    const sc = (at(lag) + 0.5 * accAt(onset, lag * 2) + 0.25 * accAt(onset, lag * 4)) * (0.6 + 0.4 * prior);
-    total += sc; count++;
-    if (sc > best.score) best = { lag, score: sc };
-  }
-  // Interpolation parabolique
-  const l = best.lag;
-  const y0 = ac[l - 1] || 0, y1 = ac[l], y2 = ac[l + 1] || 0;
-  const denom = y0 - 2 * y1 + y2;
-  const shift = denom !== 0 ? Math.max(-0.5, Math.min(0.5, (0.5 * (y0 - y2)) / denom)) : 0;
-  let bpm = (60 * fps) / (l + shift);
-  while (bpm < min) bpm *= 2;
-  while (bpm > max) bpm /= 2;
-  // Affinage fin : peigne d'impulsions (période + phase) qui colle le mieux aux attaques, ±3 % autour de l'estimation
-  const comb = (b) => {
-    const period = (60 * fps) / b;
-    let best = 0;
-    for (let ph = 0; ph < period; ph += 0.5) {
-      let s = 0;
-      for (let t = ph; t < n - 1; t += period) {
-        const i = Math.floor(t), f = t - i;
-        s += onset[i] * (1 - f) + onset[i + 1] * f;
-      }
-      if (s > best) best = s;
-    }
-    return best;
+  const at = (t) => { const i = Math.floor(t); const f = t - i; return i >= 0 && i + 1 < n ? onset[i] * (1 - f) + onset[i + 1] * f : 0; };
+  // Score moyen d'un peigne (tempo, phase) ; max sur ±1 trame (tolérance au micro-timing)
+  const combScore = (bpm, phase) => {
+    const period = (60 * fps) / bpm;
+    let s = 0, c = 0;
+    for (let t = phase; t < n - 2; t += period) { s += Math.max(at(t - 1), at(t), at(t + 1)); c++; }
+    return c ? s / c : 0;
   };
-  let fine = { bpm, s: comb(bpm) };
-  for (let b = bpm * 0.97; b <= bpm * 1.03; b += 0.05) {
-    const s = comb(b);
-    if (s > fine.s) fine = { bpm: b, s };
+  const evalBpm = (bpm) => {
+    const period = (60 * fps) / bpm;
+    let best = { s: -1, ph: 0 };
+    for (let ph = 0; ph < period; ph += 1) {
+      const sc = combScore(bpm, ph);
+      if (sc > best.s) best = { s: sc, ph };
+    }
+    const prior = Math.exp(-0.5 * Math.pow(Math.log2(bpm / 120), 2));
+    return { bpm, s: best.s * (0.85 + 0.15 * prior), ph: best.ph, raw: best.s };
+  };
+  const mean = onset.reduce((a, b) => a + b, 0) / (n || 1) || 1e-9;
+  let best = { bpm: 120, s: -Infinity, ph: 0, raw: 0 };
+  for (let bpm = min; bpm <= max + 1e-9; bpm += 0.5) {
+    const r = evalBpm(bpm);
+    if (r.s > best.s) best = r;
   }
-  bpm = fine.bpm;
-  const confidence = Math.max(0, Math.min(1, (best.score / (total / count || 1) - 1) / 3));
-
-  // Phase : décalage qui aligne le mieux une grille de noires sur les attaques
-  const period = (60 * fps) / bpm;
-  let bestPhase = 0, bestSum = -1;
-  for (let ph = 0; ph < period; ph += 0.5) {
-    let s = 0;
-    for (let t = ph; t < n; t += period) s += onset[Math.round(t)] || 0;
-    if (s > bestSum) { bestSum = s; bestPhase = ph; }
+  // Half-time (DnB, trap, dubstep) : si le double colle presque aussi bien, on prend le double
+  if (best.bpm < 95 && best.bpm * 2 <= max) {
+    const dbl = evalBpm(best.bpm * 2);
+    if (dbl.raw >= best.raw * 0.75) best = dbl;
   }
-  return { bpm: Math.round(bpm * 10) / 10, confidence, offset: bestPhase / fps };
-}
-
-function accAt(onset, lag) {
-  const l = Math.round(lag);
-  if (l >= onset.length) return 0;
-  let s = 0;
-  for (let i = l; i < onset.length; i++) s += onset[i] * onset[i - l];
-  return s / (onset.length - l);
+  // Affinage au 0,05 BPM près
+  const coarse = best.bpm;
+  for (let bpm = coarse - 0.6; bpm <= coarse + 0.6; bpm += 0.05) {
+    const r = evalBpm(bpm);
+    if (r.s > best.s) best = r;
+  }
+  const confidence = Math.max(0, Math.min(1, (best.raw / mean - 1) / 6));
+  return { bpm: Math.round(best.bpm * 10) / 10, confidence, offset: best.ph / fps + latency };
 }
 
 // Profils de Krumhansl-Kessler

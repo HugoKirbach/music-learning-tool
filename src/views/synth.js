@@ -71,7 +71,7 @@ export function keyboard({ base = 48, octaves = 2, onDown, onUp, inScale }) {
   };
 }
 
-function paramControl(def, getP, onChange) {
+export function paramControl(def, getP, onChange) {
   if (def.options) {
     return el('div.ctrl-row', { 'data-param': def.id }, el('label', { style: { width: '92px' } }, def.label),
       segmented(def.options, getPath(getP(), def.path), (v) => { setPath(getP(), def.path, v); onChange(def); }));

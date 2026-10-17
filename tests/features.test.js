@@ -99,3 +99,17 @@ test('Programme : 4 semaines de 6 jours + projet', () => {
     for (const d of w.days) for (const s of d) assert.ok(s.key && s.route.startsWith('#/') && s.title, JSON.stringify(s));
   }
 });
+
+test('BPM : groove house avec hats à contretemps et pad tenu (piège des tempos lents)', () => {
+  const sr = 22050, bpm = 124, beat = 60 / bpm;
+  const s = new Float32Array(sr * 16);
+  for (let i = 0; i < s.length; i++) s[i] += 0.12 * (2 * ((110 * i / sr) % 1) - 1); // pad saw continu
+  let seed = 1; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  for (let t = 0.3, k = 0; t < 15.5; t += beat, k++) {
+    const a = Math.floor(t * sr), h = Math.floor((t + beat / 2) * sr);
+    for (let i = 0; i < sr * 0.2; i++) s[a + i] += 0.7 * Math.sin(2 * Math.PI * (50 + 100 * Math.exp(-i / 125)) * i / sr) * Math.exp(-i / (0.06 * sr));
+    for (let i = 0; i < sr * 0.25; i++) s[h + i] += 0.3 * rnd() * Math.exp(-i / (0.06 * sr));
+  }
+  const r = detectBpm(s, sr);
+  assert.ok(Math.abs(r.bpm - 124) < 0.6, `obtenu ${r.bpm}`);
+});

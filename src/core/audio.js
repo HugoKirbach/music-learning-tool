@@ -242,7 +242,7 @@ export async function decodeFile(file) {
 }
 
 /** Lecteur d'un AudioBuffer (référence), à part du mix et du filtre. Renvoie stop(). */
-export function playBuffer(buffer, offset = 0, { loopStart = null, loopEnd = null, rate = 1 } = {}) {
+export function playBuffer(buffer, offset = 0, { loopStart = null, loopEnd = null, rate = 1, low = 0, high = 0 } = {}) {
   ensureAudio();
   const src = ctx.createBufferSource();
   src.buffer = buffer;
@@ -250,7 +250,13 @@ export function playBuffer(buffer, offset = 0, { loopStart = null, loopEnd = nul
   if (loopStart != null && loopEnd != null && loopEnd > loopStart) { src.loop = true; src.loopStart = loopStart; src.loopEnd = loopEnd; }
   const g = ctx.createGain();
   g.gain.value = 0.9;
-  src.connect(g).connect(master);
+  // Isolation d'une bande (écoute de la basse ou du lead seul) : filtres 24 dB/oct
+  let node = src;
+  const chain = (type, f) => { for (let i = 0; i < 2; i++) { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = 0.707; node.connect(b); node = b; } };
+  if (low) chain('highpass', low);
+  if (high) chain('lowpass', high);
+  if (low || high) g.gain.value = 1.4;
+  node.connect(g).connect(master);
   const startAt = ctx.currentTime;
   src.start(startAt, offset);
   return { stop: () => { try { src.stop(); } catch (e) { /* déjà stoppé */ } }, startAt, offset, rate, node: src };

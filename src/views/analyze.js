@@ -8,6 +8,7 @@ import { SECTIONS } from '../core/arrangement.js';
 import { presetParams } from '../player.js';
 import { keyboard } from './synth.js';
 import { onMidi } from '../midiin.js';
+import { extractionCard } from './recreate.js';
 
 export function render(root) {
   const st = {
@@ -116,11 +117,22 @@ export function render(root) {
     ing.rythme, ing.son, ing.arr,
     el('button.btn.primary.wide', { onclick: () => save() }, '✓ Enregistrer l’analyse'));
 
+  const extractor = extractionCard({
+    getBuffer: () => st.buffer,
+    getMono: () => st.mono,
+    getBpm: () => st.bpm,
+    getKey: () => st.key,
+    // Début de la région : boucle active, sinon la mesure en cours (calée sur la grille)
+    getRegionStart: () => (st.loop ? st.loop[0] : Math.max(0, st.offset + Math.max(0, barAt(curPos())) * barDur())),
+    pauseMain: () => pause(),
+  });
+
   root.append(
     card(titleIn, linkIn, drop,
       el('p.small.muted', 'Les liens YouTube/SoundCloud ne peuvent pas être analysés directement (protection des plateformes) : importe un fichier que tu possèdes (Bandcamp, Beatport, tes propres exports…). Sans fichier, tu peux tout de même faire le tap tempo, la tonalité au clavier, le hook et les ingrédients en écoutant dans un autre onglet.')),
     playerCard,
     el('div.cols', el('div', tempoCard, keyCard), el('div', structCard, hookCard, ingCard)),
+    extractor.node,
   );
 
   // ---------- Logique ----------
@@ -357,7 +369,7 @@ export function render(root) {
 
   const onResize = () => draw();
   window.addEventListener('resize', onResize);
-  return () => { pause(true); offMidi(); keyKb.destroy(); keyHeld.forEach((v) => v.release()); window.removeEventListener('resize', onResize); };
+  return () => { pause(true); extractor.stop(); offMidi(); keyKb.destroy(); keyHeld.forEach((v) => v.release()); window.removeEventListener('resize', onResize); };
 }
 
 function fmt(t) {
