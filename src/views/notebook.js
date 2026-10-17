@@ -21,10 +21,11 @@ function beatSong(it) {
 function open(it) {
   update((s) => {
     if (it.type === 'idea') s.project = JSON.parse(JSON.stringify(it.project));
+    if (it.type === 'idea' && it.arrangement) s.arrangement = JSON.parse(JSON.stringify(it.arrangement));
     if (it.type === 'beat') Object.assign(s.project, { drums: JSON.parse(JSON.stringify(it.drums)), bpm: it.bpm, swing: it.swing ?? s.project.swing, genre: it.genre || s.project.genre });
     if (it.type === 'chords') Object.assign(s.project, { chords: JSON.parse(JSON.stringify(it.chords)), rootPc: it.rootPc, scale: it.scale, ext: it.ext || 3 });
   });
-  location.hash = { idea: '#/melody', beat: '#/beat', chords: '#/chords', sound: `#/synth?load=${it.id}` }[it.type] || '#/notebook';
+  location.hash = { idea: it.arrangement ? '#/arrange' : '#/melody', beat: '#/beat', chords: '#/chords', sound: `#/synth?load=${it.id}` }[it.type] || '#/notebook';
 }
 
 export function render(root) {

@@ -5,6 +5,9 @@ const LABS = [
   { href: '#/chords', emoji: '🎼', name: 'Lab Accords', desc: 'Degrés, modes, emprunts, voicings. Détection d’accords au clavier MIDI.' },
   { href: '#/melody', emoji: '🎵', name: 'Lab Mélodie', desc: 'Piano roll en gamme, outils de variation et Catchy-mètre.' },
   { href: '#/synth', emoji: '🔊', name: 'Lab Synthé', desc: 'Synthé soustractif, presets décodés pour Serum 2, défis de reproduction.' },
+  { href: '#/callresponse', emoji: '🔁', name: 'Call & Response', desc: 'L’app joue une phrase, tu réponds en rythme : répète ou improvise (clavier, pads, MPC).' },
+  { href: '#/arrange', emoji: '🧱', name: 'Lab Arrangement', desc: 'Ta boucle devient un morceau de 64 mesures : sections, filtre, risers, roulements.' },
+  { href: '#/analyze', emoji: '🎧', name: 'Analyse de référence', desc: 'Importe un morceau : BPM, tonalité, structure, hook et 3 ingrédients.' },
   { href: '#/ear', emoji: '👂', name: 'Oreille', desc: 'Intervalles, accords, progressions, styles, paramètres de son.' },
   { href: '#/atlas', emoji: '🗺️', name: 'Atlas des styles', desc: '20 styles électro et hors électro : ingrédients, références, astuces.' },
 ];

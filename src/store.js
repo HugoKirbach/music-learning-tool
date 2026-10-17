@@ -5,6 +5,7 @@ import { genreById } from './data/genres.js';
 import { MELODY_STEPS } from './core/arrange.js';
 import { kitForGenre } from './core/audio.js';
 import { stepMatches } from './core/daily.js';
+import { reviewUpdate, dueItems } from './core/srs.js';
 
 const KEY = 'beatforge.v1';
 const listeners = new Set();
@@ -48,6 +49,9 @@ function fresh() {
     settings: { volume: 0.8, hints: 'auto', dailyGoal: 150, onboarded: false },
     session: null,
     sessionCount: {},
+    review: {},
+    program: { startedAt: null, done: {} },
+    customDice: [],
   };
 }
 
@@ -136,6 +140,10 @@ export function recordExercise(r) {
       day.sessions++;
       state.stats.sessions++;
       state.session = { ...sess, finished: true };
+      if (sess.programDay != null) {
+        state.program.done[sess.programDay] = d;
+        state.program.startedAt = state.program.startedAt || d;
+      }
     }
   }
 
@@ -154,6 +162,19 @@ export function checkBadges() {
     save();
   }
   return badges;
+}
+
+/** Enregistre une réponse d'oreille pour les révisions espacées (clé du type 'intervals:7'). */
+export function recordReview(key, ok, inReview = false) {
+  const d = dayKey();
+  const next = reviewUpdate(state.review[key], ok, d, inReview);
+  if (next) state.review[key] = next;
+  else delete state.review[key];
+  save();
+}
+
+export function dueReviews() {
+  return dueItems(state.review, dayKey());
 }
 
 export function exportBackup() {

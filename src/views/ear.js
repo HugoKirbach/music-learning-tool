@@ -1,5 +1,5 @@
 import { el, card, header, finishExercise, shuffle, toast } from '../ui.js';
-import { update, level } from '../store.js';
+import { update, level, recordReview, dueReviews } from '../store.js';
 import { INTERVALS, midiToName, slotChord, voiceLead, mod, detectChord } from '../core/theory.js';
 import { gridFromPatterns, DRUM_ROWS, VEL } from '../core/rhythm.js';
 import { ensureAudio, now, playSynth, playDrum, kitForGenre } from '../core/audio.js';
@@ -49,11 +49,17 @@ const SOUND_Q = {
   sustain: 'Sustain', decay: 'Decay',
 };
 
-function makeQuestion(mode, lv, i) {
+function makeQuestion(mode, lv, i, forced = null) {
   const t = () => now() + 0.08;
+  const q = makeQuestionInner(mode, lv, forced, t);
+  return { ...q, mode, reviewKey: `${mode}:${q.answer}` };
+}
+
+function makeQuestionInner(mode, lv, forced, t) {
   if (mode === 'intervals') {
     const pool = lv < 3 ? [3, 4, 5, 7, 12] : lv < 6 ? [2, 3, 4, 5, 7, 9, 10, 12] : INTERVALS.map((x) => x.st);
-    const st = pool[Math.floor(Math.random() * pool.length)];
+    const st = forced != null ? +forced : pool[Math.floor(Math.random() * pool.length)];
+    if (!pool.includes(st)) pool.push(st);
     const root = 48 + Math.floor(Math.random() * 13);
     const harmonic = lv >= 8 && Math.random() < 0.4;
     const desc = lv >= 5 && Math.random() < 0.3;
@@ -75,7 +81,8 @@ function makeQuestion(mode, lv, i) {
   }
   if (mode === 'chords') {
     const ids = lv < 3 ? ['maj', 'min'] : lv < 5 ? ['maj', 'min', 'dim', 'aug', 'sus4'] : lv < 8 ? ['maj', 'min', 'maj7', 'm7', '7', 'sus4'] : CHORD_SETS.map((c) => c.id);
-    const pickId = ids[Math.floor(Math.random() * ids.length)];
+    if (forced && CHORD_SETS.some((c) => c.id === forced) && !ids.includes(forced)) ids.push(forced);
+    const pickId = forced && ids.includes(forced) ? forced : ids[Math.floor(Math.random() * ids.length)];
     const c = CHORD_SETS.find((x) => x.id === pickId);
     const root = 50 + Math.floor(Math.random() * 10);
     return {
@@ -92,8 +99,9 @@ function makeQuestion(mode, lv, i) {
     };
   }
   if (mode === 'progressions') {
-    const pool = lv < 4 ? PROGS.slice(0, 4).concat(PROGS.slice(6, 8)) : PROGS;
-    const pr = pool[Math.floor(Math.random() * pool.length)];
+    const pool = lv < 4 ? PROGS.slice(0, 4).concat(PROGS.slice(6, 8)) : [...PROGS];
+    const pr = PROGS.find((x) => x.label === forced) || pool[Math.floor(Math.random() * pool.length)];
+    if (!pool.includes(pr)) pool.push(pr);
     const same = pool.filter((x) => x !== pr && x.scale === pr.scale);
     const opts = shuffle([pr, ...shuffle(same).slice(0, 3)]);
     const tonic = Math.floor(Math.random() * 12);
@@ -116,7 +124,7 @@ function makeQuestion(mode, lv, i) {
     };
   }
   if (mode === 'genre') {
-    const g = GENRES[Math.floor(Math.random() * GENRES.length)];
+    const g = GENRES.find((x) => x.id === forced) || GENRES[Math.floor(Math.random() * GENRES.length)];
     const opts = shuffle([g, ...shuffle(GENRES.filter((x) => x !== g && Math.abs(x.bpm - g.bpm) < 40)).slice(0, 3)]);
     while (opts.length < 4) { const x = GENRES[Math.floor(Math.random() * GENRES.length)]; if (!opts.includes(x)) opts.push(x); }
     return {
@@ -140,7 +148,8 @@ function makeQuestion(mode, lv, i) {
   const baseId = shuffle(['pluck', 'pad', 'squarelead', 'stab', 'reese'])[0];
   const base = normalizeParams(PRESETS[baseId].params);
   const pool = lv < 4 ? ['cutoff', 'attack', 'wave1', 'lfoTarget', 'release'] : Object.keys(SOUND_Q);
-  const id = pool[Math.floor(Math.random() * pool.length)];
+  const id = SOUND_Q[forced] ? forced : pool[Math.floor(Math.random() * pool.length)];
+  if (!pool.includes(id)) pool.push(id);
   const def = paramById(id);
   const b = JSON.parse(JSON.stringify(base));
   const cur = getPath(base, def.path);
@@ -255,15 +264,36 @@ function practicePad(mode, getQ, onFound) {
   };
 }
 
+const REVIEW_NAMES = { intervals: '📏 Intervalle', chords: '🎨 Accord', progressions: '🧭 Progression', genre: '🥁 Style', sound: '🎛️ Paramètre' };
+
+/** Révisions espacées : uniquement les notions ratées dont la date de révision est arrivée. */
+function reviewRender(root) {
+  const items = dueReviews().slice(0, 10);
+  root.append(header('🔁 Révisions du jour', 'Les notions que tu as ratées reviennent après 1, 2, 4, 8 puis 16 jours.', '#/ear'));
+  if (!items.length) {
+    root.append(card(el('p', '🎉 Rien à réviser aujourd’hui. Chaque erreur dans les quiz d’oreille crée une fiche qui reviendra au bon moment.'),
+      el('a.btn.primary', { href: '#/ear' }, 'Faire un quiz')));
+    return;
+  }
+  return runQuiz(root, { mode: 'review', n: items.length, M: { name: 'Révisions', emoji: '🔁', skill: 'oreille', desc: '' }, nextQuestion: (idx, lv) => makeQuestion(items[idx].mode, lv, idx, items[idx].value), inReview: true, label: (q) => REVIEW_NAMES[q.mode] });
+}
+
 export function render(root, params) {
   const mode = params.mode;
+  if (mode === 'review') return reviewRender(root);
   if (!MODES[mode]) {
     root.append(header('Oreille', 'Entraînements courts. Le niveau s’adapte à ta progression.'),
-      el('div.grid2', Object.entries(MODES).map(([id, m]) => el('a.tile', { href: `#/ear?mode=${id}` }, el('div.tile-emoji', m.emoji), el('b', m.name), el('span', m.desc)))));
+      el('div.grid2',
+        el('a.tile', { href: '#/ear?mode=review' }, el('div.tile-emoji', '🔁'), el('b', `Révisions (${dueReviews().length})`), el('span', 'Tes erreurs passées, revues au bon moment')),
+        Object.entries(MODES).map(([id, m]) => el('a.tile', { href: `#/ear?mode=${id}` }, el('div.tile-emoji', m.emoji), el('b', m.name), el('span', m.desc)))));
     return;
   }
   const M = MODES[mode];
   const n = Math.max(3, Math.min(15, +params.n || 8));
+  return runQuiz(root, { mode, n, M, nextQuestion: (idx, lv) => makeQuestion(mode, lv, idx), inReview: false });
+}
+
+function runQuiz(root, { mode, n, M, nextQuestion, inReview, label }) {
   const lv = level();
   let idx = 0, correct = 0;
   const results = [];
@@ -282,14 +312,14 @@ export function render(root, params) {
 
   const next = () => {
     if (idx >= n) return done();
-    q = makeQuestion(mode, lv, idx);
+    q = nextQuestion(idx, lv);
     answered = false;
     pad?.reset();
     drawProgress();
     const fb = el('div');
     const listen = el('button.btn.primary.listen', { onclick: () => { ensureAudio(); q.play(); } }, '▶');
     body.replaceChildren(
-      el('p.muted', { style: { textAlign: 'center' } }, `Question ${idx + 1}/${n} — ${q.prompt}`),
+      el('p.muted', { style: { textAlign: 'center' } }, `Question ${idx + 1}/${n} — ${label ? label(q) + ' · ' : ''}${q.prompt}`),
       listen,
       el('div.answers', q.options.map((o) => {
         const b = el('button.btn.answer', {
@@ -301,6 +331,7 @@ export function render(root, params) {
             if (ok) correct++;
             b.classList.add(ok ? 'right' : 'wrong');
             if (!ok) body.querySelectorAll('.answer').forEach((x) => { if (x.dataset.v === String(q.answer)) x.classList.add('right'); });
+            recordReview(q.reviewKey, ok, inReview);
             update((s) => { s.stats.earTotal++; if (ok) s.stats.earCorrect++; if (q.genre && ok) s.genres[q.genre] = (s.genres[q.genre] || 0) + 1; });
             fb.replaceChildren(
               el('div.lesson', el('div.lesson-title', ok ? '✅ Bien joué' : '❌ Pas tout à fait'), el('p', q.explain),
@@ -330,6 +361,7 @@ export function render(root, params) {
         progressions: 'Écoute la ligne de basse : c’est elle qui révèle la progression.',
         genre: 'Un style se reconnaît à 2-3 invariants (placement du kick, de la snare, tempo, swing). Ce sont eux qu’il faut respecter… ou casser.',
         sound: 'Identifier à l’oreille ce qui change dans un son, c’est 80 % du sound design. Le reste, c’est savoir quel bouton tourner.',
+        review: 'La répétition espacée ancre durablement : revoir une notion juste avant de l’oublier est la façon la plus efficace d’apprendre.',
       }[mode],
       transfer: {
         intervals: 'Sur ton MPC Key 37 : joue une note, chante l’intervalle, vérifie. 2 minutes par jour.',
@@ -337,8 +369,9 @@ export function render(root, params) {
         progressions: 'Relève la basse d’un morceau que tu aimes au MPC, puis devine la progression.',
         genre: 'Dans l’Atlas, choisis un style que tu as confondu et recrée son beat dans le Lab Beat.',
         sound: 'Dans Serum 2, ouvre un preset, change un seul paramètre, écoute, remets-le. Recommence avec un autre.',
+        review: 'Pour chaque notion révisée, trouve-la dans un morceau que tu connais ou joue-la au MPC Key 37.',
       }[mode],
-      onRetry: () => { location.hash = `#/ear?mode=${mode}&n=${n}&r=${Date.now()}`; },
+      onRetry: inReview ? null : () => { location.hash = `#/ear?mode=${mode}&n=${n}&r=${Date.now()}`; },
     });
     if (pad) pad.node.remove();
     body.replaceChildren(el('div.row.gap.center', el('a.btn', { href: '#/ear' }, '← Autres entraînements'), el('a.btn.primary', { href: `#/ear?mode=${mode}&n=${n}&r=${Date.now()}` }, '↻ Encore')));

@@ -31,6 +31,9 @@ export const CREATES = [
   { key: 'chords:recipe', title: 'Recette d’accords', desc: 'Construis une progression qui respecte la recette', route: '#/chords?mode=recipe&genre={genre}', skill: 'harmonie', min: 4 },
   { key: 'melody:challenge', title: 'Hook sous contrainte', desc: 'Une mélodie catchy sur une boucle {genre}', route: '#/melody?mode=challenge&genre={genre}', skill: 'melodie', min: 5 },
   { key: 'melody:dictation', title: 'Dictée mélodique', desc: 'Retrouve un motif à l’oreille', route: '#/melody?mode=dictation&genre={genre}', skill: 'oreille', min: 4 },
+  { key: 'cr:repeat', title: 'Call & Response', desc: 'Rejoue en rythme les phrases d’un groove {genre}', route: '#/callresponse?kind=melody&mode=repeat&genre={genre}', skill: 'melodie', min: 3 },
+  { key: 'cr:repeat', title: 'Call & Response aux pads', desc: 'Rejoue les rythmes {genre} aux pads', route: '#/callresponse?kind=rhythm&mode=repeat&genre={genre}', skill: 'rythme', min: 3 },
+  { key: 'cr:improv', title: 'Réponds à la basse', desc: 'Improvise des réponses sur un groove {genre}', route: '#/callresponse?kind=bass&mode=improv&genre={genre}', skill: 'oreille', min: 3 },
   { key: 'synth:match', title: 'Reproduis le son', desc: 'Retrouve les réglages d’un son mystère', route: '#/synth?mode=match', skill: 'sound', min: 4 },
 ];
 
@@ -74,7 +77,10 @@ export function buildSession(seed, profile = {}) {
   const createPool = CREATES.filter((c) => c.skill === focus);
   const create = fill(createPool.length ? pick(r, createPool) : pick(r, CREATES));
   const warmPool = WARMUPS.filter((w) => w.skill !== create.skill || w.skill === 'oreille');
-  const warmup = fill(pick(r, warmPool));
+  const due = profile.due || 0;
+  const warmup = due >= 3
+    ? { key: 'ear:review', title: 'Révisions', desc: `${due} notions ratées à revoir`, route: '#/ear?mode=review', skill: 'oreille', min: 2 }
+    : fill(pick(r, warmPool));
 
   // Transfert studio : mission liée à la compétence travaillée, niveau adapté
   const cats = CAT_FOR_SKILL[create.skill] || ['inspiration'];

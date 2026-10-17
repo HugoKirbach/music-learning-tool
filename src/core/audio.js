@@ -2,7 +2,7 @@
 import { midiToFreq } from './theory.js';
 
 let ctx = null;
-let master, comp, reverb, reverbSend, drumBus, synthBus;
+let master, comp, reverb, reverbSend, drumBus, synthBus, masterFilter;
 let noiseBuf = null;
 let openHat = null;
 let volume = 0.8;
@@ -25,12 +25,18 @@ export function ensureAudio() {
     master.gain.value = volume;
     comp.connect(master).connect(ctx.destination);
 
+    // Filtre master (arrangement : filtre qui s'ouvre / se ferme sur tout le mix)
+    masterFilter = ctx.createBiquadFilter();
+    masterFilter.type = 'lowpass';
+    masterFilter.frequency.value = 20000;
+    masterFilter.Q.value = 0.9;
+    masterFilter.connect(comp);
     drumBus = ctx.createGain();
     drumBus.gain.value = 0.9;
-    drumBus.connect(comp);
+    drumBus.connect(masterFilter);
     synthBus = ctx.createGain();
     synthBus.gain.value = 0.9;
-    synthBus.connect(comp);
+    synthBus.connect(masterFilter);
 
     reverb = ctx.createConvolver();
     reverb.buffer = makeImpulse(2.4, 2.5);
@@ -48,6 +54,11 @@ export function ensureAudio() {
 
 export function now() {
   return ctx ? ctx.currentTime : 0;
+}
+
+/** Latence de sortie : on l'entend après l'avoir programmé → on en tient compte pour noter le timing du joueur. */
+export function outputLatency() {
+  return ctx ? (ctx.outputLatency || 0) + (ctx.baseLatency || 0) : 0;
 }
 
 export function setVolume(v) {
@@ -80,6 +91,72 @@ function env(param, time, peak, attack, decay, floor = 0.0001) {
   param.setValueAtTime(floor, time);
   param.linearRampToValueAtTime(peak, time + attack);
   param.exponentialRampToValueAtTime(floor, time + attack + decay);
+}
+
+/** Automatisation du filtre master : valeur fixe (to seul) ou balayage exponentiel de from à to. */
+export function masterFilterAt(time, to, from = null, dur = 0) {
+  if (!ctx) return;
+  const f = masterFilter.frequency;
+  f.cancelScheduledValues(time);
+  if (from != null && dur > 0) {
+    f.setValueAtTime(from, time);
+    f.exponentialRampToValueAtTime(to, time + dur);
+  } else f.setValueAtTime(to, time);
+}
+
+export function resetMasterFilter() {
+  if (!ctx) return;
+  masterFilter.frequency.cancelScheduledValues(ctx.currentTime);
+  masterFilter.frequency.setValueAtTime(20000, ctx.currentTime);
+}
+
+/** Riser : bruit filtré qui monte (montée de tension avant un drop). */
+export function playRiser(time, dur) {
+  if (!ctx) return;
+  const n = noise(time, dur);
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.Q.value = 4;
+  bp.frequency.setValueAtTime(300, time);
+  bp.frequency.exponentialRampToValueAtTime(9000, time + dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.5, time + dur * 0.95);
+  g.gain.linearRampToValueAtTime(0.0001, time + dur);
+  n.connect(bp).connect(g).connect(comp);
+  const s = ctx.createGain(); s.gain.value = 0.3; g.connect(s).connect(reverbSend);
+}
+
+/** Clic de métronome (accent sur le premier temps). */
+export function playClick(time, accent = false) {
+  if (!ctx) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.frequency.value = accent ? 1600 : 1000;
+  env(g.gain, time, accent ? 0.35 : 0.2, 0.001, 0.05);
+  o.connect(g).connect(comp);
+  o.start(time); o.stop(time + 0.08);
+}
+
+/** Décode un fichier audio (MP3, WAV, M4A…) importé par l'utilisateur. */
+export async function decodeFile(file) {
+  ensureAudio();
+  const buf = await file.arrayBuffer();
+  return ctx.decodeAudioData(buf);
+}
+
+/** Lecteur d'un AudioBuffer (référence), à part du mix et du filtre. Renvoie stop(). */
+export function playBuffer(buffer, offset = 0, { loopStart = null, loopEnd = null, rate = 1 } = {}) {
+  ensureAudio();
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.playbackRate.value = rate;
+  if (loopStart != null && loopEnd != null && loopEnd > loopStart) { src.loop = true; src.loopStart = loopStart; src.loopEnd = loopEnd; }
+  const g = ctx.createGain();
+  g.gain.value = 0.9;
+  src.connect(g).connect(master);
+  const startAt = ctx.currentTime;
+  src.start(startAt, offset);
+  return { stop: () => { try { src.stop(); } catch (e) { /* déjà stoppé */ } }, startAt, offset, rate, node: src };
 }
 
 // ---------- Batterie ----------
@@ -379,6 +456,7 @@ class Transport {
 
   stop() {
     const was = this.playing;
+    if (was) resetMasterFilter();
     this.playing = false;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;

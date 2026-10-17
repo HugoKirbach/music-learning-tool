@@ -33,6 +33,7 @@ function listView(root, params) {
     header('Studio', 'Missions de 5-10 min à faire sur tes vrais outils. C’est ici que tu deviens autonome.', null),
     el('div.grid2', { style: { marginBottom: '12px' } },
       el('a.tile', { href: '#/studio?dice=1' }, el('div.tile-emoji', '🎲'), el('b', 'Dé à idées'), el('span', 'Point de départ + contrainte + twist : impossible de rester bloqué')),
+      el('a.tile', { href: '#/analyze' }, el('div.tile-emoji', '🎧'), el('b', 'Analyse de référence'), el('span', 'Importe un morceau et dissèque-le')),
       el('a.tile', { href: `#/studio?mission=${MISSIONS[Math.floor(Math.random() * MISSIONS.length)].id}` }, el('div.tile-emoji', '🎯'), el('b', 'Mission surprise'), el('span', 'Laisse le hasard choisir'))),
     later.length ? card(el('h3', `⏳ Plus tard (${later.length})`), el('ul.clean', later.map((m) => el('li', el('a', { href: `#/studio?mission=${m.id}` }, m.title))))) : null,
     el('div.ctrl-row', segmented([{ value: 'all', label: 'Tous' }, ...Object.entries(TOOLS).map(([k, t]) => ({ value: k, label: `${t.emoji} ${t.short}` }))], tool, (v) => { tool = v; draw(); })),
@@ -75,7 +76,8 @@ function missionView(root, m) {
   const inLater = (getState().later || []).includes(m.id);
   root.append(
     header(m.title, `${CATEGORIES[m.cat].emoji} ${CATEGORIES[m.cat].name} · ${m.min} min · ${'★'.repeat(m.level)}`, '#/studio'),
-    card(el('div', toolTags(m)), el('p', el('b', '🎯 Objectif : '), m.goal), steps, el('p.small.muted', 'Touche une étape pour la cocher.')),
+    card(el('div', toolTags(m)), el('p', el('b', '🎯 Objectif : '), m.goal), steps, el('p.small.muted', 'Touche une étape pour la cocher.'),
+      m.id === 'i-reference' ? el('a.btn.small.primary', { href: '#/analyze' }, '🎧 Ouvrir l’outil d’analyse') : null),
     card(timer.node),
     hintBox(el('div', el('p', el('b', 'Pourquoi ça marche : '), m.why))),
     card(el('h3', '🧭 Pour aller plus loin (en autonomie)'), el('p', m.next)),

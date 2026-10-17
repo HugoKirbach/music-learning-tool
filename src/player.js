@@ -23,24 +23,31 @@ export function playProject(getProject, opts = {}) {
     const layers = { drums: true, chords: true, bass: true, melody: true, ...(opts.layers || {}) };
     const mutes = p.mutes || {};
     const ev = eventsAt(p, voiced, step);
-    if (layers.drums && !mutes.drums) ev.drums.forEach((d) => playDrum(d.id, time, d.vel, p.kit));
-    if (layers.chords && !mutes.chords) {
-      const pr = presetParams(p.sounds.chords);
-      ev.chords.forEach((c) => c.notes.forEach((n) => playSynth(pr, n, time, c.len * stepDur * 0.95, 0.6, { send: 0.3 })));
-    }
-    if (layers.bass && !mutes.bass) {
-      const pr = presetParams(p.sounds.bass);
-      ev.bass.forEach((b) => {
-        playSynth(pr, b.note, time, b.len * stepDur * 0.92, 0.8, { send: 0, fromMidi: lastBass });
-        lastBass = b.note;
-      });
-    }
-    if (layers.melody && !mutes.melody) {
-      const pr = presetParams(p.sounds.lead);
-      ev.melody.forEach((m) => playSynth(pr, m.note, time, m.len * stepDur * 0.9, 0.8, { send: 0.25 }));
-    }
+    const on = Object.fromEntries(Object.keys(layers).map((k) => [k, layers[k] && !mutes[k]]));
+    lastBass = playEvents(p, ev, time, stepDur, on, lastBass);
     opts.onStep?.(step, time, ev);
   }, opts.onVisual, { bpm: p0.bpm, swing: p0.swing });
+}
+
+/** Joue les événements d'un pas (batterie, accords, basse, mélodie). Renvoie la dernière note de basse (glide). */
+export function playEvents(p, ev, time, stepDur, on = { drums: true, chords: true, bass: true, melody: true }, lastBass = null) {
+  if (on.drums) ev.drums.forEach((d) => playDrum(d.id, time, d.vel, p.kit));
+  if (on.chords) {
+    const pr = presetParams(p.sounds.chords);
+    ev.chords.forEach((c) => c.notes.forEach((n) => playSynth(pr, n, time, c.len * stepDur * 0.95, 0.6, { send: 0.3 })));
+  }
+  if (on.bass) {
+    const pr = presetParams(p.sounds.bass);
+    ev.bass.forEach((b) => {
+      playSynth(pr, b.note, time, b.len * stepDur * 0.92, 0.8, { send: 0, fromMidi: lastBass });
+      lastBass = b.note;
+    });
+  }
+  if (on.melody) {
+    const pr = presetParams(p.sounds.lead);
+    ev.melody.forEach((m) => playSynth(pr, m.note, time, m.len * stepDur * 0.9, 0.8, { send: 0.25 }));
+  }
+  return lastBass;
 }
 
 export function stopAll() {

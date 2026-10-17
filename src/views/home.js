@@ -1,5 +1,7 @@
 import { el, card } from '../ui.js';
-import { getState, update, today, level } from '../store.js';
+import { getState, update, today, level, dueReviews } from '../store.js';
+import { currentDay, startProgramDay } from './program.js';
+import { PROGRAM, PROGRAM_DAYS, dayInfo } from '../data/program.js';
 import { buildSession, genreOfDay, WARMUPS, rng, pick } from '../core/daily.js';
 import { dayKey, titleFor, SKILLS } from '../core/progress.js';
 import { missionById } from '../data/missions.js';
@@ -23,7 +25,7 @@ export function newSession() {
   const s = getState();
   const d = dayKey();
   const count = (s.sessionCount[d] || 0) + 1;
-  const sess = buildSession(`${d}#${count}`, { skills: s.skills, genres: s.genres, missions: s.missions, level: level() });
+  const sess = buildSession(`${d}#${count}`, { skills: s.skills, genres: s.genres, missions: s.missions, level: level(), due: dueReviews().length });
   update((st) => {
     st.sessionCount = { [d]: count };
     st.session = { ...sess, day: d, idx: 0, done: sess.steps.map(() => false), finished: false };
@@ -115,6 +117,9 @@ export function render(root, params) {
     el('a.tile', { href: quick.route }, el('div.tile-emoji', '⏱️'), el('b', 'Défi 2 minutes'), el('span', quick.title), el('span.tile-xp', '+XP')),
     el('a.tile', { href: '#/studio?dice=1' }, el('div.tile-emoji', '🎲'), el('b', 'Dé à idées'), el('span', 'Une contrainte pour ton prochain son')),
     el('a.tile', { href: '#/melody' }, el('div.tile-emoji', '💡'), el('b', 'Mon idée en cours'), el('span', 'Beat + accords + mélodie')),
+    el('a.tile', { href: '#/callresponse' }, el('div.tile-emoji', '🔁'), el('b', 'Call & Response'), el('span', 'Réponds en rythme au MPC')),
+    el('a.tile', { href: '#/arrange' }, el('div.tile-emoji', '🧱'), el('b', 'Arrangement'), el('span', 'De la boucle au morceau')),
+    el('a.tile', { href: '#/analyze' }, el('div.tile-emoji', '🎧'), el('b', 'Analyse'), el('span', 'Dissèque un morceau de référence')),
     el('a.tile', { href: '#/synth' }, el('div.tile-emoji', '🔊'), el('b', 'Synthé'), el('span', 'Sound design façon Serum')),
     el('a.tile', { href: '#/ear' }, el('div.tile-emoji', '👂'), el('b', 'Oreille'), el('span', '5 entraînements')),
     el('a.tile', { href: '#/atlas' }, el('div.tile-emoji', '🗺️'), el('b', 'Atlas'), el('span', '20 styles à explorer')),
@@ -125,11 +130,27 @@ export function render(root, params) {
     el('ul.clean', later.slice(0, 4).map((m) => el('li', el('a', { href: `#/studio?mission=${m.id}` }, m.title), el('span.muted.small', ` · ${m.min} min`)))),
     later.length > 4 ? el('a.small', { href: '#/studio' }, 'Tout voir →') : null) : null;
 
+  // ---- Programme 4 semaines & révisions
+  const cur = currentDay(s);
+  const info = cur < PROGRAM_DAYS ? dayInfo(cur) : null;
+  const doneToday = Object.values(s.program.done).includes(d);
+  const programCard = card(
+    el('div.row.between', el('h3', '📅 Programme 4 semaines'), el('span.small.muted', `${Object.keys(s.program.done).length}/${PROGRAM_DAYS}`)),
+    info
+      ? el('p', `${info.w.emoji} Semaine ${info.week + 1} « ${info.w.theme} » · ${info.isProject ? 'mini-projet' : `jour ${info.day + 1}`}${doneToday ? ' — ✅ fait aujourd’hui' : ''}`)
+      : el('p', '🏆 Programme terminé !'),
+    el('div.row.gap.wrap',
+      info && !doneToday ? el('button.btn.small.primary', { onclick: () => startProgramDay(cur) }, info.isProject ? '🏁 Mini-projet' : '▶ Jour du programme') : null,
+      el('a.btn.small', { href: '#/program' }, 'Voir le programme')));
+  const due = dueReviews().length;
+  const reviewCard = due ? card(el('div.row.between', el('h3', `🔁 ${due} révision(s)`), el('a.btn.small.primary', { href: '#/ear?mode=review' }, 'Réviser')),
+    el('p.small.muted', 'Les notions que tu as ratées reviennent au bon moment pour s’ancrer durablement.')) : null;
+
   const habit = HABITS[Math.floor(Date.now() / 86400000) % HABITS.length];
 
   root.append(
     el('div.hero', el('h1', `${hello} 👋`), el('p.sub', `Niveau ${lv} · ${titleFor(lv)} — série de ${s.streak.count || 0} jour(s)`)),
-    el('div.cols', el('div', sessCard, questCard), el('div', genreCard, laterCard, card(el('h3', '🧭 Habitude de producteur'), el('p', habit)))),
+    el('div.cols', el('div', sessCard, programCard, reviewCard, questCard), el('div', genreCard, laterCard, card(el('h3', '🧭 Habitude de producteur'), el('p', habit)))),
     el('h3', { style: { margin: '6px 0 8px' } }, 'Accès rapide'),
     shortcuts,
   );

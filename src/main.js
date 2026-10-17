@@ -15,15 +15,19 @@ const ROUTES = {
   synth: () => import('./views/synth.js'),
   ear: () => import('./views/ear.js'),
   atlas: () => import('./views/atlas.js'),
+  callresponse: () => import('./views/callresponse.js'),
+  arrange: () => import('./views/arrange.js'),
+  analyze: () => import('./views/analyze.js'),
+  program: () => import('./views/program.js'),
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
   profile: () => import('./views/profile.js'),
 };
 
 const NAV = [
-  { id: 'home', icon: '⚡', label: 'Session' },
-  { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas'] },
-  { id: 'studio', icon: '🎛️', label: 'Studio' },
+  { id: 'home', icon: '⚡', label: 'Session', also: ['program'] },
+  { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange'] },
+  { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
   { id: 'profile', icon: '🏆', label: 'Profil' },
 ];

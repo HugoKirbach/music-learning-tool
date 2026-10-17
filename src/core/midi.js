@@ -35,12 +35,14 @@ function trackData(events) {
  * @param {{bpm:number, tracks:{name:string, channel?:number, notes:{pitch:number,start:number,dur:number,vel?:number}[]}[]}} song
  * @returns {Uint8Array}
  */
-export function buildMidi({ bpm = 120, tracks = [], timeSig = [4, 4] }) {
+export function buildMidi({ bpm = 120, tracks = [], timeSig = [4, 4], markers = [] }) {
   const mpq = Math.round(60000000 / bpm);
   const tempoTrack = trackData([
     { tick: 0, order: 0, data: [0xff, 0x03, ...vlq(5), ...str('Tempo')] },
     { tick: 0, order: 1, data: [0xff, 0x51, 0x03, (mpq >> 16) & 255, (mpq >> 8) & 255, mpq & 255] },
     { tick: 0, order: 2, data: [0xff, 0x58, 0x04, timeSig[0], Math.log2(timeSig[1]), 24, 8] },
+    // Marqueurs (sections) : visibles dans Live comme repères à l'import
+    ...markers.map((m, i) => { const t = str(m.text); return { tick: Math.round(m.beat * PPQ), order: 3 + i, data: [0xff, 0x06, ...vlq(t.length), ...t] }; }),
   ]);
   const chunks = [chunk('MTrk', tempoTrack)];
   for (const t of tracks) {
@@ -73,20 +75,21 @@ export function parseMidi(bytes) {
   const tracks = [];
   for (let t = 0; t < ntracks; t++) {
     rd(4); const len = num(4); const end = p + len;
-    let tick = 0; const notes = []; const open = {}; let tempo = null;
+    let tick = 0; const notes = []; const open = {}; let tempo = null; const markers = [];
     while (p < end) {
       tick += readVlq();
       const st = bytes[p++];
       if (st === 0xff) {
         const type = bytes[p++]; const l = readVlq(); const d = rd(l);
         if (type === 0x51) tempo = Math.round(60000000 / ((d[0] << 16) | (d[1] << 8) | d[2]));
+        if (type === 0x06) markers.push({ beat: tick / ppq, text: String.fromCharCode(...d) });
       } else if ((st & 0xf0) === 0x90 && bytes[p + 1] > 0) {
         open[bytes[p]] = { pitch: bytes[p], start: tick / ppq, vel: bytes[p + 1] }; p += 2;
       } else if ((st & 0xf0) === 0x80 || (st & 0xf0) === 0x90) {
         const n = open[bytes[p]]; if (n) { n.dur = tick / ppq - n.start; notes.push(n); delete open[bytes[p]]; } p += 2;
       } else p += 2;
     }
-    tracks.push({ notes, tempo });
+    tracks.push({ notes, tempo, markers });
   }
   return { format, ppq, tracks };
 }
