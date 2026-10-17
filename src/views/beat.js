@@ -194,7 +194,7 @@ function freeMode(root, params) {
     loadGenreDrums(v);
     location.hash = `#/beat?genre=${v}&t=${Date.now()}`;
   });
-  const kitSel = select(Object.keys(KITS).map((k) => ({ value: k, label: { club: 'Kit Club', k808: 'Kit 808', acoustic: 'Kit Acoustique', hard: 'Kit Techno' }[k] })), P().kit, (v) => update((s) => { s.project.kit = v; }));
+  const kitSel = select(Object.keys(KITS).map((k) => ({ value: k, label: `🥁 ${KITS[k].name}` })), P().kit, (v) => update((s) => { s.project.kit = v; }));
 
   let rewarded = false;
   root.append(

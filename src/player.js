@@ -1,5 +1,5 @@
 // Lecture d'une idée complète (batterie + accords + basse + mélodie) via le transport.
-import { transport, playDrum, playSynth, ensureAudio, now } from './core/audio.js';
+import { transport, playDrum, playSynth, ensureAudio, now, setPump } from './core/audio.js';
 import { eventsAt, voiceProgression } from './core/arrange.js';
 import { PRESETS } from './data/presets.js';
 
@@ -31,10 +31,11 @@ export function playProject(getProject, opts = {}) {
 
 /** Joue les événements d'un pas (batterie, accords, basse, mélodie). Renvoie la dernière note de basse (glide). */
 export function playEvents(p, ev, time, stepDur, on = { drums: true, chords: true, bass: true, melody: true }, lastBass = null) {
+  setPump(p.pump ?? 0);
   if (on.drums) ev.drums.forEach((d) => playDrum(d.id, time, d.vel, p.kit));
   if (on.chords) {
     const pr = presetParams(p.sounds.chords);
-    ev.chords.forEach((c) => c.notes.forEach((n) => playSynth(pr, n, time, c.len * stepDur * 0.95, 0.6, { send: 0.3 })));
+    ev.chords.forEach((c) => c.notes.forEach((n) => playSynth(pr, n, time, c.len * stepDur * 0.95, 0.6)));
   }
   if (on.bass) {
     const pr = presetParams(p.sounds.bass);
@@ -45,7 +46,7 @@ export function playEvents(p, ev, time, stepDur, on = { drums: true, chords: tru
   }
   if (on.melody) {
     const pr = presetParams(p.sounds.lead);
-    ev.melody.forEach((m) => playSynth(pr, m.note, time, m.len * stepDur * 0.9, 0.8, { send: 0.25 }));
+    ev.melody.forEach((m) => playSynth(pr, m.note, time, m.len * stepDur * 0.9, 0.8));
   }
   return lastBass;
 }

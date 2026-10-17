@@ -69,7 +69,11 @@ Les fichiers `.mid` sont multipistes (Drums, Accords, Basse, Mélodie) au tempo 
 ## Technique
 
 - **PWA sans dépendance ni build** : HTML/CSS/JavaScript (modules ES). Un seul code pour mobile et PC ; installable, hors-ligne (service worker).
-- **Audio** : Web Audio API, tout est synthétisé en temps réel (batterie, synthé polyphonique, reverb à convolution), séquenceur à *lookahead* pour un timing précis.
+- **Audio** : Web Audio API, tout est synthétisé en temps réel, sans échantillon :
+  - **6 kits de batterie** (909, 808, techno avec rumble, acoustique, lo-fi, minimal) : kicks à enveloppe de pitch + click + saturation, snares à 2 tons, **hats métalliques** (6 oscillateurs inharmoniques façon 808/909), percussions (rim, cowbell, conga, tom) ;
+  - **25 sons** en 4 familles (Keys, Pads, Leads, Basses) avec recette Serum 2 : e-piano FM, orgue house, strings, chœur, hoover, marimba, basses Moog / FM / wobble / 808… Unison **stéréo**, FM, filtre 12/24 dB, enveloppe de pitch, couche de bruit ;
+  - **chaîne master** : sidechain (pompe réglable), compresseur glue, saturation douce, limiteur ; **effets en envoi** : réverbe (pré-délai, amortissement), delay ping-pong synchronisé, chorus stéréo ;
+  - séquenceur à *lookahead* pour un timing précis.
 - **MIDI** : Web MIDI API (entrée), écriture de fichiers SMF type 1 (sortie).
 - **Données** : `localStorage` + export/import JSON.
 

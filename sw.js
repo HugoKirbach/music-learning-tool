@@ -1,5 +1,5 @@
 // Service worker : app utilisable hors-ligne (stale-while-revalidate sur les fichiers de l'app).
-const CACHE = 'beatforge-v5';
+const CACHE = 'beatforge-v6';
 const SHELL = [
   './', './index.html', './styles.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './src/main.js', './src/ui.js', './src/store.js', './src/player.js', './src/midiin.js',

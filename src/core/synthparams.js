@@ -1,4 +1,5 @@
 // Définition des paramètres du synthé (UI générique, correspondance Serum 2, comparaison de sons). Module pur.
+import { withDefaults } from '../data/presets.js';
 
 export const WAVES = [
   { value: 'sawtooth', label: 'Saw' }, { value: 'square', label: 'Carré' },
@@ -12,8 +13,13 @@ export const PARAMS = [
   { id: 'wave2', group: 'Oscillateurs', label: 'Osc B', path: 'osc.1.wave', options: WAVES, serum: 'Osc B : forme', explain: 'Un 2e oscillateur ajoute de la couleur (souvent à l’octave).' },
   { id: 'semi2', group: 'Oscillateurs', label: 'Osc B demi-tons', path: 'osc.1.semi', min: -24, max: 24, step: 1, serum: 'Osc B : OCT / SEMI', explain: '+12 = octave au-dessus, +7 = quinte (son « power »).' },
   { id: 'level2', group: 'Oscillateurs', label: 'Osc B niveau', path: 'osc.1.level', min: 0, max: 1, step: 0.01, serum: 'Osc B : LEVEL', explain: '' },
+  { id: 'fmIndex', group: 'Oscillateurs', label: 'FM quantité', path: 'fm.index', min: 0, max: 6, step: 0.05, serum: 'Osc A Warp « FM (from B) » (quantité)', explain: 'Modulation de fréquence : ajoute des harmoniques métalliques ou « tine » (e-piano, cloches, basses FM).' },
+  { id: 'fmRatio', group: 'Oscillateurs', label: 'FM ratio', path: 'fm.ratio', min: 0.5, max: 8, step: 0.5, serum: 'Osc B : Coarse (ratio de fréquence du modulateur)', explain: 'Ratio entier = son harmonique (piano, orgue). Ratio non entier = cloche, métal.' },
+  { id: 'width', group: 'Oscillateurs', label: 'Largeur stéréo', path: 'width', min: 0, max: 1, step: 0.01, serum: 'Osc A : STEREO (largeur de l’unison)', explain: 'Répartit les voix d’unison à gauche et à droite. Garde les basses étroites (mono) !' },
+  { id: 'noise', group: 'Oscillateurs', label: 'Bruit', path: 'noise', min: 0, max: 0.3, step: 0.005, serum: 'Oscillateur NOISE (niveau)', explain: 'Un peu de bruit = souffle, air, attaque plus « vivante ».' },
   { id: 'sub', group: 'Oscillateurs', label: 'Sub', path: 'sub', min: 0, max: 1, step: 0.01, serum: 'SUB (sinus une octave sous)', explain: 'Ajoute du poids dans le grave sans salir le reste.' },
   { id: 'ftype', group: 'Filtre', label: 'Type', path: 'filter.type', options: [{ value: 'lowpass', label: 'Passe-bas' }, { value: 'highpass', label: 'Passe-haut' }, { value: 'bandpass', label: 'Passe-bande' }], serum: 'FILTER : MG Low 12/24, High, Band', explain: 'Passe-bas = retire les aigus (le plus utilisé).' },
+  { id: 'slope', group: 'Filtre', label: 'Pente', path: 'filter.slope', options: [{ value: 12, label: '12 dB' }, { value: 24, label: '24 dB' }], serum: 'Type de filtre : Low 12 / Low 24 (MG Low 24 = ladder Moog)', explain: '24 dB coupe plus franchement : plus « analogique » et gras. 12 dB est plus doux et ouvert.' },
   { id: 'cutoff', group: 'Filtre', label: 'Cutoff', path: 'filter.cutoff', min: 40, max: 16000, log: true, unit: 'Hz', serum: 'FILTER : CUTOFF', explain: 'Fréquence de coupure : plus bas = plus sombre / étouffé.' },
   { id: 'q', group: 'Filtre', label: 'Résonance', path: 'filter.q', min: 0.1, max: 20, log: true, serum: 'FILTER : RES', explain: 'Accentue la fréquence de coupure : son « acid », sifflant.' },
   { id: 'envAmt', group: 'Filtre', label: 'Env → Cutoff', path: 'filter.envAmt', min: 0, max: 5, step: 0.1, unit: 'oct', serum: 'ENV 2 glissé sur CUTOFF (quantité)', explain: 'L’enveloppe ouvre le filtre à chaque note : c’est ce qui fait un pluck ou un stab.' },
@@ -26,6 +32,9 @@ export const PARAMS = [
   { id: 'lfoRate', group: 'LFO & FX', label: 'LFO vitesse', path: 'lfo.rate', min: 0.1, max: 12, log: true, unit: 'Hz', serum: 'LFO 1 : RATE (ou BPM sync)', explain: '' },
   { id: 'lfoDepth', group: 'LFO & FX', label: 'LFO quantité', path: 'lfo.depth', min: 0, max: 1, step: 0.01, serum: 'Quantité dans la Matrix', explain: '' },
   { id: 'glide', group: 'LFO & FX', label: 'Glide', path: 'glide', min: 0, max: 0.3, step: 0.005, unit: 's', serum: 'PORTA (+ mode Mono / Legato)', explain: 'Glissement de hauteur entre deux notes (acid, 808).' },
+  { id: 'chorus', group: 'LFO & FX', label: 'Chorus', path: 'chorus', min: 0, max: 1, step: 0.01, serum: 'FX : CHORUS (Mix)', explain: 'Double le son avec un léger désaccord mouvant : largeur et douceur (pads, e-piano, années 80).' },
+  { id: 'delay', group: 'LFO & FX', label: 'Delay', path: 'delay', min: 0, max: 1, step: 0.01, serum: 'FX : DELAY Ping-Pong 1/8 pointé (Mix)', explain: 'Échos synchronisés au tempo (croche pointée) : donne de l’espace et du rythme aux plucks et leads.' },
+  { id: 'reverb', group: 'LFO & FX', label: 'Reverb', path: 'reverb', min: 0, max: 1, step: 0.01, serum: 'FX : REVERB (Mix)', explain: 'L’espace. Beaucoup sur les pads, peu (ou pas) sur les basses.' },
   { id: 'drive', group: 'LFO & FX', label: 'Drive', path: 'drive', min: 0, max: 1, step: 0.01, serum: 'FX : DISTORTION', explain: 'Saturation : ajoute des harmoniques et de l’agressivité.' },
 ];
 
@@ -47,7 +56,7 @@ export function setPath(obj, path, val) {
 
 /** Garantit la présence d'un Osc B (niveau 0 si absent) pour l'interface. */
 export function normalizeParams(p) {
-  const c = JSON.parse(JSON.stringify(p));
+  const c = withDefaults(p);
   if (!c.osc[1]) c.osc[1] = { wave: 'sawtooth', semi: 12, voices: 1, detune: 0, level: 0 };
   return c;
 }

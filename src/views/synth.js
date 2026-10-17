@@ -1,6 +1,6 @@
 import { el, card, header, segmented, select, slider, hintBox, finishExercise, toast, modal } from '../ui.js';
 import { getState, update, level } from '../store.js';
-import { PRESETS, makePreset } from '../data/presets.js';
+import { PRESETS, makePreset, presetOptions } from '../data/presets.js';
 import { PARAMS, paramById, getPath, setPath, normalizeParams, norm, fromNorm, similarity, formatParam, CHALLENGE_VALUES } from '../core/synthparams.js';
 import { playSynth, ensureAudio, now, transport } from '../core/audio.js';
 import { midiToName } from '../core/theory.js';
@@ -185,7 +185,7 @@ function freeMode(root, params) {
     },
   }, '🔁 Riff test');
 
-  const presetSel = select(Object.entries(PRESETS).map(([k, x]) => ({ value: k, label: `${x.name} (${{ chords: 'accords', lead: 'lead', bass: 'basse' }[x.role]})` })), presetId, (v) => {
+  const presetSel = select(presetOptions(), presetId, (v) => {
     presetId = v; p = normalizeParams(PRESETS[v].params); renderControls(); renderSerum(); phrase(p, 0.05, PRESETS[v].role === 'bass' ? 36 : 48);
   });
 

@@ -5,7 +5,7 @@ export const GENRES = [
   {
     id: 'house', name: 'House', emoji: '🏠', family: 'Électro', bpm: 124, swing: 0.08,
     rootPc: 9, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 2 }, { deg: 6 }],
-    chordStyle: 'stab', bassStyle: 'offbeat', sounds: { chords: 'stab', bass: 'pluckbass', lead: 'pluck' },
+    chordStyle: 'stab', bassStyle: 'offbeat', sounds: { chords: 'organ', bass: 'moogbass', lead: 'pluck' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: '.o.o.o.o.o.o.o.o', ohat: '..x...x...x...x.', perc: '......x.....o..x' },
     desc: 'Né à Chicago dans les 80s. Kick à chaque temps (four-on-the-floor), clap sur 2 et 4, hat ouvert à contretemps.',
     signature: ['Hat ouvert sur les contretemps', 'Accords « stab » joués entre les kicks', 'Basse qui répond au kick (offbeat)'],
@@ -19,7 +19,7 @@ export const GENRES = [
   {
     id: 'deephouse', name: 'Deep House', emoji: '🌊', family: 'Électro', bpm: 120, swing: 0.16,
     rootPc: 2, scale: 'dorian', prog: [{ deg: 0 }, { deg: 3 }, { deg: 0 }, { deg: 6 }],
-    chordStyle: 'stab', bassStyle: 'syncop', sounds: { chords: 'piano', bass: 'sub', lead: 'bell' },
+    chordStyle: 'stab', bassStyle: 'syncop', sounds: { chords: 'epiano', bass: 'fmbass', lead: 'bell' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'o.o.o.o.o.o.o.oo', ohat: '..x...x...x...x.', perc: 'x..o..x...o..x..' },
     desc: 'House plus lente, chaude et jazzy : accords de 7e/9e, mode dorien, groove swingué.',
     signature: ['Accords m7 / m9 (active « Extensions »)', 'Mode dorien : la 6te majeure donne la couleur', 'Swing marqué sur les percus'],
@@ -33,7 +33,7 @@ export const GENRES = [
   {
     id: 'techno', name: 'Techno', emoji: '⚙️', family: 'Électro', bpm: 130, swing: 0,
     rootPc: 4, scale: 'phrygian', prog: [{ deg: 0 }, { deg: 0 }, { deg: 1 }, { deg: 0 }],
-    chordStyle: 'oneshot', bassStyle: 'rolling', sounds: { chords: 'stab', bass: 'reese', lead: 'pluck' },
+    chordStyle: 'oneshot', bassStyle: 'rolling', sounds: { chords: 'stab', bass: 'reese', lead: 'sawlead' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'oo.ooo.ooo.ooo.o', ohat: '..x...x...x...x.', perc: '...x......x..x..' },
     desc: 'Detroit puis Berlin : répétition hypnotique, peu d’harmonie, tout se joue sur le timbre et l’évolution.',
     signature: ['Une seule note/accord qui évolue (filtre, delay)', 'Rumble : kick + reverb filtrée', 'Mode phrygien (b2 sombre)'],
@@ -61,7 +61,7 @@ export const GENRES = [
   {
     id: 'ukg', name: 'UK Garage', emoji: '🇬🇧', family: 'Électro', bpm: 132, swing: 0.3,
     rootPc: 5, scale: 'minor', prog: [{ deg: 0 }, { deg: 3 }, { deg: 5 }, { deg: 4 }],
-    chordStyle: 'stab', bassStyle: 'syncop', sounds: { chords: 'stab', bass: 'pluckbass', lead: 'pluck' },
+    chordStyle: 'stab', bassStyle: 'syncop', sounds: { chords: 'organ', bass: 'fmbass', lead: 'pluck' },
     drums: { kick: 'x.........x.....', clap: '....x.......x...', hat: '..x.o.x...x.o.x.', ohat: '......x.......x.', perc: 'o..x...o..x..o..' },
     desc: '2-step : le kick saute des temps, swing énorme, accords « organ » et voix pitchées.',
     signature: ['Kick qui ne tombe PAS sur chaque temps', 'Swing 55-60 % (MPC)', 'Vocal chops pitchés'],
@@ -89,7 +89,7 @@ export const GENRES = [
   {
     id: 'jungle', name: 'Jungle', emoji: '🌴', family: 'Électro', bpm: 170, swing: 0,
     rootPc: 0, scale: 'minor', prog: [{ deg: 0 }, { deg: 0 }, { deg: 5 }, { deg: 6 }],
-    chordStyle: 'pad', bassStyle: 'long', sounds: { chords: 'pad', bass: 'sub', lead: 'bell' },
+    chordStyle: 'pad', bassStyle: 'long', sounds: { chords: 'stringpad', bass: 'sub', lead: 'hoover' },
     drums: { kick: 'x.x.......xx....', snare: '....x..x.x..x..x', hat: 'x.x.x.x.x.x.x.x.', ohat: '', perc: '..o.....o.....o.' },
     desc: 'Ancêtre de la DnB : break « Amen » découpé, sub énorme, influences reggae/dub.',
     signature: ['Break Amen recoupé', 'Sub-bass longue', 'Samples dub / ragga'],
@@ -103,7 +103,7 @@ export const GENRES = [
   {
     id: 'dubstep', name: 'Dubstep', emoji: '🔊', family: 'Électro', bpm: 140, swing: 0,
     rootPc: 5, scale: 'phrygian', prog: [{ deg: 0 }, { deg: 0 }, { deg: 1 }, { deg: 0 }],
-    chordStyle: 'pad', bassStyle: 'halftime', sounds: { chords: 'pad', bass: 'reese', lead: 'squarelead' },
+    chordStyle: 'pad', bassStyle: 'halftime', sounds: { chords: 'pad', bass: 'wobble', lead: 'squarelead' },
     drums: { kick: 'x..........x....', snare: '........x.......', hat: 'x.o.x.o.x.o.x.o.', ohat: '', perc: '...o......o..o..' },
     desc: 'Half-time à 140 : snare sur le 3e temps, espace énorme, basses wobble ou sub profondes.',
     signature: ['Snare au temps 3 (half-time)', 'Wobble : LFO → cutoff synchronisé', 'Silences et contrastes'],
@@ -159,7 +159,7 @@ export const GENRES = [
   {
     id: 'afrohouse', name: 'Afro House', emoji: '🥁', family: 'Électro', bpm: 122, swing: 0.1,
     rootPc: 7, scale: 'minor', prog: [{ deg: 0 }, { deg: 6 }, { deg: 5 }, { deg: 6 }],
-    chordStyle: 'stab', bassStyle: 'tresillo', sounds: { chords: 'bell', bass: 'sub', lead: 'pluck' },
+    chordStyle: 'stab', bassStyle: 'tresillo', sounds: { chords: 'bell', bass: 'sub', lead: 'marimba' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'o.xo.o.xo.o.xo.o', ohat: '..x.......x.....', perc: 'x..x..x...x..x..' },
     desc: 'House + polyrythmies africaines : percussions en couches, tresillo (3-3-2), chants.',
     signature: ['Percus en 3-3-2 (tresillo)', 'Polyrythmie (cycles de 3 sur 4)', 'Peu d’accords, beaucoup de groove'],
@@ -187,7 +187,7 @@ export const GENRES = [
   {
     id: 'lofi', name: 'Lo-fi Hip-hop', emoji: '📼', family: 'Hors électro', bpm: 82, swing: 0.45,
     rootPc: 5, scale: 'major', prog: [{ deg: 1 }, { deg: 4 }, { deg: 0 }, { deg: 5 }],
-    chordStyle: 'piano', bassStyle: 'long', sounds: { chords: 'piano', bass: 'sub', lead: 'bell' },
+    chordStyle: 'piano', bassStyle: 'long', sounds: { chords: 'epiano', bass: 'sub', lead: 'bell' },
     drums: { kick: 'x.......x.x.....', snare: '....x.......x...', hat: 'x.o.x.o.x.oox.o.', ohat: '', perc: '.......o......o.' },
     desc: 'Boom bap ralenti, swing fort (J Dilla), accords jazz ii–V–I en 7e/9e, son « cassette ».',
     signature: ['Swing / quantize lâche', 'ii–V–I en accords de 7e', 'Saturation, wow & flutter'],
@@ -201,7 +201,7 @@ export const GENRES = [
   {
     id: 'disco', name: 'Nu-Disco', emoji: '🪩', family: 'Électro', bpm: 118, swing: 0.05,
     rootPc: 7, scale: 'major', prog: [{ deg: 0 }, { deg: 5 }, { deg: 1 }, { deg: 4 }],
-    chordStyle: 'stab', bassStyle: 'octave', sounds: { chords: 'stab', bass: 'pluckbass', lead: 'squarelead' },
+    chordStyle: 'stab', bassStyle: 'octave', sounds: { chords: 'stringpad', bass: 'pluckbass', lead: 'squarelead' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx', ohat: '..x...x...x...x.', perc: '' },
     desc: 'Héritière du disco 70s : basse en octaves, hats en doubles-croches, accords funky.',
     signature: ['Basse en octaves', 'I–vi–ii–V', 'Filtre « French touch » sur la boucle'],
@@ -229,7 +229,7 @@ export const GENRES = [
   {
     id: 'ambient', name: 'Ambient', emoji: '☁️', family: 'Électro', bpm: 80, swing: 0,
     rootPc: 0, scale: 'lydian', prog: [{ deg: 0 }, { deg: 1 }, { deg: 4 }, { deg: 5 }],
-    chordStyle: 'pad', bassStyle: 'long', sounds: { chords: 'pad', bass: 'sub', lead: 'bell' },
+    chordStyle: 'pad', bassStyle: 'long', sounds: { chords: 'warmpad', bass: 'sub', lead: 'bell' },
     drums: { kick: 'x.........x.....', snare: '', hat: '', ohat: '', perc: '......o.......o.' },
     desc: 'Texture et espace. Le mode lydien (#4) donne cette sensation de flottement.',
     signature: ['Accord II majeur (lydien)', 'Notes longues, reverb infinie', 'Évolution lente'],
@@ -243,7 +243,7 @@ export const GENRES = [
   {
     id: 'funk', name: 'Funk', emoji: '🕺', family: 'Hors électro', bpm: 104, swing: 0.1,
     rootPc: 4, scale: 'mixolydian', prog: [{ deg: 0 }, { deg: 3 }, { deg: 0 }, { deg: 6 }],
-    chordStyle: 'funk', bassStyle: 'syncop', sounds: { chords: 'stab', bass: 'pluckbass', lead: 'squarelead' },
+    chordStyle: 'funk', bassStyle: 'syncop', sounds: { chords: 'epiano', bass: 'moogbass', lead: 'squarelead' },
     drums: { kick: 'x.x.......x..x..', snare: '....x..o.o..x..o', hat: 'xoxoxoxoxoxoxoxo', ohat: '', perc: '' },
     desc: 'James Brown, « The One » : tout s’appuie sur le premier temps, ghost notes, guitare en 16e.',
     signature: ['Accent sur le 1', 'Ghost notes snare', 'Accords de 7e en coups secs'],
@@ -257,7 +257,7 @@ export const GENRES = [
   {
     id: 'bossa', name: 'Bossa Nova', emoji: '🌴', family: 'Hors électro', bpm: 128, swing: 0,
     rootPc: 2, scale: 'major', prog: [{ deg: 1 }, { deg: 4 }, { deg: 0 }, { deg: 5 }],
-    chordStyle: 'bossa', bassStyle: 'bossa', sounds: { chords: 'piano', bass: 'sub', lead: 'bell' },
+    chordStyle: 'bossa', bassStyle: 'bossa', sounds: { chords: 'epiano', bass: 'sub', lead: 'bell' },
     drums: { kick: 'x..xx..xx..xx..x', snare: '', hat: 'x.x.x.x.x.x.x.x.', ohat: '', perc: 'x..x..x...x..x..' },
     desc: 'Brésil fin 50s : samba ralentie, clave bossa sur le rim, harmonie jazz très riche.',
     signature: ['Clave bossa (3-3-4-3-3)', 'Accords maj7 / m9', 'Basse fondamentale/quinte'],
@@ -271,7 +271,7 @@ export const GENRES = [
   {
     id: 'afrobeats', name: 'Afrobeats', emoji: '🌍', family: 'Hors électro', bpm: 106, swing: 0.12,
     rootPc: 1, scale: 'major', prog: [{ deg: 0 }, { deg: 4 }, { deg: 5 }, { deg: 3 }],
-    chordStyle: 'stab', bassStyle: 'tresillo', sounds: { chords: 'bell', bass: 'bass808', lead: 'pluck' },
+    chordStyle: 'stab', bassStyle: 'tresillo', sounds: { chords: 'epiano', bass: 'bass808', lead: 'marimba' },
     drums: { kick: 'x..x..x.x..x..x.', clap: '....x.......x...', hat: 'xoxxxoxxxoxxxoxx', ohat: '', perc: '...x..x...x...x.' },
     desc: 'Nigeria / Ghana : groove chaloupé, shaker constant, log drums et accords majeurs lumineux.',
     signature: ['Kick tresillo', 'Shaker en doubles-croches', 'Accords pop I–V–vi–IV'],

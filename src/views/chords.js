@@ -4,7 +4,8 @@ import { SCALES, HEPTATONIC, NOTE_NAMES, slotChord, borrowOptions, detectChord, 
 import { CHORD_RHYTHMS, BASS_RHYTHMS, projectToSong, voiceProgression } from '../core/arrange.js';
 import { playProject, previewChord, stopAll, presetParams } from '../player.js';
 import { playSynth, ensureAudio, now } from '../core/audio.js';
-import { PRESETS } from '../data/presets.js';
+import { presetOptions } from '../data/presets.js';
+import { slider } from '../ui.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { onMidi } from '../midiin.js';
 
@@ -163,6 +164,7 @@ export function render(root, params) {
         : el('p.small.muted', 'Cet accord n’est pas dans la gamme (ni dans les emprunts proposés) : change la tonalité ou essaie une autre fondamentale.')));
   }
 
+  const pumpSl = slider({ label: 'Pompe (sidechain)', min: 0, max: 1, step: 0.01, value: P().pump ?? 0, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => update((s) => { s.project.pump = v; }) });
   const tools = card(
     el('div.ctrl-row', play, rootSel, scaleSel),
     el('div.ctrl-row',
@@ -173,14 +175,16 @@ export function render(root, params) {
     ),
     el('div.ctrl-row',
       el('label', 'Rythme'), select(Object.entries(CHORD_RHYTHMS).map(([k, r]) => ({ value: k, label: r.name })), P().chordStyle, (v) => update((s) => { s.project.chordStyle = v; })),
-      el('label', 'Son'), select(Object.entries(PRESETS).filter(([, p]) => p.role !== 'bass').map(([k, p]) => ({ value: k, label: p.name })), P().sounds.chords, (v) => update((s) => { s.project.sounds.chords = v; })),
+      el('label', 'Son'), select(presetOptions((p) => p.role !== 'bass'), P().sounds.chords, (v) => update((s) => { s.project.sounds.chords = v; })),
     ),
     el('div.ctrl-row',
       el('label', 'Basse'), select(Object.entries(BASS_RHYTHMS).map(([k, r]) => ({ value: k, label: r.name })), P().bassStyle, (v) => update((s) => { s.project.bassStyle = v; })),
+      select(presetOptions((p) => p.role === 'bass'), P().sounds.bass, (v) => update((s) => { s.project.sounds.bass = v; })),
       el('label', 'Pistes'), segmented([{ value: 'all', label: 'Tout' }, { value: 'chords', label: 'Accords seuls' }], 'all', (v) => { layers = v === 'all' ? { drums: true, bass: true, melody: false, chords: true } : { drums: false, bass: false, melody: false, chords: true }; }),
     ),
   );
 
+  tools.append(pumpSl, el('p.small.muted', 'Pompe : les accords et la basse « respirent » sur chaque kick, comme un compresseur en sidechain dans Live.'));
   root.append(
     recipe ? card(el('div.lesson', el('div.lesson-title', '🧩 Recette'), el('p', el('b', recipe.text)))) : null,
     card(slotsEl, el('h3', { style: { marginTop: '12px' } }, 'Palette'), borrowWrap, el('div', { style: { height: '8px' } }), palette, info, midiInfo,

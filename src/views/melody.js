@@ -5,7 +5,7 @@ import { MELODY_STEPS, STEPS_PER_BAR, voiceProgression, projectToSong } from '..
 import { analyzeMelody, catchyLabel } from '../core/catchy.js';
 import { playProject, stopAll, previewNote, previewChord, presetParams } from '../player.js';
 import { transport, playSynth, ensureAudio, now as getCtxTime } from '../core/audio.js';
-import { PRESETS } from '../data/presets.js';
+import { presetOptions } from '../data/presets.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { onMidi } from '../midiin.js';
 
@@ -200,7 +200,7 @@ export function render(root, params) {
   });
 
   const durSeg = segmented([{ value: 1, label: '♬ 1/16' }, { value: 2, label: '♪ 1/8' }, { value: 4, label: '♩ 1/4' }, { value: 8, label: '𝅗𝅥 1/2' }], dur, (v) => { dur = v; });
-  const leadSel = select(Object.entries(PRESETS).filter(([, p]) => p.role !== 'bass').map(([k, p]) => ({ value: k, label: p.name })), P().sounds.lead, (v) => update((s) => { s.project.sounds.lead = v; }));
+  const leadSel = select(presetOptions((p) => p.role !== 'bass'), P().sounds.lead, (v) => update((s) => { s.project.sounds.lead = v; }));
   const muteSeg = segmented([{ value: 'all', label: 'Tout' }, { value: 'nodrums', label: 'Sans drums' }, { value: 'solo', label: 'Mélodie seule' }], 'all', (v) => update((s) => {
     s.project.mutes = v === 'all' ? {} : v === 'nodrums' ? { drums: true } : { drums: true, chords: true, bass: true };
   }));
