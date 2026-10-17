@@ -20,7 +20,14 @@
   npm start          # puis ouvre http://localhost:8080
   ```
   Sans Node : `python3 -m http.server 8080` dans le dossier.
-- **MIDI** : branche ton MPC Key 37 en USB, va dans *Profil → Activer le clavier MIDI* (Chrome/Edge). Tu peux alors jouer le synthé, écrire des mélodies pas à pas et faire reconnaître les accords que tu joues. (Android + câble OTG fonctionne aussi ; iOS ne supporte pas Web MIDI.)
+- **MIDI (MPC Key 37)** : branche le MPC en USB sur le PC (port « Computer », mode contrôleur), ouvre l'app dans Chrome ou Edge et clique sur la pastille 🎹 en haut → « Autoriser ». Ensuite c'est **automatique** : l'app se reconnecte au démarrage et détecte les (dé)branchements. Profil → *Clavier MIDI* contient un testeur (note, vélocité, canal, CC) et le guide de branchement. Avec le clavier :
+  - **Lab Synthé** : touches à la vélocité + **potards Q-Link** sur les réglages (CC74 cutoff, CC71 résonance, CC73 attack, CC72 release, CC1 LFO par défaut, tout réassignable par « 🎛️ Assigner un potard »).
+  - **Oreille** (intervalles, accords) : **« Réponds en jouant »**, jouer les bonnes notes valide la réponse.
+  - **Lab Accords** : l'accord joué est reconnu et s'ajoute à la progression en un clic.
+  - **Lab Mélodie** : saisie pas à pas.
+  - **Lab Beat** : les **pads** jouent la batterie (mapping MPC/Drum Rack : 36 kick, 38 snare, 39 clap, 42 hat, 46 hat ouvert…) et **⏺ Rec pads** enregistre en live pendant la lecture.
+  - Ailleurs, le clavier joue un piano.
+  (Android + câble OTG fonctionne aussi ; iOS ne supporte pas Web MIDI.)
 
 ### Synchroniser téléphone ↔ PC
 Pas de compte, tout reste sur l'appareil. *Profil → Exporter* crée un fichier `.json` ; *Importer* sur l'autre appareil.

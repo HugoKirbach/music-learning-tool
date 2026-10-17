@@ -73,16 +73,21 @@ export function keyboard({ base = 48, octaves = 2, onDown, onUp, inScale }) {
 
 function paramControl(def, getP, onChange) {
   if (def.options) {
-    return el('div.ctrl-row', el('label', { style: { width: '92px' } }, def.label),
+    return el('div.ctrl-row', { 'data-param': def.id }, el('label', { style: { width: '92px' } }, def.label),
       segmented(def.options, getPath(getP(), def.path), (v) => { setPath(getP(), def.path, v); onChange(def); }));
   }
   const v = getPath(getP(), def.path);
-  return slider({
+  const sl = slider({
     label: def.label, min: 0, max: 1, step: 0.001, value: norm(def, v),
     format: (x) => formatParam(def, def.step >= 1 ? Math.round(fromNorm(def, x)) : fromNorm(def, x)),
     onInput: (x) => { let val = fromNorm(def, x); if (def.step >= 1) val = Math.round(val); setPath(getP(), def.path, val); onChange(def); },
   });
+  sl.dataset.param = def.id;
+  return sl;
 }
+
+// Potards par défaut (CC standards) ; tout est réassignable par « MIDI learn ».
+const DEFAULT_CC = { 74: 'cutoff', 71: 'q', 73: 'attack', 72: 'release', 1: 'lfoDepth' };
 
 export function render(root, params) {
   const mode = params.mode || 'free';
@@ -109,6 +114,7 @@ function freeMode(root, params) {
       pr ? el('ol.mission-steps', pr.serum.map((s) => el('li', s))) : el('p.muted', 'Son personnalisé : reporte chaque réglage avec la correspondance ci-dessus.'));
   };
   const onChange = (def) => {
+    if (learning) { learnParam = def.id; paintLearn(); }
     explain.replaceChildren(el('div.lesson-title', `🎛️ ${def.label} = ${formatParam(def, getPath(p, def.path))}`), el('p', def.explain || ''), el('p.small', el('b', 'Serum 2 : '), def.serum));
   };
   const renderControls = () => {
@@ -119,9 +125,49 @@ function freeMode(root, params) {
   const start = (m) => { ensureAudio(); const v = playSynth(p, m + octave * 12, now(), null, 0.85, { send: 0.25 }); held.set(m, v); };
   const stop = (m) => { held.get(m)?.release(); held.delete(m); };
   const kb = keyboard({ base: 48, octaves: 2, onDown: start, onUp: stop });
+  // ---------- Potards MIDI (Q-Links du MPC) ----------
+  let learning = false, learnParam = null;
+  const ccMap = () => ({ ...DEFAULT_CC, ...(getState().settings.ccMap || {}) });
+  const learnBox = el('div');
+  const paintLearn = () => {
+    const map = ccMap();
+    learnBox.replaceChildren(
+      learning ? el('div.lesson', el('div.lesson-title', '🎛️ MIDI learn'),
+        el('p', learnParam ? el('span', 'Tourne maintenant un potard pour le lier à ', el('b', paramById(learnParam).label), '.') : 'Touche le réglage à piloter (glisse un curseur), puis tourne un potard du MPC.')) : null,
+      el('p.small.muted', 'Potards : ' + Object.entries(map).map(([cc, id]) => `CC${cc} → ${paramById(id)?.label}`).join(' · ')),
+    );
+  };
+  const learnBtn = el('button.btn.small', {
+    onclick: () => { learning = !learning; learnParam = null; learnBtn.classList.toggle('primary', learning); paintLearn(); },
+  }, '🎛️ Assigner un potard');
+  const applyCc = (id, v) => {
+    const def = paramById(id);
+    const node = controlsEl.querySelector(`[data-param="${id}"]`);
+    if (def.options) {
+      const opt = def.options[Math.min(def.options.length - 1, Math.floor(v * def.options.length))].value;
+      if (getPath(p, def.path) === opt) return;
+      setPath(p, def.path, opt);
+      renderControls();
+    } else if (node) {
+      const input = node.querySelector('input');
+      input.value = v;
+      input.dispatchEvent(new Event('input'));
+    }
+    onChange(def);
+  };
   const offMidi = onMidi({
     noteOn: (n, v) => { ensureAudio(); held.get('m' + n)?.release(); held.set('m' + n, playSynth(p, n, now(), null, v, { send: 0.25 })); kb.light(n, true); },
     noteOff: (n) => { held.get('m' + n)?.release(); held.delete('m' + n); kb.light(n, false); },
+    cc: (cc, v) => {
+      if (learning && learnParam) {
+        update((s) => { s.settings.ccMap = { ...(s.settings.ccMap || {}), [cc]: learnParam }; });
+        toast(`CC${cc} → ${paramById(learnParam).label} 🎛️`, 'good');
+        learnParam = null; learning = false; learnBtn.classList.remove('primary'); paintLearn();
+        return;
+      }
+      const id = ccMap()[cc];
+      if (id) applyCc(id, v);
+    },
   });
 
   let looping = false;
@@ -150,6 +196,9 @@ function freeMode(root, params) {
           kb.node,
           el('div.ctrl-row', el('label', 'Octave'), segmented([{ value: -1, label: '−1' }, { value: 0, label: '0' }, { value: 1, label: '+1' }], 0, (v) => { octave = v; }),
             el('span.small.muted', 'PC : touches A W S E D F T G Y H U J K')),
+          el('div.ctrl-row', learnBtn, el('button.btn.small.ghost', { onclick: () => { update((s) => { s.settings.ccMap = {}; }); paintLearn(); } }, 'Réinitialiser')),
+          learnBox,
+          el('p.small.muted', 'Astuce : lance « 🔁 Riff test » et tourne les potards pour entendre chaque réglage en temps réel.'),
           explain),
         card(serumBox),
       ),
@@ -176,6 +225,7 @@ function freeMode(root, params) {
   }
   renderControls();
   renderSerum();
+  paintLearn();
   return () => { kb.destroy(); offMidi(); transport.stop(); held.forEach((v) => v.release()); };
 }
 

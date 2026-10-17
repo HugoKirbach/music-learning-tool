@@ -51,6 +51,10 @@ p { margin: 6px 0; }
   background: var(--card); border: 1px solid var(--line); color: var(--text);
   border-radius: 999px; padding: 4px 9px; font-size: 13px; font-weight: 600; white-space: nowrap;
 }
+.chip.midi { cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; opacity: .55; }
+.chip.midi.connected { opacity: 1; border-color: var(--good); color: var(--good); }
+.chip.midi.denied { opacity: 1; border-color: var(--bad); }
+@media (max-width: 420px) { .chip.midi.connected { max-width: 46px; overflow: hidden; } .chip.lvl .mini-bar { display: none; } }
 .chip.streak { filter: grayscale(1); opacity: .7; }
 .chip.streak.lit { filter: none; opacity: 1; border-color: #ff8a3d; }
 .mini-bar { display: inline-block; width: 34px; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-left: 4px; }

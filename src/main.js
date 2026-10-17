@@ -1,8 +1,10 @@
 // Point d'entrée : routeur à base de hash, barre de statut, navigation, onboarding.
-import { el, clear, modal, segmented } from './ui.js';
+import { el, clear, modal, segmented, toast } from './ui.js';
 import { getState, subscribe, update, today } from './store.js';
 import { levelFromXp, dayKey } from './core/progress.js';
-import { transport, ensureAudio, setVolume } from './core/audio.js';
+import { transport, ensureAudio, setVolume, playSynth, now } from './core/audio.js';
+import { autoEnableMidi, enableMidi, midiStatus, midiStatusText, onMidiStatus, onDeviceChange, setMidiFallback, midiSupported } from './midiin.js';
+import { presetParams } from './player.js';
 
 const ROUTES = {
   home: () => import('./views/home.js'),
@@ -55,8 +57,41 @@ function renderStatus() {
       ring(pct), ` ${t.xp}/${goal}`),
     el('a.chip.lvl', { href: '#/profile', title: `${lv.into}/${lv.needed} XP vers le niveau ${lv.level + 1}` },
       `Niv. ${lv.level}`, el('span.mini-bar', el('span', { style: { width: `${Math.round(lv.progress * 100)}%` } }))),
+    midiChip,
   ));
 }
+
+// ---------- Clavier MIDI : pastille d'état dans la barre du haut ----------
+const midiChip = el('button.chip.midi', { type: 'button', onclick: () => midiClick() });
+function paintMidiChip(st = midiStatus()) {
+  midiChip.hidden = st.state === 'unsupported';
+  midiChip.className = 'chip midi ' + st.state;
+  midiChip.title = `MIDI : ${midiStatusText(st)}`;
+  midiChip.textContent = st.state === 'connected' ? `🎹 ${shortName(st.devices[0])}` : '🎹';
+}
+function shortName(n = '') {
+  return n.replace(/\s*\(.*\)\s*/g, '').replace(/^(\d+-\s*)/, '').slice(0, 14) || 'MIDI';
+}
+async function midiClick() {
+  if (['off', 'denied'].includes(midiStatus().state)) {
+    ensureAudio();
+    if (!(await enableMidi())) toast('Accès MIDI refusé : autorise-le via l’icône 🔒 de la barre d’adresse', 'bad', 5000);
+    return;
+  }
+  location.hash = '#/profile';
+}
+onMidiStatus(paintMidiChip);
+onDeviceChange((added, removed) => {
+  added.forEach((n) => toast(`🎹 ${n} connecté — joue, l’app t’écoute !`, 'good', 3500));
+  removed.forEach((n) => toast(`🔌 ${n} déconnecté`, 'info', 3000));
+});
+// Sur les écrans sans exercice MIDI, le clavier joue un piano (pour s'échauffer les doigts).
+const fallbackVoices = new Map();
+setMidiFallback({
+  noteOn: (n, v) => { ensureAudio(); fallbackVoices.get(n)?.release(); fallbackVoices.set(n, playSynth(presetParams('piano'), n, now(), null, v, { send: 0.2 })); },
+  noteOff: (n) => { fallbackVoices.get(n)?.release(); fallbackVoices.delete(n); },
+});
+paintMidiChip();
 
 function ring(p) {
   const r = 7, c = 2 * Math.PI * r;
@@ -130,6 +165,7 @@ subscribe(renderStatus);
 renderStatus();
 route();
 onboarding();
+if (midiSupported()) autoEnableMidi();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

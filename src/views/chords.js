@@ -2,7 +2,8 @@ import { el, card, header, segmented, select, hintBox, finishExercise, downloadM
 import { getState, update, projectFromGenre } from '../store.js';
 import { SCALES, HEPTATONIC, NOTE_NAMES, slotChord, borrowOptions, detectChord, romanFor, mod } from '../core/theory.js';
 import { CHORD_RHYTHMS, BASS_RHYTHMS, projectToSong, voiceProgression } from '../core/arrange.js';
-import { playProject, previewChord, stopAll } from '../player.js';
+import { playProject, previewChord, stopAll, presetParams } from '../player.js';
+import { playSynth, ensureAudio, now } from '../core/audio.js';
 import { PRESETS } from '../data/presets.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { onMidi } from '../midiin.js';
@@ -59,7 +60,7 @@ export function render(root, params) {
   const slotsEl = el('div.slots');
   const palette = el('div.palette');
   const info = el('p.small.muted');
-  const midiInfo = el('div');
+  const midiInfo = el('div', el('p.small.muted', '🎹 Avec ton MPC Key 37 branché : joue un accord, il est reconnu et tu peux l’ajouter à la progression.'));
 
   const voiced = () => voiceProgression(P());
 
@@ -119,17 +120,47 @@ export function render(root, params) {
     renderBorrow(); renderAll();
   });
 
-  // Détection d'accords au clavier MIDI
+  // Clavier MIDI : joue avec le son des accords, reconnaît l'accord et permet de l'ajouter à la progression.
+  const voices = new Map();
   const offMidi = onMidi({
-    noteOn: (n, v, held) => showDetected(held),
-    noteOff: (n, held) => { if (held.length === 0) return; showDetected(held); },
+    noteOn: (n, v, held) => {
+      ensureAudio();
+      voices.get(n)?.release();
+      voices.set(n, playSynth(presetParams(P().sounds.chords), n, now(), null, v, { send: 0.3 }));
+      showDetected(held);
+    },
+    noteOff: (n, held) => { voices.get(n)?.release(); voices.delete(n); if (held.length) showDetected(held); },
   });
+  /** Retrouve le degré (diatonique ou emprunté) correspondant à un accord joué. */
+  function slotFor(d) {
+    const p = P();
+    const fam = (q) => (q === 'dom' ? 'maj' : q);
+    for (const mode of [undefined, ...borrowOptions(p.scale)]) {
+      for (let deg = 0; deg < 7; deg++) {
+        const c = slotChord(p.rootPc, p.scale, { deg, mode }, 3);
+        if (c.rootPc === d.rootPc && fam(c.quality?.q) === fam(d.quality.q)) return mode ? { deg, mode } : { deg };
+      }
+    }
+    return null;
+  }
   function showDetected(held) {
     if (held.length < 3) return;
     const d = detectChord(held);
     if (!d) { midiInfo.replaceChildren(el('p.small.muted', 'Accord non reconnu — essaie une triade ou une 7e.')); return; }
     const roman = romanFor(P().rootPc, d.rootPc, d.quality, P().scale);
-    midiInfo.replaceChildren(el('div.lesson', el('div.lesson-title', '🎹 Accord joué'), el('p', el('b', d.symbol), ` — ${d.quality.label} — ${roman} en ${NOTE_NAMES[P().rootPc]}`)));
+    const slot = slotFor(d);
+    midiInfo.replaceChildren(el('div.lesson', el('div.lesson-title', '🎹 Accord joué'),
+      el('p', el('b', d.symbol), ` — ${d.quality.label} — ${roman} en ${NOTE_NAMES[P().rootPc]}`),
+      slot
+        ? el('button.btn.small.primary', {
+          onclick: () => {
+            update((s) => { s.project.chords[sel] = slot; });
+            toast(`${d.symbol} → accord ${sel + 1}`, 'good');
+            sel = (sel + 1) % 4;
+            renderSlots();
+          },
+        }, `➕ Mettre en accord ${sel + 1}`)
+        : el('p.small.muted', 'Cet accord n’est pas dans la gamme (ni dans les emprunts proposés) : change la tonalité ou essaie une autre fondamentale.')));
   }
 
   const tools = card(
@@ -188,5 +219,5 @@ export function render(root, params) {
       }, '✓ Valider la recette')) : el('a.btn.wide', { href: '#/melody' }, '→ Écrire une mélodie par-dessus'),
   );
   renderAll();
-  return () => { stopAll(); offMidi(); };
+  return () => { stopAll(); offMidi(); voices.forEach((x) => x.release()); };
 }

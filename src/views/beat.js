@@ -3,9 +3,10 @@ import { getState, update, level } from '../store.js';
 import { DRUM_ROWS, STEPS, VEL, gridFromPatterns, emptyGrid, cloneGrid, compareGrids, euclid, countHits, shiftRow } from '../core/rhythm.js';
 import { transport, playDrum, kitForGenre, KITS } from '../core/audio.js';
 import { GENRES, genreById } from '../data/genres.js';
+import { onMidi, drumForNote } from '../midiin.js';
 
 // ---------- Grille réutilisable ----------
-export function drumGrid({ getGrid, onChange, locked = [], hidden = [], onLabel }) {
+export function drumGrid({ getGrid, onChange, locked = [], hidden = [], onLabel, getKit = () => getState().project.kit }) {
   const wrap = el('div.seq');
   const cells = {};
   const ph = [];
@@ -44,12 +45,34 @@ export function drumGrid({ getGrid, onChange, locked = [], hidden = [], onLabel 
       });
     }
   };
-  let lastPh = -1;
+  let lastPh = -1, lastPhAt = 0;
   const setPlayhead = (s) => {
     if (lastPh >= 0) ph[lastPh].classList.remove('on');
     if (s >= 0) ph[s].classList.add('on');
     lastPh = s;
+    lastPhAt = performance.now();
   };
+
+  // Pads du MPC (ou tout clavier MIDI) : jouent la batterie ; en « Rec » pendant la lecture, écrivent dans la grille.
+  let rec = false;
+  const recBtn = el('button.btn.small', {
+    title: 'Lance la lecture, active Rec et joue aux pads : chaque coup est quantifié à la double-croche la plus proche.',
+    onclick: () => { rec = !rec; recBtn.classList.toggle('primary', rec); recBtn.textContent = rec ? '⏺ Rec pads : ON' : '⏺ Rec pads'; },
+  }, '⏺ Rec pads');
+  const offMidi = onMidi({
+    noteOn: (n, v) => {
+      const id = drumForNote(n);
+      if (!id || hidden.includes(id)) return;
+      playDrum(id, 0, Math.max(0.25, v), getKit());
+      if (!rec || !transport.playing || lastPh < 0 || locked.includes(id)) return;
+      const stepMs = (60000 / transport.bpm) / 4;
+      const step = (lastPh + (performance.now() - lastPhAt > stepMs / 2 ? 1 : 0)) % STEPS;
+      const g = getGrid();
+      g[id][step] = v < 0.45 ? 2 : 1;
+      paint();
+      onChange?.(g);
+    },
+  });
   const setFeedback = (target) => {
     const g = getGrid();
     for (const id of Object.keys(cells)) {
@@ -60,7 +83,7 @@ export function drumGrid({ getGrid, onChange, locked = [], hidden = [], onLabel 
     }
   };
   paint();
-  return { node: wrap, paint, setPlayhead, setFeedback };
+  return { node: wrap, paint, setPlayhead, setFeedback, recBtn, destroy: offMidi };
 }
 
 export function playGrid(grid, { bpm, swing, kit, onVisual, bars = 0 }) {
@@ -176,7 +199,7 @@ function freeMode(root, params) {
   let rewarded = false;
   root.append(
     card(
-      el('div.ctrl-row', play, genreSel, kitSel),
+      el('div.ctrl-row', play, genreSel, kitSel, g.recBtn),
       slider({ label: 'Tempo', min: 60, max: 180, value: P().bpm, format: (v) => `${v} BPM`, onInput: (v) => { update((s) => { s.project.bpm = v; }); transport.bpm = v; } }),
       slider({ label: 'Swing', min: 0, max: 0.6, step: 0.01, value: P().swing, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => { update((s) => { s.project.swing = v; }); transport.swing = v; } }),
       g.node,
@@ -210,7 +233,7 @@ function freeMode(root, params) {
       el('p.small', el('b', 'Live 12 : '), genre.tips.ableton), el('p.small', el('b', 'MPC : '), genre.tips.mpc),
       el('a.btn.small', { href: '#/melody' }, '→ Ajouter accords et mélodie')),
   );
-  return () => transport.stop();
+  return () => { transport.stop(); g.destroy(); };
 }
 
 function loadGenreDrums(id) {
@@ -246,8 +269,8 @@ function earMode(root, genre, lv) {
   const hidden = DRUM_ROWS.map((r) => r.id).filter((id) => !nonEmpty.includes(id));
   let hintUsed = false, checks = 0, best = 0;
 
-  const g = drumGrid({ getGrid: () => user, locked: given, hidden, onChange: () => g.setFeedback(null) });
   const kit = kitForGenre(genre.id);
+  const g = drumGrid({ getGrid: () => user, locked: given, hidden, onChange: () => g.setFeedback(null), getKit: () => kit });
   const stopAllBtns = () => { tBtn.reset(); uBtn.reset(); g.setPlayhead(-1); };
   const tBtn = playButton(() => { uBtn.reset(); playGrid(() => target, { bpm: genre.bpm, swing: genre.swing, kit, onVisual: g.setPlayhead }); }, () => { transport.stop(); stopAllBtns(); }, 'Cible');
   const uBtn = playButton(() => { tBtn.reset(); playGrid(() => user, { bpm: genre.bpm, swing: genre.swing, kit, onVisual: g.setPlayhead }); }, () => { transport.stop(); stopAllBtns(); }, 'Ma version');
@@ -267,7 +290,7 @@ function earMode(root, genre, lv) {
   };
 
   root.append(card(
-    el('div.row.gap.wrap', tBtn, uBtn),
+    el('div.row.gap.wrap', tBtn, uBtn, g.recBtn),
     el('p.small.muted', `${genre.emoji} ${genre.name} · ${genre.bpm} BPM. Les rangées 🔒 sont données. Écoute la cible, reproduis le reste.`),
     scoreLine,
     g.node,
@@ -297,7 +320,7 @@ function earMode(root, genre, lv) {
       el('button.btn.primary', { onclick: finish }, 'Terminer'),
     ),
   ));
-  return () => transport.stop();
+  return () => { transport.stop(); g.destroy(); };
 }
 
 // ---------- Mode contrainte ----------
@@ -307,14 +330,14 @@ function constraintMode(root, genre) {
   const grid = gridFromPatterns(genre.drums);
   const kit = kitForGenre(genre.id);
   let bpm = genre.bpm, swing = genre.swing, hintUsed = false;
-  const g = drumGrid({ getGrid: () => grid, onLabel: (r) => euclidModal(r, grid, () => g.paint()) });
+  const g = drumGrid({ getGrid: () => grid, getKit: () => kit, onLabel: (r) => euclidModal(r, grid, () => g.paint()) });
   const play = playButton(() => playGrid(() => grid, { bpm, swing, kit, onVisual: g.setPlayhead }), () => { transport.stop(); g.setPlayhead(-1); });
   let rating = 2;
 
   root.append(card(
     el('div.lesson', el('div.lesson-title', '🧩 Contrainte'), el('p', el('b', c.text(arg)))),
     el('p.small.muted', `Pars de ce groove ${genre.emoji} ${genre.name} et transforme-le pour respecter la règle — en gardant le feeling du style.`),
-    el('div.ctrl-row', play),
+    el('div.ctrl-row', play, g.recBtn),
     slider({ label: 'Tempo', min: 60, max: 180, value: bpm, format: (v) => `${v} BPM`, onInput: (v) => { bpm = v; transport.bpm = v; } }),
     slider({ label: 'Swing', min: 0, max: 0.6, step: 0.01, value: swing, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => { swing = v; transport.swing = v; } }),
     g.node,
@@ -338,5 +361,5 @@ function constraintMode(root, genre) {
       }, '✓ Valider'),
     ),
   ));
-  return () => transport.stop();
+  return () => { transport.stop(); g.destroy(); };
 }

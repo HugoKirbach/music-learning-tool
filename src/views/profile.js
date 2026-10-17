@@ -3,7 +3,10 @@ import { getState, update, exportBackup, importBackup, resetAll } from '../store
 import { levelFromXp, titleFor, SKILLS, BADGES, dayKey } from '../core/progress.js';
 import { GENRES } from '../data/genres.js';
 import { setVolume } from '../core/audio.js';
-import { enableMidi, midiStatus, midiSupported, onMidiStatus } from '../midiin.js';
+import { enableMidi, midiStatus, midiStatusText, midiSupported, onMidiStatus, onMidi, drumForNote } from '../midiin.js';
+import { midiToName } from '../core/theory.js';
+import { playSynth, ensureAudio, now } from '../core/audio.js';
+import { presetParams } from '../player.js';
 
 export function render(root) {
   const s = getState();
@@ -20,8 +23,26 @@ export function render(root) {
     heat.appendChild(el('div', { title: `${dayKey(d)} : ${xp} XP`, style: { background: xp ? `rgba(179,136,255,${0.25 + a * 0.75})` : '' } }));
   }
 
-  const midiLine = el('span.small.muted', midiSupported() ? `MIDI : ${midiStatus()}` : 'Web MIDI non supporté par ce navigateur (utilise Chrome/Edge sur PC ou Android).');
-  const offStatus = onMidiStatus((st) => { midiLine.textContent = `MIDI : ${st}`; });
+  const midiLine = el('p.small');
+  const midiBtn = el('button.btn.small', { onclick: async () => { ensureAudio(); await enableMidi(); } }, '🔌 Activer le clavier MIDI');
+  const paintMidi = (st) => {
+    midiLine.replaceChildren(el('b', st.state === 'connected' ? '🟢 ' : st.state === 'nodevice' ? '🟡 ' : '⚪ '), `MIDI : ${midiStatusText(st)}`);
+    midiBtn.hidden = st.state === 'connected' || st.state === 'unsupported';
+  };
+  paintMidi(midiStatus());
+  const offStatus = onMidiStatus(paintMidi);
+  const tester = el('p.small.muted', 'Testeur : joue une touche, un pad ou tourne un potard.');
+  const voices = new Map();
+  const offTest = onMidi({
+    noteOn: (n, v, _h, ch) => {
+      ensureAudio();
+      voices.set(n, playSynth(presetParams('piano'), n, now(), null, v, { send: 0.2 }));
+      const d = drumForNote(n);
+      tester.replaceChildren('🎹 ', el('b', midiToName(n)), ` — note ${n}, vélocité ${Math.round(v * 127)}, canal ${ch + 1}${d ? ` · pad → ${d}` : ''}`);
+    },
+    noteOff: (n) => { voices.get(n)?.release(); voices.delete(n); },
+    cc: (c, v, ch) => { tester.replaceChildren('🎛️ ', el('b', `CC ${c}`), ` = ${Math.round(v * 127)} (canal ${ch + 1}) — assignable dans le Lab Synthé`); },
+  });
 
   const fileIn = el('input', {
     type: 'file', accept: 'application/json,.json', style: { display: 'none' },
@@ -63,8 +84,16 @@ export function render(root) {
           slider({ label: 'Volume', min: 0, max: 1, step: 0.01, value: s.settings.volume, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => { setVolume(v); update((st) => { st.settings.volume = v; }); } }),
           el('div.ctrl-row', el('label', 'Objectif / jour'), segmented([{ value: 100, label: '100' }, { value: 150, label: '150' }, { value: 250, label: '250' }, { value: 400, label: '400' }], s.settings.dailyGoal, (v) => update((st) => { st.settings.dailyGoal = v; }))),
           el('div.ctrl-row', el('label', 'Indices'), segmented([{ value: 'auto', label: 'Auto (disparaissent niv. 6)' }, { value: 'on', label: 'Toujours' }, { value: 'off', label: 'Jamais' }], s.settings.hints, (v) => update((st) => { st.settings.hints = v; }))),
-          el('div.ctrl-row', el('button.btn.small', { onclick: () => enableMidi() }, '🔌 Activer le clavier MIDI'), midiLine),
-          el('p.small.muted', 'Branche ton MPC Key 37 en USB (mode contrôleur MIDI). Sur Android : câble USB-C OTG + Chrome.'),
+          el('h3', { style: { marginTop: '12px' } }, '🎹 Clavier MIDI (MPC Key 37)'),
+          midiLine, el('div.ctrl-row', midiBtn), tester,
+          el('details', el('summary', 'Brancher le MPC Key 37 au PC'),
+            el('ol.clean.small',
+              el('li', 'Câble USB du port « Computer » du MPC vers le PC. Allume le MPC.'),
+              el('li', 'Sur le MPC : Menu → Mode contrôleur (« Controller Mode ») pour qu’il se comporte comme un clavier MIDI.'),
+              el('li', 'Ouvre BeatForge dans Chrome ou Edge (ou l’app installée), clique sur 🎹 en haut puis « Autoriser ».'),
+              el('li', 'C’est tout : l’app se reconnecte seule ensuite, même si tu débranches / rebranches.'),
+              el('li', 'Si Ableton est ouvert, il peut partager le clavier ; sous Windows, ferme Live si le MPC n’apparaît pas.')),
+            el('p.small.muted', 'Où ça sert : Lab Synthé (touches + potards Q-Link), quiz d’Oreille (réponds en jouant), Lab Accords (reconnaissance d’accords), Lab Mélodie (saisie pas à pas), Lab Beat (pads → batterie, enregistrement live).')),
         ),
         card(el('h3', '💾 Sauvegarde & synchro'),
           el('p.small.muted', 'Tes données restent sur cet appareil. Pour passer du téléphone au PC : exporte ici, importe là-bas.'),
@@ -81,5 +110,5 @@ export function render(root) {
       ),
     ),
   );
-  return () => offStatus();
+  return () => { offStatus(); offTest(); voices.forEach((x) => x.release()); };
 }

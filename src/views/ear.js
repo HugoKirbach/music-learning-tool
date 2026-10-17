@@ -1,4 +1,4 @@
-import { el, card, header, finishExercise, shuffle } from '../ui.js';
+import { el, card, header, finishExercise, shuffle, toast } from '../ui.js';
 import { update, level } from '../store.js';
 import { INTERVALS, midiToName, slotChord, voiceLead, mod, detectChord } from '../core/theory.js';
 import { gridFromPatterns, DRUM_ROWS, VEL } from '../core/rhythm.js';
@@ -8,7 +8,7 @@ import { GENRES } from '../data/genres.js';
 import { PRESETS } from '../data/presets.js';
 import { paramById, getPath, setPath, normalizeParams, CHALLENGE_VALUES } from '../core/synthparams.js';
 import { phrase, keyboard } from './synth.js';
-import { onMidi } from '../midiin.js';
+import { onMidi, midiStatus } from '../midiin.js';
 
 const MODES = {
   intervals: { name: 'Intervalles', emoji: '📏', skill: 'oreille', desc: 'Distance entre deux notes : la base pour relever des mélodies.' },
@@ -173,7 +173,7 @@ function intervalLabel(a, b) {
  * Clavier pour chercher les notes avant de répondre : affiche les notes jouées,
  * l'intervalle entre les deux dernières et l'accord formé (notes tenues ou tapées rapidement).
  */
-function practicePad(mode, getQ) {
+function practicePad(mode, getQ, onFound) {
   const info = el('div.lesson', el('div.lesson-title', '🎹 Cherche au clavier'),
     el('p.small.muted', mode === 'intervals'
       ? 'Rejoue la 1re note, puis cherche la 2e. L’app te dit l’intervalle que tu viens de jouer.'
@@ -201,7 +201,23 @@ function practicePad(mode, getQ) {
     const d = detectChord(group);
     out.replaceChildren(el('span', `${names(group)} = `, el('b', d ? `${d.symbol} (${d.quality.label})` : 'accord non reconnu')));
   };
-  const push = (m) => { recent.push({ m, t: performance.now() }); if (recent.length > 8) recent.shift(); analyze(); };
+  // « Réponds en jouant » : jouer les bonnes notes valide la réponse (activé d'office avec un clavier MIDI).
+  let playToAnswer = midiStatus().state === 'connected';
+  const check = () => {
+    const q = getQ();
+    if (!playToAnswer || !q || !q.notes) return;
+    if (mode === 'intervals') {
+      const last = recent.slice(-2).map((r) => r.m);
+      if (last.length === 2 && mod(last[0], 12) === mod(q.notes[0], 12) && last[1] - last[0] === q.notes[1] - q.notes[0]) onFound();
+      return;
+    }
+    const t = performance.now();
+    const pressed = [...held.keys()].filter((k) => typeof k === 'number').concat([...midiHeld]);
+    const group = pressed.length >= 2 ? pressed : recent.filter((r) => t - r.t < 1600).map((r) => r.m);
+    const pcs = (arr) => [...new Set(arr.map((x) => mod(x, 12)))].sort((a, b) => a - b).join();
+    if (pcs(group) === pcs(q.notes)) onFound();
+  };
+  const push = (m) => { recent.push({ m, t: performance.now() }); if (recent.length > 8) recent.shift(); analyze(); check(); };
 
   const kb = keyboard({
     base: 48, octaves: 2,
@@ -225,7 +241,11 @@ function practicePad(mode, getQ) {
   }, '🎯 Rejouer la 1re note');
   const clearBtn = el('button.btn.small.ghost', { onclick: () => { recent.length = 0; analyze(); } }, 'Effacer');
 
-  const node = el('div', { style: { marginTop: '14px' } }, info, el('div.row.gap.wrap', firstBtn, clearBtn), out, kb.node);
+  const playBtn = el('button.btn.small' + (playToAnswer ? '.primary' : ''), {
+    onclick: () => { playToAnswer = !playToAnswer; playBtn.classList.toggle('primary', playToAnswer); playBtn.textContent = playToAnswer ? '🎹 Réponds en jouant : ON' : '🎹 Réponds en jouant'; },
+    title: mode === 'intervals' ? 'Joue les deux notes (1re note dans n’importe quelle octave) pour répondre' : 'Joue l’accord (n’importe quel renversement) pour répondre',
+  }, playToAnswer ? '🎹 Réponds en jouant : ON' : '🎹 Réponds en jouant');
+  const node = el('div', { style: { marginTop: '14px' } }, info, el('div.row.gap.wrap', firstBtn, playBtn, clearBtn), out, kb.node);
   return {
     node,
     /** Après la réponse : montre (et rejoue) les notes de la question sur le clavier. */
@@ -250,7 +270,11 @@ export function render(root, params) {
   let q = null, answered = false;
   const progress = el('div.quiz-progress');
   const body = el('div');
-  const pad = ['intervals', 'chords'].includes(mode) ? practicePad(mode, () => q) : null;
+  const pad = ['intervals', 'chords'].includes(mode) ? practicePad(mode, () => q, () => {
+    if (answered) return;
+    const b = [...body.querySelectorAll('.answer')].find((x) => x.dataset.v === String(q.answer));
+    if (b) { toast('🎹 Trouvé au clavier !', 'good'); b.click(); }
+  }) : null;
 
   const drawProgress = () => {
     progress.replaceChildren(...Array.from({ length: n }, (_, i) => el('span' + (results[i] === true ? '.ok' : results[i] === false ? '.ko' : i === idx ? '.cur' : ''))));
