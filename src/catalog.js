@@ -14,6 +14,7 @@ export const SCREENS = [
   { id: 'basslab', fam: 'create', href: '#/basslab', emoji: '🎸', name: 'Labo de basse', desc: 'Ta basse critiquée comme par un prof, et 3 variantes.' },
   { id: 'hum', fam: 'create', href: '#/hum', emoji: '🎤', name: 'Fredonne → MIDI', desc: 'Chante ou siffle une idée : elle devient des notes.' },
   { id: 'rush', fam: 'ear', href: '#/rush', emoji: '🎹', name: 'Piano Rush', desc: 'Les notes tombent, joue-les en rythme : 19 niveaux de la ronde au jazz, théorie + pratique.' },
+  { id: 'pads', fam: 'ear', href: '#/pads', emoji: '🔲', name: 'Pad Rush', desc: 'Finger drumming sur tes pads (2×4 ou 4×4) : grooves, vélocité, roulements, défi à l’oreille.' },
   { id: 'ear', fam: 'ear', href: '#/ear', emoji: '👂', name: 'Quiz d’oreille', desc: 'Intervalles, accords, progressions, styles, paramètres, révisions.' },
   { id: 'callresponse', fam: 'ear', href: '#/callresponse', emoji: '🔁', name: 'Call & Response', desc: 'L’app joue une phrase, tu réponds en rythme (clavier, pads, MPC).' },
   { id: 'synth', fam: 'sound', href: '#/synth', emoji: '🔊', name: 'Lab Synthé', desc: 'Synthé décodé pour Serum 2, son mystère, potards MIDI.' },

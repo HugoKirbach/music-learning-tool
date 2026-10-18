@@ -66,14 +66,16 @@ export function mergeStates(local, remote) {
     done: { ...(pa.done || {}), ...(pb.done || {}) },
   };
 
-  const ra = local.rush || {}, rb = remote.rush || {};
-  if (local.rush || remote.rush) {
+  // Jeux (Piano Rush, Pad Rush) : meilleurs scores et répétitions au maximum, réglages du plus récent.
+  for (const key of ['rush', 'pads']) {
+    const ra = local[key] || {}, rb = remote[key] || {};
+    if (!local[key] && !remote[key]) continue;
     const best = { ...(ra.best || {}) };
     for (const [k, v] of Object.entries(rb.best || {})) {
       const o = best[k];
       best[k] = !o ? v : { stars: maxNum(o.stars, v.stars), acc: maxNum(o.acc, v.acc) };
     }
-    out.rush = { ...(older.rush || {}), ...(newer.rush || {}), best, learn: maxMap(ra.learn, rb.learn) };
+    out[key] = { ...(older[key] || {}), ...(newer[key] || {}), best, learn: maxMap(ra.learn, rb.learn) };
   }
   out.settings = { ...(older.settings || {}), ...(newer.settings || {}), onboarded: !!(local.settings?.onboarded || remote.settings?.onboarded) };
   out.updatedAt = Math.max(local.updatedAt || 0, remote.updatedAt || 0);

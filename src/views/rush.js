@@ -632,7 +632,7 @@ export function render(root, params = {}) {
 
     const timing = Math.abs(r.meanOffMs) < 15 ? 'Pile dans le temps en moyenne, bravo.'
       : `Tu joues en moyenne ${Math.abs(r.meanOffMs)} ms ${r.meanOffMs < 0 ? 'en avance : écoute le clic et attends-le' : 'en retard : anticipe un peu, appuie quand la tuile touche la ligne'}.`;
-    const tips = [timing];
+    const tips = r.perfect + r.good ? [timing] : [];
     if (r.shortHolds) tips.push(`${r.shortHolds} note${r.shortHolds > 1 ? 's' : ''} tenue${r.shortHolds > 1 ? 's' : ''} relâchée${r.shortHolds > 1 ? 's' : ''} trop tôt : compte la durée jusqu’au bout de la tuile.`);
     if (r.weakBars.length && r.miss) tips.push(`Mesures à retravailler : ${r.weakBars.join(', ')}.`);
     if (r.wrong > 3) tips.push(`${r.wrong} fausses notes : regarde le nom sur la tuile et la touche qui s’allume avant d’appuyer.`);

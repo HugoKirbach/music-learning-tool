@@ -467,6 +467,26 @@ export function playDrum(id, time, vel = 1, kitId = 'club', outNode = null) {
       percVoice(kit.perc, time, out);
       break;
     }
+    case 'rim': case 'tom': case 'cowbell': case 'conga': {
+      percVoice(id, time, out);
+      break;
+    }
+    case 'shaker': {
+      const n = noise(time, 0.1);
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 6500; bp.Q.value = 1.1;
+      const g = ctx.createGain(); env(g.gain, time, 0.32, 0.004, 0.07);
+      const pan = ctx.createStereoPanner(); pan.pan.value = 0.3;
+      n.connect(bp).connect(g).connect(pan).connect(out);
+      break;
+    }
+    case 'crash': {
+      const n = noise(time, 1.8);
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 4200;
+      const g = ctx.createGain(); env(g.gain, time, 0.36, 0.002, 1.5);
+      n.connect(hp).connect(g).connect(out);
+      sendTo(g, reverbSend, 0.15);
+      break;
+    }
     default: break;
   }
 }

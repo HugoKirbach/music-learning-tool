@@ -29,6 +29,7 @@ const ROUTES = {
   remix: () => import('./views/remix.js'),
   bilan: () => import('./views/bilan.js'),
   rush: () => import('./views/rush.js'),
+  pads: () => import('./views/pads.js'),
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
   profile: () => import('./views/profile.js'),
@@ -36,7 +37,7 @@ const ROUTES = {
 
 const NAV = [
   { id: 'home', icon: '⚡', label: 'Session', also: ['program'] },
-  { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush'] },
+  { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads'] },
   { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
   { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan'] },
@@ -105,7 +106,7 @@ function paintMidiChip(st = midiStatus()) {
   midiChip.hidden = st.state === 'unsupported';
   midiChip.className = 'chip midi ' + st.state;
   midiChip.title = `MIDI : ${midiStatusText(st)}`;
-  midiChip.textContent = st.state === 'connected' ? `🎹 ${shortName(st.devices[0])}` : '🎹';
+  midiChip.replaceChildren('🎹', st.state === 'connected' ? el('span.chip-label', ` ${shortName(st.devices[0])}`) : '');
 }
 function shortName(n = '') {
   return n.replace(/\s*\(.*\)\s*/g, '').replace(/^(\d+-\s*)/, '').slice(0, 14) || 'MIDI';
