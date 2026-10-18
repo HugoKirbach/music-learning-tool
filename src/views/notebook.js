@@ -52,7 +52,7 @@ export function render(root) {
           el('button.btn.small.ghost', {
             onclick: () => {
               if (!confirm('Supprimer cet élément ?')) return;
-              update((s) => { s.notebook = s.notebook.filter((n) => n.id !== it.id); });
+              update((s) => { s.notebook = s.notebook.filter((n) => n.id !== it.id); s.deleted = [...(s.deleted || []), it.id].slice(-300); });
               draw();
             },
           }, '🗑'),

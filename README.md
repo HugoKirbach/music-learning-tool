@@ -30,7 +30,8 @@
   (Android + câble OTG fonctionne aussi ; iOS ne supporte pas Web MIDI.)
 
 ### Synchroniser téléphone ↔ PC
-Pas de compte, tout reste sur l'appareil. *Profil → Exporter* crée un fichier `.json` ; *Importer* sur l'autre appareil.
+- **Compte (facultatif, gratuit)** : *Profil → Compte & synchro* → « Continuer avec Google » ou e-mail + mot de passe, avec le même compte sur chaque appareil. La progression est sauvegardée en ligne (Firebase) quelques secondes après chaque changement, récupérée à l'ouverture, et reste utilisable hors-ligne. Si deux appareils ont été modifiés, les données sont **fusionnées** (XP, jours, badges, carnet, records Piano Rush réunis ; idée en cours et réglages du plus récent). Pastille ☁️ en haut = état de la synchro. Sur iPhone (app installée), préfère l'e-mail : la fenêtre Google peut y être bloquée.
+- **Sans compte** : *Profil → Exporter* crée un fichier `.json` ; *Importer* sur l'autre appareil.
 
 ---
 
@@ -88,7 +89,7 @@ Les fichiers `.mid` sont multipistes (Drums, Accords, Basse, Mélodie) au tempo 
   - **chaîne master** : sidechain (pompe réglable), compresseur glue, saturation douce, limiteur ; **effets en envoi** : réverbe (pré-délai, amortissement), delay ping-pong synchronisé, chorus stéréo ;
   - séquenceur à *lookahead* pour un timing précis.
 - **MIDI** : Web MIDI API (entrée), écriture de fichiers SMF type 1 (sortie).
-- **Données** : `localStorage` + export/import JSON.
+- **Données** : `localStorage` (hors-ligne) + compte facultatif Firebase Auth / Firestore (SDK chargé à la demande, 1 document par utilisateur, règles : chacun n'accède qu'à son document) + export/import JSON.
 
 ```
 index.html, styles.css, sw.js, manifest.webmanifest

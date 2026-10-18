@@ -83,7 +83,8 @@ export function getState() {
   return state;
 }
 
-export function save() {
+export function save({ touch = true } = {}) {
+  if (touch) state.updatedAt = Date.now();
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { console.warn(e); }
   listeners.forEach((l) => l(state));
 }
@@ -198,6 +199,13 @@ export function importBackup(json) {
   localStorage.setItem(KEY, JSON.stringify(s));
   state = load();
   save();
+}
+
+/** Remplace tout l'état (synchro cloud). touch=false : ne compte pas comme une modification locale. */
+export function replaceState(s, { touch = false } = {}) {
+  localStorage.setItem(KEY, JSON.stringify(s));
+  state = load();
+  save({ touch });
 }
 
 export function resetAll() {

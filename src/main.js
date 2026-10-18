@@ -7,6 +7,7 @@ import { autoEnableMidi, enableMidi, midiStatus, midiStatusText, onMidiStatus, o
 import { presetParams } from './player.js';
 import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
 import { pushRecent } from './catalog.js';
+import { cloudWanted, startCloud, onCloud, cloudStatus } from './cloud.js';
 import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
 const ROUTES = {
@@ -75,9 +76,20 @@ function renderStatus() {
       ring(pct), ` ${t.xp}/${goal}`),
     el('a.chip.lvl', { href: '#/profile', title: `${lv.into}/${lv.needed} XP vers le niveau ${lv.level + 1}` },
       `Niv. ${lv.level}`, el('span.mini-bar', el('span', { style: { width: `${Math.round(lv.progress * 100)}%` } }))),
+    cloudChip(),
     midiChip,
   ));
 }
+
+// ---------- Compte : pastille ☁️ (seulement si un compte est connecté) ----------
+const CLOUD_ICON = { syncing: '🔄', loading: '⏳', pending: '⏳', synced: '☁️', offline: '📴', error: '⚠️' };
+function cloudChip() {
+  const st = cloudStatus();
+  if (!st.user && !['loading', 'error', 'offline'].includes(st.state)) return null;
+  if (!st.user && !cloudWanted()) return null;
+  return el('a.chip.cloud.' + st.state, { href: '#/profile', title: `Compte : ${st.state}` }, CLOUD_ICON[st.state] || '☁️');
+}
+onCloud(() => renderStatus());
 
 // ---------- Clavier MIDI : pastille d'état dans la barre du haut ----------
 const midiChip = el('button.chip.midi', { type: 'button', onclick: () => midiClick() });
@@ -194,6 +206,7 @@ renderStatus();
 route();
 onboarding();
 if (midiSupported()) autoEnableMidi();
+if (cloudWanted()) startCloud();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

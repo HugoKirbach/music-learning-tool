@@ -7,6 +7,7 @@ import { enableMidi, midiStatus, midiStatusText, midiSupported, onMidiStatus, on
 import { midiToName } from '../core/theory.js';
 import { playSynth, ensureAudio, now } from '../core/audio.js';
 import { presetParams } from '../player.js';
+import { accountCard } from './account.js';
 
 export function render(root) {
   const s = getState();
@@ -44,6 +45,7 @@ export function render(root) {
     cc: (c, v, ch) => { tester.replaceChildren('🎛️ ', el('b', `CC ${c}`), ` = ${Math.round(v * 127)} (canal ${ch + 1}) — assignable dans le Lab Synthé`); },
   });
 
+  const acct = accountCard();
   const fileIn = el('input', {
     type: 'file', accept: 'application/json,.json', style: { display: 'none' },
     onchange: async (e) => {
@@ -79,6 +81,7 @@ export function render(root) {
           el('div.passport', GENRES.map((g) => el('a.stamp' + (s.genres[g.id] ? '.got' : ''), { href: `#/atlas?g=${g.id}` }, el('span.se', g.emoji), g.name)))),
       ),
       el('div',
+        acct.node,
         card(el('h3', `🎖️ Badges (${Object.keys(s.badges).length}/${BADGES.length})`),
           el('div.badges', BADGES.map((b) => el('div.badge' + (s.badges[b.id] ? '' : '.locked'), { title: b.desc }, el('span.be', b.emoji), el('b', b.name), el('div.muted', b.desc))))),
         card(el('h3', '⚙️ Réglages'),
@@ -98,8 +101,8 @@ export function render(root) {
               el('li', 'Si Ableton est ouvert, il peut partager le clavier ; sous Windows, ferme Live si le MPC n’apparaît pas.')),
             el('p.small.muted', 'Où ça sert : Lab Synthé (touches + potards Q-Link), quiz d’Oreille (réponds en jouant), Lab Accords (reconnaissance d’accords), Lab Mélodie (saisie pas à pas), Lab Beat (pads → batterie, enregistrement live).')),
         ),
-        card(el('h3', '💾 Sauvegarde & synchro'),
-          el('p.small.muted', 'Tes données restent sur cet appareil. Pour passer du téléphone au PC : exporte ici, importe là-bas.'),
+        card(el('h3', '💾 Sauvegarde en fichier'),
+          el('p.small.muted', 'Sans compte : exporte un fichier ici et importe-le sur l’autre appareil. Utile aussi comme copie de secours.'),
           el('div.row.gap.wrap',
             el('button.btn.small', { onclick: () => download(`beatforge-sauvegarde-${dayKey()}.json`, exportBackup(), 'application/json') }, '⬇ Exporter'),
             el('button.btn.small', { onclick: () => fileIn.click() }, '⬆ Importer'), fileIn,
@@ -109,9 +112,9 @@ export function render(root) {
             el('li', el('b', 'Android (Chrome) : '), 'menu ⋮ → « Installer l’application ».'),
             el('li', el('b', 'iPhone (Safari) : '), 'Partager → « Sur l’écran d’accueil ».'),
             el('li', el('b', 'PC (Chrome / Edge) : '), 'icône d’installation dans la barre d’adresse. Fonctionne hors-ligne.')),
-          el('p.small.muted', 'BeatForge — tout est généré en temps réel par le navigateur (Web Audio), aucun compte requis.')),
+          el('p.small.muted', 'BeatForge — tout est généré en temps réel par le navigateur (Web Audio), compte facultatif.')),
       ),
     ),
   );
-  return () => { offStatus(); offTest(); voices.forEach((x) => x.release()); };
+  return () => { offStatus(); offTest(); acct.destroy(); voices.forEach((x) => x.release()); };
 }
