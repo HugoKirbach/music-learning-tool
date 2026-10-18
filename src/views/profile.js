@@ -59,7 +59,11 @@ export function render(root, params = {}) {
 
   root.append(
     header('🏆 Profil', `${titleFor(lv.level)} — niveau ${lv.level}`, null),
-    el('a.btn.primary.wide', { href: '#/bilan', style: { marginBottom: '12px' } }, '📈 Bilan de la semaine & plan du coach'),
+    el('div.profile-links',
+      el('a.btn.primary', { href: '#/bilan' }, '📈 Bilan & coach'),
+      el('a.btn', { href: '#/skills' }, '🌳 Compétences'),
+      el('a.btn', { href: '#/placement' }, '🧪 Test de la semaine'),
+      el('a.btn', { href: '#/friends' }, '👥 Amis')),
     el('div.cols',
       el('div',
         card(

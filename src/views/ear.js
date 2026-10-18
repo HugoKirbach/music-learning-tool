@@ -49,7 +49,7 @@ const SOUND_Q = {
   sustain: 'Sustain', decay: 'Decay',
 };
 
-function makeQuestion(mode, lv, i, forced = null) {
+export function makeQuestion(mode, lv, i, forced = null) {
   const t = () => now() + 0.08;
   const q = makeQuestionInner(mode, lv, forced, t);
   return { ...q, mode, reviewKey: `${mode}:${q.answer}` };

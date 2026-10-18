@@ -22,10 +22,14 @@ export const SCREENS = [
   { id: 'arrange', fam: 'studio', href: '#/arrange', emoji: '🧱', name: 'Lab Arrangement', desc: 'De la boucle au morceau de 64 mesures.' },
   { id: 'remix', fam: 'studio', href: '#/remix', emoji: '🧬', name: 'Remix ton idée', desc: 'Style, mode, réharmonisation, half-time… développe ton idée.' },
   { id: 'analyze', fam: 'studio', href: '#/analyze', emoji: '🎧', name: 'Analyse de référence', desc: 'BPM, tonalité, structure, extraction basse/lead, recréation Serum.' },
+  { id: 'critique', fam: 'studio', href: '#/critique', emoji: '🩺', name: 'Critique de ma prod', desc: 'Importe ton export Live : 3 actions concrètes pour ton mix et ton arrangement.' },
   { id: 'atlas', fam: 'studio', href: '#/atlas', emoji: '🗺️', name: 'Atlas des styles', desc: '20 styles : ingrédients, références, astuces.' },
   // Écrans hors Labs (utilisés par « Reprendre »)
   { id: 'studio', fam: null, href: '#/studio', emoji: '🎛️', name: 'Studio (missions)', desc: '' },
   { id: 'program', fam: null, href: '#/program', emoji: '📅', name: 'Programme 4 semaines', desc: '' },
+  { id: 'project', fam: null, href: '#/project', emoji: '🏁', name: 'Projet de la semaine', desc: '' },
+  { id: 'placement', fam: null, href: '#/placement', emoji: '🧪', name: 'Test de la semaine', desc: '' },
+  { id: 'skills', fam: null, href: '#/skills', emoji: '🌳', name: 'Arbre de compétences', desc: '' },
   { id: 'bilan', fam: null, href: '#/bilan', emoji: '📈', name: 'Bilan de la semaine', desc: '' },
 ];
 

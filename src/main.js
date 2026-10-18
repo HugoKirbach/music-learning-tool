@@ -34,14 +34,18 @@ const ROUTES = {
   rush: () => import('./views/rush.js'),
   pads: () => import('./views/pads.js'),
   friends: () => import('./views/friends.js'),
+  skills: () => import('./views/skills.js'),
+  placement: () => import('./views/placement.js'),
+  project: () => import('./views/project.js'),
+  critique: () => import('./views/critique.js'),
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
   profile: () => import('./views/profile.js'),
 };
 
 const NAV = [
-  { id: 'home', icon: '⚡', label: 'Session', also: ['program'] },
-  { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads'] },
+  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills'] },
+  { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads', 'critique'] },
   { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
   { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends'] },

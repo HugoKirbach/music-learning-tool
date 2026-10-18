@@ -7,6 +7,7 @@ import { dayKey, titleFor, SKILLS } from '../core/progress.js';
 import { missionById } from '../data/missions.js';
 import { genreById } from '../data/genres.js';
 import { screenById } from '../catalog.js';
+import { placementDue, weekFocus, weekId, projectProgress, PROJECT_STEPS, weekday } from '../core/pedagogy.js';
 
 const HABITS = [
   'Termine avant de perfectionner : une boucle finie vaut 10 idées en cours.',
@@ -27,7 +28,7 @@ export function newSession() {
   const s = getState();
   const d = dayKey();
   const count = (s.sessionCount[d] || 0) + 1;
-  const sess = buildSession(`${d}#${count}`, { skills: s.skills, genres: s.genres, missions: s.missions, level: level(), due: dueReviews().length });
+  const sess = buildSession(`${d}#${count}`, { skills: s.skills, genres: s.genres, missions: s.missions, level: level(), due: dueReviews().length, focus: weekFocus(s) });
   update((st) => {
     st.sessionCount = { [d]: count };
     st.session = { ...sess, day: d, idx: 0, done: sess.steps.map(() => false), finished: false };
@@ -90,6 +91,14 @@ export function render(root, params) {
   const later = (s.later || []).map(missionById).filter(Boolean);
   const dow = new Date().getDay();
   const items = [];
+  if (placementDue(s)) items.push({ emoji: '🧪', title: 'Test de la semaine', text: '5 minutes pour mesurer tes progrès et choisir le focus de tes sessions.', action: el('a.btn.small.primary', { href: '#/placement' }, 'Passer le test'), chip: '🧪 Test de la semaine', href: '#/placement' });
+  const wp = (s.weekProjects || {})[weekId()];
+  if (!wp) items.push({ emoji: '🏁', title: 'Projet de la semaine', text: 'Un morceau construit un peu chaque jour, exporté vers Live dimanche.', action: el('a.btn.small.primary', { href: '#/project' }, 'Démarrer'), chip: '🏁 Projet', href: '#/project' });
+  else if (!wp.finished) {
+    const pr = projectProgress(s, wp);
+    const step = PROJECT_STEPS.find((x) => x.day === weekday()) || PROJECT_STEPS[0];
+    items.push({ emoji: '🏁', title: `Projet : ${wp.title} (${pr.count}/${pr.total})`, text: pr.done[step.id] ? 'L’étape du jour est faite : avance sur une autre si tu veux.' : `Aujourd’hui : ${step.emoji} ${step.title} — ${step.desc}`, action: el('a.btn.small.primary', { href: pr.done[step.id] ? '#/project' : step.route }, pr.done[step.id] ? 'Voir le projet' : 'Y aller'), chip: `🏁 Projet ${pr.count}/${pr.total}`, href: '#/project' });
+  }
   if ([0, 1, 6].includes(dow)) items.push({ emoji: '📈', title: 'Ton bilan de la semaine est prêt', text: 'Tes progrès, tes idées à réécouter et le plan du coach.', action: el('a.btn.small.primary', { href: '#/bilan' }, 'Voir le bilan'), chip: '📈 Bilan', href: '#/bilan' });
   if (info && !doneToday && s.program.startedAt) items.push({ emoji: info.w.emoji, title: `Programme : semaine ${info.week + 1} · ${info.isProject ? 'mini-projet' : `jour ${info.day + 1}`}`, text: `Thème « ${info.w.theme} ».`, action: el('button.btn.small.primary', { onclick: () => startProgramDay(cur) }, '▶ Jour du programme'), chip: '📅 Programme', href: '#/program' });
   if (due) items.push({ emoji: '🔁', title: `${due} révision(s) à faire`, text: 'Les notions ratées reviennent au bon moment pour s’ancrer.', action: el('a.btn.small.primary', { href: '#/ear?mode=review' }, 'Réviser'), chip: `🔁 ${due} révision(s)`, href: '#/ear?mode=review' });

@@ -65,7 +65,8 @@ export function buildSession(seed, profile = {}) {
   const order = ['rythme', 'harmonie', 'melodie', 'sound', 'oreille']
     .map((k) => ({ k, v: (skills[k] || 0) + r() * 60 }))
     .sort((a, b) => a.v - b.v);
-  const focus = order[0].k;
+  // Focus de la semaine (test du lundi) : prioritaire 2 sessions sur 3
+  const focus = profile.focus && r() < 0.67 ? profile.focus : order[0].k;
 
   // Style : 60 % de chances de prendre un style jamais essayé
   const untried = GENRES.filter((g) => !tried[g.id]);

@@ -31,6 +31,31 @@ export function configureAudio({ stable = false } = {}) {
   }
 }
 export const audioMode = () => ({ ...mode });
+
+/**
+ * Rendu hors temps réel (export audio) : tout le moteur est reconstruit sur un OfflineAudioContext le temps
+ * de programmer les sons, puis l'état temps réel est remis en place avant le calcul.
+ * schedule(t0) programme les sons à partir de t0 (secondes). Renvoie un AudioBuffer stéréo 44,1 kHz.
+ */
+export async function renderOffline(seconds, schedule, { sampleRate = 44100 } = {}) {
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const off = new OAC(2, Math.ceil(seconds * sampleRate), sampleRate);
+  const saved = { ctx, master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain, reverbSend, delaySend, chorusSend, delayL, delayR, noiseBuf, openHat, pump, tempo, volume };
+  const savedShared = new Map(shared), savedVoices = [...voiceList], savedQ = [...cleanupQ];
+  shared.clear(); voiceList.length = 0;
+  try {
+    volume = 0.9;
+    openHat = null;
+    build(off);
+    schedule(0.05);
+  } finally {
+    ({ ctx, master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain, reverbSend, delaySend, chorusSend, delayL, delayR, noiseBuf, openHat, pump, tempo, volume } = saved);
+    shared.clear(); savedShared.forEach((v, k) => shared.set(k, v));
+    voiceList.length = 0; voiceList.push(...savedVoices);
+    cleanupQ.length = 0; cleanupQ.push(...savedQ);
+  }
+  return off.startRendering();
+}
 export function resetAudioStats() { Object.assign(audioStats, { late: 0, stolen: 0, cleaned: 0, maxTickGap: 0, ticks: 0 }); }
 /** Avance de programmation des notes (secondes). */
 export const scheduleAhead = () => (mode.stable ? 0.3 : 0.12);
@@ -78,9 +103,9 @@ export function ensureAudio() {
   return ctx;
 }
 
-function build() {
+function build(existing = null) {
   const AC = window.AudioContext || window.webkitAudioContext;
-  ctx = new AC({ latencyHint: mode.stable ? 'balanced' : 'interactive' });
+  ctx = existing || new AC({ latencyHint: mode.stable ? 'balanced' : 'interactive' });
 
   // ----- Master : filtre d'arrangement → glue → saturation → limiteur → volume
   master = ctx.createGain();

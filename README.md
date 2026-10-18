@@ -111,6 +111,13 @@ npm test        # tests unitaires
 npm run check   # vérification des imports/exports
 ```
 
+## Progresser : compétences, test de la semaine, projet
+
+- **🌳 Arbre de compétences** (Profil, `Maj+T`) : 18 compétences en 5 branches (rythme, harmonie, mélodie & oreille, son & production, autonomie). Chacune se valide par des preuves venant de tous les modules (Piano Rush, Pad Rush, quiz, Labs, missions…).
+- **🧪 Test de la semaine** (chaque lundi, une fois par semaine, ≈ 5 min) : intervalles, accords, progressions, styles, paramètres de son et un test de régularité en rythme. Scores par domaine comparés à la semaine précédente ; le point faible devient le **focus des sessions express** de la semaine.
+- **🏁 Projet de la semaine** : un morceau construit un peu chaque jour (beat, accords, basse, hook, arrangement, son & mix) et exporté vers Live le dimanche : MIDI multipiste et **pistes audio WAV** (batterie, basse, accords, mélodie + mix, dans un ZIP).
+- **🩺 Critique de ma prod** : importe ton export Live (et une référence) → niveau, dynamique, équilibre en 6 bandes, largeur stéréo, contraste de l'arrangement, densité, et les **3 actions prioritaires dans Ableton**. Tout est analysé sur l'appareil.
+
 ## Compte, amis et règles Firebase
 
 - **Compte facultatif** (Profil › Compte & synchro) : progression sauvegardée en ligne et fusionnée entre appareils (fusion à trois voies : une modification faite d'un seul côté n'est jamais écrasée). Le carnet est rangé à part (1 document par idée) et une **sauvegarde par jour** est gardée sur 7 jours, restaurable en un clic.
