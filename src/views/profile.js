@@ -1,5 +1,5 @@
 import { el, card, header, segmented, slider, download, toast } from '../ui.js';
-import { getState, update, exportBackup, importBackup, resetAll } from '../store.js';
+import { getState, update, exportBackup, importBackup, resetAll, snapshotInfo, restoreSnapshot } from '../store.js';
 import { levelFromXp, titleFor, SKILLS, BADGES, dayKey } from '../core/progress.js';
 import { GENRES } from '../data/genres.js';
 import { setVolume } from '../core/audio.js';
@@ -109,7 +109,10 @@ export function render(root, params = {}) {
           el('div.row.gap.wrap',
             el('button.btn.small', { onclick: () => download(`beatforge-sauvegarde-${dayKey()}.json`, exportBackup(), 'application/json') }, '⬇ Exporter'),
             el('button.btn.small', { onclick: () => fileIn.click() }, '⬆ Importer'), fileIn,
-            el('button.btn.small.ghost', { onclick: () => { if (confirm('Tout effacer (XP, carnet, badges) ?')) { resetAll(); location.hash = '#/home'; location.reload(); } } }, '♻️ Réinitialiser'))),
+            el('button.btn.small.ghost', { onclick: () => { if (confirm('Tout effacer (XP, carnet, badges) ?')) { resetAll(); location.hash = '#/home'; location.reload(); } } }, '♻️ Réinitialiser')),
+          snapshotInfo() ? el('p.small.muted', { style: { marginTop: '8px' } },
+            `🛟 Copie de secours locale (${snapshotInfo().reason}, ${new Date(snapshotInfo().at).toLocaleString('fr-FR')}, ${snapshotInfo().xp} XP) `,
+            el('button.btn.small.ghost', { onclick: () => { if (confirm('Revenir à cette copie ? L’état actuel devient à son tour la copie de secours.')) { restoreSnapshot(); toast('Copie restaurée ✅', 'good'); location.hash = '#/home'; } } }, 'Restaurer')) : null),
         card(el('h3', '📲 Installer l’app'),
           el('ul.clean.small',
             el('li', el('b', 'Android (Chrome) : '), 'menu ⋮ → « Installer l’application ».'),

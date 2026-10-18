@@ -1,6 +1,6 @@
 // Compte & synchronisation (Firebase Auth + Firestore). Facultatif : sans compte, l'app reste 100 % locale.
 // Le SDK n'est chargé que si l'utilisateur ouvre le Compte ou s'est déjà connecté sur cet appareil.
-import { getState, subscribe, replaceState } from './store.js';
+import { getState, subscribe, replaceState, snapshot } from './store.js';
 import { mergeStates, isPristine } from './core/merge.js';
 import { el, modal } from './ui.js';
 
@@ -15,6 +15,10 @@ export const FIREBASE_CONFIG = {
 };
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const META_KEY = 'beatforge.cloud';
+// Dernière version synchronisée : sert de point de comparaison pour la fusion à trois voies
+const BASE_KEY = 'beatforge.cloud.base';
+const saveBase = (s) => { try { localStorage.setItem(BASE_KEY, JSON.stringify(s)); } catch (e) { /* stockage plein : fusion sans base */ } };
+const readBase = () => { try { return JSON.parse(localStorage.getItem(BASE_KEY)); } catch (e) { return null; } };
 const PUSH_DELAY = 4000;
 
 let fb = null;
@@ -31,6 +35,11 @@ const readMeta = () => { try { return JSON.parse(localStorage.getItem(META_KEY))
 const writeMeta = (m) => { try { localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (e) { /* stockage plein */ } };
 
 export function onCloud(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+const syncedListeners = new Set();
+/** Appelé après chaque synchro réussie (publication du profil public, amis…). */
+export function onSynced(fn) { syncedListeners.add(fn); return () => syncedListeners.delete(fn); }
+/** Accès au SDK et à l'utilisateur pour les autres modules en ligne (null si pas connecté). */
+export function cloudCtx() { return fb && user ? { F: fb.F, db: fb.db, user } : null; }
 export function cloudStatus() { return { ...status, user, lastSync: readMeta().lastSync || null }; }
 function setStatus(state, error = '') { status = { state, error }; listeners.forEach((f) => f(cloudStatus())); }
 
@@ -70,24 +79,99 @@ async function onAuth(u) {
 }
 
 const docRef = () => fb.F.doc(fb.db, 'users', user.uid);
+const nbCol = () => fb.F.collection(fb.db, 'users', user.uid, 'notebook');
+const backupCol = () => fb.F.collection(fb.db, 'users', user.uid, 'backups');
+const MAX_BACKUPS = 7;
+
+/** Empreinte courte d'un texte (pour savoir quelles idées du carnet ont changé). */
+function hash(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36) + str.length.toString(36);
+}
+const nbHashes = (list = []) => Object.fromEntries(list.map((n) => [String(n.id), hash(JSON.stringify(n))]));
+
+/**
+ * Version en ligne complète. Le carnet est rangé à part (1 document par idée) pour ne jamais
+ * dépasser la limite de 1 Mo par document ; les anciennes sauvegardes (carnet inclus) restent lisibles.
+ */
+async function fullRemote(r) {
+  const s = JSON.parse(r.data);
+  if (r.split) {
+    const snap = await fb.F.getDocs(nbCol());
+    s.notebook = snap.docs.map((d) => JSON.parse(d.data().data)).sort((a, b) => (b.date || 0) - (a.date || 0));
+  }
+  return s;
+}
 
 /** Envoi transactionnel : refusé si la version en ligne a changé depuis la lecture (un autre appareil vient d'écrire). */
 async function push(s, expectedAt) {
   const at = Date.now();
-  const data = JSON.stringify(s);
-  if (data.length > 900000) throw new Error('Sauvegarde trop volumineuse pour la synchro (carnet très rempli ?)');
+  const data = JSON.stringify({ ...s, notebook: [] });
+  if (data.length > 900000) throw new Error('Sauvegarde trop volumineuse pour la synchro');
   await fb.F.runTransaction(fb.db, async (tx) => {
     const cur = await tx.get(docRef());
     const curAt = cur.exists() ? cur.data().updatedAt || 0 : 0;
     if (curAt !== (expectedAt || 0)) { const e = new Error('conflit'); e.code = 'bf-conflict'; throw e; }
-    tx.set(docRef(), { v: 1, data, updatedAt: at, device: navigator.userAgent.slice(0, 120) });
+    tx.set(docRef(), { v: 2, split: true, data, nbCount: (s.notebook || []).length, updatedAt: at, device: navigator.userAgent.slice(0, 120) });
   });
-  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, localAt: s.updatedAt || 0, remoteAt: at, lastSync: Date.now() });
+  // Carnet : on n'envoie que les idées nouvelles ou modifiées, et on supprime celles effacées ici
+  const meta = readMeta();
+  const known = meta.nb || {};
+  const now = nbHashes(s.notebook);
+  for (const n of s.notebook || []) {
+    const id = String(n.id);
+    if (known[id] !== now[id]) await fb.F.setDoc(fb.F.doc(fb.db, 'users', user.uid, 'notebook', id), { data: JSON.stringify(n), date: n.date || 0 });
+  }
+  for (const id of Object.keys(known)) if (!now[id]) await fb.F.deleteDoc(fb.F.doc(fb.db, 'users', user.uid, 'notebook', id));
+  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, localAt: s.updatedAt || 0, remoteAt: at, lastSync: Date.now(), nb: now });
+  saveBase(s);
+  await dailyBackup(s);
 }
 
-function adopt(remoteState, remoteAt) {
-  replaceState(remoteState, { touch: false });
-  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, localAt: getState().updatedAt || 0, remoteAt, lastSync: Date.now() });
+/** remoteNb = carnet tel qu'il est en ligne (pour savoir ensuite ce qui reste à envoyer). */
+function adopt(state, remoteAt, remoteNb) {
+  replaceState(state, { touch: false });
+  saveBase(getState());
+  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, localAt: getState().updatedAt || 0, remoteAt, lastSync: Date.now(), nb: nbHashes(remoteNb) });
+}
+
+// ---------- Historique : une sauvegarde par jour, les 7 dernières sont gardées ----------
+const dayId = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+async function dailyBackup(s) {
+  const meta = readMeta();
+  const today = dayId();
+  if (meta.lastBackup === today) return;
+  let data = JSON.stringify(s), withNotebook = true;
+  if (data.length > 900000) { data = JSON.stringify({ ...s, notebook: [] }); withNotebook = false; }
+  await fb.F.setDoc(fb.F.doc(fb.db, 'users', user.uid, 'backups', today), { data, at: Date.now(), xp: s.xp || 0, withNotebook });
+  const all = (await fb.F.getDocs(backupCol())).docs.map((d) => d.id).sort().reverse();
+  for (const id of all.slice(MAX_BACKUPS)) await fb.F.deleteDoc(fb.F.doc(fb.db, 'users', user.uid, 'backups', id));
+  writeMeta({ ...readMeta(), lastBackup: today });
+}
+
+/** Liste des sauvegardes en ligne (plus récente en premier). */
+export async function listBackups() {
+  if (!fb || !user) return [];
+  const snap = await fb.F.getDocs(backupCol());
+  return snap.docs.map((d) => ({ id: d.id, at: d.data().at, xp: d.data().xp, withNotebook: d.data().withNotebook !== false })).sort((a, b) => b.id.localeCompare(a.id));
+}
+
+/** Revient à une sauvegarde : elle remplace tout (une copie locale de l'état actuel est gardée). */
+export async function restoreBackup(id) {
+  if (!fb || !user) throw new Error('Connecte-toi d’abord');
+  const b = await fb.F.getDoc(fb.F.doc(fb.db, 'users', user.uid, 'backups', id));
+  if (!b.exists()) throw new Error('Sauvegarde introuvable');
+  const st = JSON.parse(b.data().data);
+  if (!b.data().withNotebook) st.notebook = getState().notebook;
+  busy = true;
+  try {
+    snapshot('avant restauration d’une sauvegarde en ligne');
+    const cur = await fb.F.getDoc(docRef());
+    replaceState(st, { touch: true });
+    await push(getState(), cur.exists() ? cur.data().updatedAt || 0 : 0);
+    setStatus('synced');
+  } finally { busy = false; }
 }
 
 /** Récupère la version en ligne, fusionne si les deux ont changé, puis envoie si besoin. */
@@ -101,29 +185,33 @@ export async function sync({ firstLink = false } = {}) {
   try {
     const snap = await fb.F.getDoc(docRef());
     const r = snap.exists() ? snap.data() : null;
-    const remote = r ? JSON.parse(r.data) : null;
     const local = getState();
+    if (firstLink) writeMeta({ ...readMeta(), nb: {} });
     const meta = readMeta();
     const rAt = r ? r.updatedAt || 0 : 0;
-    if (!remote) {
+    if (!r) {
       await push(local, 0);
     } else if (firstLink) {
-      if (isPristine(local)) adopt(remote, r.updatedAt);
-      else if (isPristine(remote)) await push(local, rAt);
+      const remote = await fullRemote(r);
+      if (isPristine(local)) adopt(remote, rAt, remote.notebook);
+      else if (isPristine(remote)) { writeMeta({ ...readMeta(), nb: nbHashes(remote.notebook) }); await push(local, rAt); }
       else {
         const choice = await askMerge();
-        if (choice === 'remote') adopt(remote, r.updatedAt);
-        else { adopt(mergeStates(local, remote), r.updatedAt); await push(getState(), rAt); }
+        if (choice === 'remote') { snapshot('avant de garder seulement le compte'); adopt(remote, rAt, remote.notebook); }
+        else { adopt(mergeStates(local, remote), rAt, remote.notebook); await push(getState(), rAt); }
       }
     } else {
       const localDirty = (local.updatedAt || 0) > (meta.localAt || 0);
-      const remoteChanged = (r.updatedAt || 0) > (meta.remoteAt || 0);
-      if (remoteChanged && !localDirty) adopt(remote, r.updatedAt);
-      else if (remoteChanged && localDirty) { adopt(mergeStates(local, remote), r.updatedAt); await push(getState(), rAt); }
-      else if (localDirty) await push(local, rAt);
+      const remoteChanged = rAt > (meta.remoteAt || 0);
+      if (remoteChanged) {
+        const remote = await fullRemote(r);
+        if (!localDirty) adopt(remote, rAt, remote.notebook);
+        else { adopt(mergeStates(local, remote, readBase()), rAt, remote.notebook); await push(getState(), rAt); }
+      } else if (localDirty) await push(local, rAt);
       else writeMeta({ ...meta, lastSync: Date.now() });
     }
     setStatus('synced');
+    syncedListeners.forEach((f) => { try { f(); } catch (e) { console.warn(e); } });
     conflicts = 0;
   } catch (e) {
     // un autre appareil a écrit entre notre lecture et notre envoi : on relit et on refusionne
@@ -199,6 +287,7 @@ export async function signOutCloud() {
   const { A, auth } = await ready();
   await A.signOut(auth);
   writeMeta({});
+  localStorage.removeItem(BASE_KEY);
   user = null;
   setStatus('off');
 }

@@ -1,0 +1,42 @@
+rules_version = '2';
+// Règles Firestore de BeatForge : à copier dans la console Firebase › Firestore › Règles, puis « Publier ».
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Progression privée : sauvegarde, carnet (1 document par idée), historique des 7 derniers jours
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+      match /{sub=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Profil public (pseudo, niveau, XP, séries, liste d'amis) : visible par les joueurs connectés
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow write: if isOwner(uid) && request.resource.data.pseudo is string && request.resource.data.pseudo.size() <= 20;
+    }
+
+    // Réservation des pseudos (unicité)
+    match /pseudos/{name} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && name.size() <= 20;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Demandes d'amis : lisibles et supprimables par les deux personnes concernées
+    match /requests/{id} {
+      allow read, delete: if signedIn() && (resource.data.to == request.auth.uid || resource.data.from == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.from == request.auth.uid && id == request.resource.data.to + '_' + request.auth.uid;
+    }
+
+    // Défi de la semaine : chacun publie (et modifie) sa propre participation, tout le monde peut écouter
+    match /challenges/{week}/entries/{uid} {
+      allow read: if signedIn();
+      allow write: if isOwner(uid) && request.resource.data.project is string && request.resource.data.project.size() < 60000;
+      allow delete: if isOwner(uid);
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
 import { pushRecent } from './catalog.js';
 import { cloudWanted, startCloud, onCloud, cloudStatus } from './cloud.js';
 import { applyAudioMode } from './audiomode.js';
+import { onSocial } from './social.js';
 applyAudioMode();
 import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
@@ -32,6 +33,7 @@ const ROUTES = {
   bilan: () => import('./views/bilan.js'),
   rush: () => import('./views/rush.js'),
   pads: () => import('./views/pads.js'),
+  friends: () => import('./views/friends.js'),
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
   profile: () => import('./views/profile.js'),
@@ -42,7 +44,7 @@ const NAV = [
   { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads'] },
   { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
-  { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan'] },
+  { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends'] },
 ];
 
 const view = document.getElementById('view');
@@ -218,6 +220,13 @@ route();
 onboarding();
 if (midiSupported()) autoEnableMidi();
 if (cloudWanted()) startCloud();
+// Pseudo : demandé à la 1re connexion (ou au prochain démarrage pour un compte existant), une fois par session.
+let pseudoAsked = false;
+onSocial((p) => {
+  if (!p || p.pseudo || pseudoAsked || !getState().settings.onboarded) return;
+  pseudoAsked = true;
+  import('./views/friends.js').then(({ askPseudo }) => askPseudo());
+});
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

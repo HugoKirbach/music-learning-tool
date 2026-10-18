@@ -6,6 +6,7 @@ import { MELODY_STEPS } from './core/arrange.js';
 import { kitForGenre } from './core/audio.js';
 import { stepMatches } from './core/daily.js';
 import { reviewUpdate, dueItems } from './core/srs.js';
+import { SCHEMA, migrate, looksValid } from './core/schema.js';
 
 const KEY = 'beatforge.v1';
 const listeners = new Set();
@@ -34,7 +35,7 @@ export function projectFromGenre(id) {
 
 function fresh() {
   return {
-    v: 1,
+    v: SCHEMA,
     createdAt: Date.now(),
     xp: 0,
     skills: Object.fromEntries(Object.keys(SKILLS).map((k) => [k, 0])),
@@ -62,6 +63,12 @@ function load() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return fresh();
     const s = JSON.parse(raw);
+    if (!looksValid(s)) throw new Error('format inconnu');
+    if ((s.v || 1) < SCHEMA) {
+      // copie de sécurité avant la mise à jour du format
+      try { localStorage.setItem(`${KEY}.avant-v${SCHEMA}`, raw); } catch (e) { /* stockage plein */ }
+    }
+    migrate(s);
     const f = fresh();
     // fusion défensive (nouvelles clés ajoutées dans des versions futures)
     return {
@@ -72,7 +79,9 @@ function load() {
       project: { ...f.project, ...(s.project || {}) },
     };
   } catch (e) {
-    console.warn('État corrompu, réinitialisation', e);
+    // On ne jette jamais une sauvegarde illisible : elle est gardée à part pour pouvoir la récupérer
+    console.warn('Sauvegarde illisible, mise de côté', e);
+    try { const raw = localStorage.getItem(KEY); if (raw) localStorage.setItem(`${KEY}.illisible`, raw); } catch (err) { /* noop */ }
     return fresh();
   }
 }
@@ -194,8 +203,12 @@ export function exportBackup() {
 }
 
 export function importBackup(json) {
-  const s = JSON.parse(json);
-  if (!s || s.v !== 1 || typeof s.xp !== 'number') throw new Error('Fichier de sauvegarde invalide');
+  let s;
+  try { s = JSON.parse(json); } catch (e) { throw new Error('Fichier de sauvegarde invalide'); }
+  if (!looksValid(s)) throw new Error('Fichier de sauvegarde invalide');
+  if ((s.v || 1) > SCHEMA) throw new Error('Sauvegarde créée par une version plus récente de l’app : mets-la à jour d’abord');
+  snapshot('avant import');
+  migrate(s);
   localStorage.setItem(KEY, JSON.stringify(s));
   state = load();
   save();
@@ -209,6 +222,25 @@ export function replaceState(s, { touch = false } = {}) {
 }
 
 export function resetAll() {
+  snapshot('avant réinitialisation');
   state = fresh();
+  save();
+}
+
+// ---------- Filet de sécurité local : copie de l'état avant toute action qui remplace tout ----------
+const SNAP_KEY = `${KEY}.filet`;
+export function snapshot(reason) {
+  try { localStorage.setItem(SNAP_KEY, JSON.stringify({ at: Date.now(), reason, xp: state.xp, data: state })); } catch (e) { /* stockage plein */ }
+}
+export function snapshotInfo() {
+  try { const s = JSON.parse(localStorage.getItem(SNAP_KEY)); return s ? { at: s.at, reason: s.reason, xp: s.xp } : null; } catch (e) { return null; }
+}
+export function restoreSnapshot() {
+  const s = JSON.parse(localStorage.getItem(SNAP_KEY));
+  if (!s?.data) throw new Error('Aucune copie disponible');
+  const cur = JSON.stringify({ at: Date.now(), reason: 'avant restauration', xp: state.xp, data: state });
+  localStorage.setItem(KEY, JSON.stringify(s.data));
+  localStorage.setItem(SNAP_KEY, cur);
+  state = load();
   save();
 }

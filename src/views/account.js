@@ -1,6 +1,8 @@
 // Carte « Compte & synchro » du Profil.
 import { el, card, toast } from '../ui.js';
-import { onCloud, cloudStatus, signInGoogle, signInEmail, signUpEmail, resetPassword, signOutCloud, sync } from '../cloud.js';
+import { onCloud, cloudStatus, signInGoogle, signInEmail, signUpEmail, resetPassword, signOutCloud, sync, listBackups, restoreBackup } from '../cloud.js';
+import { getMyProfile, onSocial } from '../social.js';
+import { askPseudo } from './friends.js';
 
 const STATE_TXT = {
   loading: '⏳ Connexion au compte…',
@@ -35,13 +37,17 @@ export function accountCard() {
     if (st.user) {
       body.replaceChildren(
         el('div.row.gap', st.user.photo ? el('img.acct-photo', { src: st.user.photo, alt: '', referrerpolicy: 'no-referrer' }) : el('span.acct-photo', '👤'),
-          el('div', el('b', st.user.name || st.user.email), st.user.name ? el('div.small.muted', st.user.email) : null)),
+          el('div', el('b', getMyProfile()?.pseudo || st.user.name || st.user.email), el('div.small.muted', st.user.email))),
+        el('div.row.gap.wrap', { style: { marginTop: '8px' } },
+          el('a.btn.small.primary', { href: '#/friends' }, '👥 Mes amis'),
+          el('button.btn.small', { onclick: () => askPseudo({ current: getMyProfile()?.pseudo || '' }) }, getMyProfile()?.pseudo ? '✏️ Pseudo' : '✏️ Choisir mon pseudo')),
         el('p.acct-status.' + st.state, STATE_TXT[st.state] || '', st.state === 'synced' && st.lastSync ? ` · ${ago(st.lastSync)}` : ''),
         st.error ? el('p.small.bad', st.error) : null,
         el('p.small.muted', 'Ta progression est sauvegardée en ligne et reste aussi sur cet appareil (hors-ligne compris). Connecte-toi avec le même compte sur ton téléphone et ton PC.'),
         el('div.row.gap.wrap',
           el('button.btn.small', { disabled: busy, onclick: () => act(() => sync(), 'Synchronisé ✅') }, '🔄 Synchroniser maintenant'),
           el('button.btn.small.ghost', { disabled: busy, onclick: () => act(() => signOutCloud(), 'Déconnecté : tes données restent sur cet appareil') }, 'Se déconnecter')),
+        backupsBox,
       );
       return;
     }
@@ -63,7 +69,28 @@ export function accountCard() {
     );
   }
 
+  // Historique des sauvegardes en ligne (chargé à l'ouverture)
+  const backupsList = el('div');
+  const backupsBox = el('details.acct-backups', {
+    ontoggle: async (e) => {
+      if (!e.target.open) return;
+      backupsList.replaceChildren(el('p.small.muted', '⏳ Chargement…'));
+      try {
+        const list = await listBackups();
+        backupsList.replaceChildren(...(list.length ? list.map((b) => el('div.friend-req',
+          el('span', `${new Date(b.at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · ${b.xp} XP`, b.withNotebook ? '' : el('small.muted', ' (sans carnet)')),
+          el('button.btn.small', {
+            onclick: () => {
+              if (!confirm(`Revenir à la sauvegarde du ${b.id} ? Ta progression actuelle sera remplacée (une copie locale est gardée).`)) return;
+              act(() => restoreBackup(b.id), 'Sauvegarde restaurée ✅');
+            },
+          }, 'Restaurer'))) : [el('p.small.muted', 'Aucune sauvegarde pour l’instant : la première est créée aujourd’hui à la prochaine synchro.')]));
+      } catch (x) { backupsList.replaceChildren(el('p.small.bad', x.code === 'permission-denied' ? 'Règles Firestore à mettre à jour (voir README).' : x.message)); }
+    },
+  }, el('summary', '🕘 Sauvegardes en ligne (7 derniers jours)'), backupsList);
+
   const off = onCloud(() => paint());
+  const offSocial = onSocial(() => paint());
   paint();
-  return { node, destroy: off };
+  return { node, destroy: () => { off(); offSocial(); } };
 }

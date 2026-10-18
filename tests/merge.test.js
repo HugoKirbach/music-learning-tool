@@ -2,19 +2,19 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mergeStates, isPristine } from '../src/core/merge.js';
 
-const base = () => ({
+const baseState = () => ({
   v: 1, xp: 0, skills: { rythme: 0 }, stats: { exercises: 0 }, streak: { count: 0, last: null, best: 0 }, days: {}, badges: {},
   genres: {}, missions: {}, later: [], notebook: [], project: { genre: 'house' }, settings: { onboarded: false }, review: {},
   program: { startedAt: null, done: {} }, log: [], customDice: [], updatedAt: 0,
 });
 
 test('fusion : rien de gagné n\'est perdu, le reste vient du plus récent', () => {
-  const pc = { ...base(), xp: 300, skills: { rythme: 120 }, updatedAt: 100, project: { genre: 'techno' },
+  const pc = { ...baseState(), xp: 300, skills: { rythme: 120 }, updatedAt: 100, project: { genre: 'techno' },
     days: { '2026-10-17': { xp: 100, sessions: 1, exercises: 3, skills: { rythme: 50 } } },
     badges: { first: '2026-10-10' }, notebook: [{ id: 1, date: 10, title: 'A' }], streak: { count: 3, last: '2026-10-17', best: 3 },
     log: [{ d: '2026-10-17', key: 'beat', xp: 20 }], rush: { best: { lune: { stars: 2, acc: 85 } }, learn: { lune: 3 }, lang: 'fr' },
     program: { startedAt: '2026-10-01', done: { 0: '2026-10-01' } }, settings: { onboarded: true, volume: 0.5 } };
-  const tel = { ...base(), xp: 250, skills: { rythme: 200 }, updatedAt: 200, project: { genre: 'dnb' },
+  const tel = { ...baseState(), xp: 250, skills: { rythme: 200 }, updatedAt: 200, project: { genre: 'dnb' },
     days: { '2026-10-17': { xp: 40, sessions: 2, exercises: 1 }, '2026-10-18': { xp: 60, sessions: 1, exercises: 2 } },
     badges: { first: '2026-10-12', streak3: '2026-10-18' }, notebook: [{ id: 2, date: 20, title: 'B' }], streak: { count: 4, last: '2026-10-18', best: 4 },
     log: [{ d: '2026-10-17', key: 'beat', xp: 20 }, { d: '2026-10-18', key: 'ear', xp: 10 }],
@@ -41,14 +41,29 @@ test('fusion : rien de gagné n\'est perdu, le reste vient du plus récent', () 
 });
 
 test('fusion : une idée supprimée ne revient pas', () => {
-  const a = { ...base(), xp: 10, notebook: [{ id: 1, date: 1 }, { id: 2, date: 2 }], updatedAt: 1 };
-  const b = { ...base(), xp: 10, notebook: [{ id: 2, date: 2 }], deleted: [1], updatedAt: 2 };
+  const a = { ...baseState(), xp: 10, notebook: [{ id: 1, date: 1 }, { id: 2, date: 2 }], updatedAt: 1 };
+  const b = { ...baseState(), xp: 10, notebook: [{ id: 2, date: 2 }], deleted: [1], updatedAt: 2 };
   assert.deepEqual(mergeStates(a, b).notebook.map((x) => x.id), [2]);
 });
 
 test('fusion : un appareil vierge prend tout', () => {
-  const full = { ...base(), xp: 50, updatedAt: 5 };
-  assert.ok(isPristine(base()));
-  assert.equal(mergeStates(base(), full), full);
-  assert.equal(mergeStates(full, base()), full);
+  const full = { ...baseState(), xp: 50, updatedAt: 5 };
+  assert.ok(isPristine(baseState()));
+  assert.equal(mergeStates(baseState(), full), full);
+  assert.equal(mergeStates(full, baseState()), full);
+});
+
+test('fusion à trois voies : une modification d\'un seul côté n\'est jamais écrasée', () => {
+  const base = { ...baseState(), xp: 10, project: { genre: 'house', bpm: 124, melody: [1] }, settings: { onboarded: true, volume: 0.8 }, updatedAt: 1 };
+  const pc = { ...base, project: { ...base.project, bpm: 137 }, updatedAt: 5 };            // le PC change le tempo
+  const tel = { ...base, project: { ...base.project, melody: [2] }, settings: { onboarded: true, volume: 0.3 }, notebook: [{ id: 9, date: 9 }], updatedAt: 6 }; // le téléphone (plus récent) change la mélodie
+  const m = mergeStates(pc, tel, base);
+  assert.equal(m.project.bpm, 137);
+  assert.deepEqual(m.project.melody, [2]);
+  assert.equal(m.settings.volume, 0.3);
+  assert.deepEqual(m.notebook.map((x) => x.id), [9]);
+  // sans base : le plus récent gagne champ par champ quand les deux ont changé
+  const both = mergeStates({ ...pc, project: { ...pc.project, melody: [3] } }, tel, base);
+  assert.deepEqual(both.project.melody, [2]);
+  assert.equal(both.project.bpm, 137);
 });

@@ -111,6 +111,22 @@ npm test        # tests unitaires
 npm run check   # vérification des imports/exports
 ```
 
+## Compte, amis et règles Firebase
+
+- **Compte facultatif** (Profil › Compte & synchro) : progression sauvegardée en ligne et fusionnée entre appareils (fusion à trois voies : une modification faite d'un seul côté n'est jamais écrasée). Le carnet est rangé à part (1 document par idée) et une **sauvegarde par jour** est gardée sur 7 jours, restaurable en un clic.
+- **Pseudo unique** demandé à la première connexion ; **👥 Amis** : demande / acceptation, classement de la semaine (niveau, XP de la semaine, série et record). Seuls ces chiffres et le pseudo sont visibles par tes amis.
+- **Filet de sécurité local** : le format de sauvegarde est versionné (copie automatique avant chaque mise à jour du format), une sauvegarde illisible n'est jamais effacée, et une copie de secours est faite avant toute réinitialisation, import ou restauration.
+- **Règles de sécurité** : le fichier [`firestore.rules`](firestore.rules) est à copier dans *console Firebase › Firestore › Règles* puis **Publier** (à refaire quand il change).
+
+## Tests
+
+```bash
+npm test          # tests unitaires (logique pure)
+npm run e2e       # tests navigateur : tous les écrans PC + mobile, jeux, MIDI simulé, compte et amis (faux Firebase avec les mêmes règles)
+npm run test:all  # tout
+```
+Les tests navigateur demandent Playwright (`npm install --no-save playwright && npx playwright install chromium`). Sur GitHub, ils tournent à chaque push et **bloquent la mise en ligne** s'ils échouent.
+
 ## Mise en ligne (GitHub Pages)
 
 Le workflow `.github/workflows/deploy.yml` lance les tests à chaque push et déploie la branche par défaut sur GitHub Pages.

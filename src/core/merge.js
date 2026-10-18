@@ -31,13 +31,42 @@ export function isPristine(s) {
   return !s || ((s.xp || 0) === 0 && !(s.notebook || []).length && !Object.keys(s.days || {}).length);
 }
 
-export function mergeStates(local, remote) {
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Fusion à trois voies d'une valeur « non cumulative » : base = dernière version synchronisée.
+ * Modifiée d'un seul côté → cette modification gagne ; des deux côtés → la plus récente (objets : champ par champ).
+ */
+function pick3(l, r, b, remoteNewer, depth = 0) {
+  if (same(l, r)) return l;
+  if (b !== undefined) {
+    if (same(l, b)) return r;
+    if (same(r, b)) return l;
+  }
+  if (depth < 1 && isObj(l) && isObj(r)) {
+    const out = {};
+    for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) {
+      if (!(k in r)) out[k] = l[k];
+      else if (!(k in l)) out[k] = r[k];
+      else out[k] = pick3(l[k], r[k], isObj(b) ? b[k] : undefined, remoteNewer, depth + 1);
+    }
+    return out;
+  }
+  return remoteNewer ? r : l;
+}
+
+/** base (facultatif) : l'état tel qu'il était à la dernière synchro réussie. */
+export function mergeStates(local, remote, base = null) {
   if (isPristine(remote)) return local;
   if (isPristine(local)) return remote;
   const newer = (remote.updatedAt || 0) > (local.updatedAt || 0) ? remote : local;
   const older = newer === remote ? local : remote;
   const deleted = new Set([...(local.deleted || []), ...(remote.deleted || [])]);
   const out = { ...older, ...newer };
+  // Valeurs « non cumulatives » (idée en cours, arrangement, réglages, session…) : fusion à trois voies
+  for (const k of new Set([...Object.keys(local), ...Object.keys(remote)])) {
+    if (k in local && k in remote) out[k] = pick3(local[k], remote[k], base ? base[k] : undefined, newer === remote);
+  }
 
   out.xp = maxNum(local.xp, remote.xp);
   out.skills = maxMap(local.skills, remote.skills);
@@ -75,9 +104,9 @@ export function mergeStates(local, remote) {
       const o = best[k];
       best[k] = !o ? v : { stars: maxNum(o.stars, v.stars), acc: maxNum(o.acc, v.acc) };
     }
-    out[key] = { ...(older[key] || {}), ...(newer[key] || {}), best, learn: maxMap(ra.learn, rb.learn) };
+    out[key] = { ...pick3(ra, rb, base?.[key], newer === remote), best, learn: maxMap(ra.learn, rb.learn) };
   }
-  out.settings = { ...(older.settings || {}), ...(newer.settings || {}), onboarded: !!(local.settings?.onboarded || remote.settings?.onboarded) };
+  out.settings = { ...pick3(local.settings || {}, remote.settings || {}, base?.settings, newer === remote), onboarded: !!(local.settings?.onboarded || remote.settings?.onboarded) };
   out.updatedAt = Math.max(local.updatedAt || 0, remote.updatedAt || 0);
   return out;
 }
