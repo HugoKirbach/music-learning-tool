@@ -2,7 +2,7 @@
 
 export const FAMILIES = [
   { id: 'create', name: 'Créer', emoji: '✍️', desc: 'Écrire rythmes, accords, mélodies et basses' },
-  { id: 'ear', name: 'Oreille & jeu', emoji: '👂', desc: 'Entraîner l’oreille et jouer en rythme' },
+  { id: 'ear', name: 'Jouer & oreille', emoji: '🎹', desc: 'Jouer en rythme et entraîner l’oreille' },
   { id: 'sound', name: 'Son & mix', emoji: '🎚️', desc: 'Sound design, Serum 2 et mixage' },
   { id: 'studio', name: 'Studio & idées', emoji: '🧱', desc: 'Arranger, développer, analyser, explorer' },
 ];
@@ -13,6 +13,7 @@ export const SCREENS = [
   { id: 'melody', fam: 'create', href: '#/melody', emoji: '🎵', name: 'Lab Mélodie', desc: 'Piano roll en gamme, outils de variation et Catchy-mètre.' },
   { id: 'basslab', fam: 'create', href: '#/basslab', emoji: '🎸', name: 'Labo de basse', desc: 'Ta basse critiquée comme par un prof, et 3 variantes.' },
   { id: 'hum', fam: 'create', href: '#/hum', emoji: '🎤', name: 'Fredonne → MIDI', desc: 'Chante ou siffle une idée : elle devient des notes.' },
+  { id: 'rush', fam: 'ear', href: '#/rush', emoji: '🎹', name: 'Piano Rush', desc: 'Les notes tombent, joue-les en rythme : 19 niveaux de la ronde au jazz, théorie + pratique.' },
   { id: 'ear', fam: 'ear', href: '#/ear', emoji: '👂', name: 'Quiz d’oreille', desc: 'Intervalles, accords, progressions, styles, paramètres, révisions.' },
   { id: 'callresponse', fam: 'ear', href: '#/callresponse', emoji: '🔁', name: 'Call & Response', desc: 'L’app joue une phrase, tu réponds en rythme (clavier, pads, MPC).' },
   { id: 'synth', fam: 'sound', href: '#/synth', emoji: '🔊', name: 'Lab Synthé', desc: 'Synthé décodé pour Serum 2, son mystère, potards MIDI.' },

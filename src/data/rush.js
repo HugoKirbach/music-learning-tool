@@ -1,0 +1,200 @@
+// Piano Rush : parcours progressif. Chaque niveau = une notion (rythme ou accord) + un morceau pour la pratiquer.
+// Mélodies du domaine public ou écrites pour l'app ; les progressions d'accords célèbres ne sont pas protégées.
+// Notation : voir core/tiles.js (C4 = Do central, durées en temps).
+
+export const CHAPTERS = [
+  { id: 1, name: 'Pulsation', emoji: '💓', desc: 'Sentir le temps : rondes, blanches, noires' },
+  { id: 2, name: 'Croches & silences', emoji: '✂️', desc: 'Diviser le temps en deux, jouer les silences' },
+  { id: 3, name: 'Premiers accords', emoji: '🎼', desc: 'Triades, la progression pop, les deux mains' },
+  { id: 4, name: 'Syncopes', emoji: '⚡', desc: 'Tresillo, clave, stabs house : jouer à côté du temps' },
+  { id: 5, name: 'Swing & doubles croches', emoji: '🌀', desc: 'Triolets, shuffle, notes rapides' },
+  { id: 6, name: 'Couleurs d’accords', emoji: '🎨', desc: 'Septièmes, neuvièmes, jazz, lo-fi, bossa' },
+  { id: 7, name: 'Grand final', emoji: '🏆', desc: 'Deux classiques pour tout réunir' },
+];
+
+export const LEVELS = [
+  // ---------- 1. Pulsation ----------
+  {
+    id: 'pulse', ch: 1, emoji: '💓', title: 'Rondes et blanches', skill: 'rythme', bpm: 76,
+    concept: 'Ronde = 4 temps · Blanche = 2 temps',
+    intro: 'Toute musique repose sur une pulsation régulière : le temps. Le métronome te le donne. Une ronde dure 4 temps (une mesure entière), une blanche 2 temps. Ici, tu appuies au début de la tuile et tu restes appuyé jusqu’à sa fin.',
+    points: ['Compte « 1, 2, 3, 4 » à voix haute avec le clic.', 'Le relâchement compte autant que l’attaque : tiens la note jusqu’au bout.', 'Les lignes épaisses marquent le début de chaque mesure.'],
+    seq: 'C4:4 | E4:4 | G4:2 E4:2 | C4:4 | D4:2 E4:2 | F4:2 E4:2 | D4:4 | C4:4',
+    outro: 'Tu sais maintenant tenir une note pendant une durée précise, ce qui est la base du phrasé. Une note tenue trop court sonne « hachée », trop long elle bave sur la suivante.',
+    studio: 'Sur le MPC ou dans Live, enregistre une nappe (pad) en rondes sur 4 mesures : c’est exactement ce geste. Active le métronome (MPC : bouton Click) et tiens jusqu’au clic suivant.',
+  },
+  {
+    id: 'lune', ch: 1, emoji: '🌙', title: 'Au clair de la lune', skill: 'rythme', bpm: 92,
+    concept: 'Noire = 1 temps', source: 'Chanson populaire française (XVIIIe siècle)',
+    intro: 'La noire dure exactement un temps : une note par clic. C’est la valeur la plus courante. Cette mélodie alterne noires (taper) et blanches (tenir 2 temps), sur seulement 3 notes : Do, Ré, Mi.',
+    points: ['Une noire = un clic du métronome.', 'Repère la forme : la phrase 1 et la phrase 2 commencent pareil.', 'Garde les doigts posés sur Do-Ré-Mi (pouce, index, majeur).'],
+    seq: 'C4:1 C4:1 C4:1 D4:1 | E4:2 D4:2 | C4:1 E4:1 D4:1 D4:1 | C4:4 | C4:1 C4:1 C4:1 D4:1 | E4:2 D4:2 | C4:1 E4:1 D4:1 D4:1 | C4:4',
+    outro: 'Tu viens de jouer une mélodie entière en noires et blanches. Remarque : la phrase « monte » (Do-Ré-Mi) puis revient au Do. Revenir à la tonique donne la sensation de « fin ».',
+    studio: 'Les hooks les plus efficaces utilisent peu de notes (ici 3). Dans le Lab Mélodie, essaie d’écrire un hook de 4 mesures avec 3 notes seulement.',
+  },
+  {
+    id: 'joie', ch: 1, emoji: '🎆', title: 'Ode à la joie', skill: 'rythme', bpm: 100,
+    concept: 'Noire pointée + croche', source: 'Beethoven, 9e symphonie (1824)',
+    intro: 'Un point après une note ajoute la moitié de sa durée : une noire pointée dure 1,5 temps, suivie d’une croche (½ temps). Ce rythme « long-court » crée un petit élan juste avant la fin de phrase.',
+    points: ['Mélodie en mouvement conjoint : on passe d’une note à sa voisine.', 'Noire pointée : appuie sur le 3, la croche tombe sur le « et » du 4.', 'Les 2 phrases ne diffèrent que par la fin (Ré puis Do).'],
+    seq: 'E4:1 E4:1 F4:1 G4:1 | G4:1 F4:1 E4:1 D4:1 | C4:1 C4:1 D4:1 E4:1 | E4:1.5 D4:0.5 D4:2 | E4:1 E4:1 F4:1 G4:1 | G4:1 F4:1 E4:1 D4:1 | C4:1 C4:1 D4:1 E4:1 | D4:1.5 C4:0.5 C4:2',
+    outro: 'Question / réponse : la 1re phrase finit sur Ré (suspensive, on attend la suite), la 2e sur Do (conclusive). C’est le procédé n°1 pour écrire une mélodie qui « tient ».',
+    studio: 'Dans tes prods, fais finir la mesure 4 de ton hook sur une autre note que la tonique et la mesure 8 sur la tonique : question → réponse.',
+  },
+  // ---------- 2. Croches & silences ----------
+  {
+    id: 'jacques', ch: 2, emoji: '🔔', title: 'Frère Jacques', skill: 'rythme', bpm: 96,
+    concept: 'Croches = ½ temps', source: 'Comptine traditionnelle',
+    intro: 'Deux croches tiennent dans un temps. On compte « 1 et 2 et 3 et 4 et » : la croche tombe sur le chiffre ou sur le « et ». La 3e phrase (Sol-La-Sol-Fa) est en croches : prépare-toi !',
+    points: ['Compte « 1 et 2 et » pour placer les croches.', 'Mesures 7-8 : le Sol grave descend sous le Do.', 'Chaque phrase est jouée deux fois : profite de la 2e pour corriger.'],
+    seq: 'C4:1 D4:1 E4:1 C4:1 | C4:1 D4:1 E4:1 C4:1 | E4:1 F4:1 G4:2 | E4:1 F4:1 G4:2 | G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4:1 C4:1 | G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4:1 C4:1 | C4:1 G3:1 C4:2 | C4:1 G3:1 C4:2',
+    outro: 'La croche double la densité de notes sans changer le tempo : c’est ce qui donne de l’énergie. En musique électronique, les hi-hats en croches sont le moteur de la plupart des grooves.',
+    studio: 'Dans le Lab Beat ou sur le MPC, mets des hi-hats sur chaque croche (pas 1, 3, 5… sur 16) : tu entends la même subdivision.',
+  },
+  {
+    id: 'etoile', ch: 2, emoji: '⭐', title: 'Ah ! vous dirai-je, maman', skill: 'rythme', bpm: 100,
+    concept: 'Phrases de 2 mesures · forme ABA', source: 'Air français, variations de Mozart (1781)',
+    intro: 'Cette mélodie (Twinkle Twinkle Little Star) est construite en blocs de 2 mesures : 6 noires puis une blanche pour respirer. La forme est A (montée puis descente), B (descente répétée deux fois), puis retour de A.',
+    points: ['Chaque phrase finit par une blanche : c’est la respiration.', 'Le saut Do → Sol (quinte) ouvre la mélodie.', 'B est un motif répété deux fois : pratique pour mémoriser.'],
+    seq: 'C4:1 C4:1 G4:1 G4:1 | A4:1 A4:1 G4:2 | F4:1 F4:1 E4:1 E4:1 | D4:1 D4:1 C4:2 | G4:1 G4:1 F4:1 F4:1 | E4:1 E4:1 D4:2 | G4:1 G4:1 F4:1 F4:1 | E4:1 E4:1 D4:2 | C4:1 C4:1 G4:1 G4:1 | A4:1 A4:1 G4:2 | F4:1 F4:1 E4:1 E4:1 | D4:1 D4:1 C4:2',
+    outro: 'Forme ABA : exposer, contraster, revenir. C’est la même logique qu’un morceau électro (intro / break / drop qui revient).',
+    studio: 'Dans le Lab Arrangement, construis ton morceau en A-B-A : la répétition rassure, le contraste relance l’attention.',
+  },
+  {
+    id: 'silences', ch: 2, emoji: '🤫', title: 'Riff à trous', skill: 'rythme', bpm: 96,
+    concept: 'Les silences font le groove', source: 'Riff original façon funk',
+    intro: 'Un silence se « joue » : on compte sa durée sans appuyer. Les soupirs (1 temps) et demi-soupirs (½ temps) créent l’espace qui fait groover un riff. Ici, ne joue que ce qui tombe : les trous sont voulus.',
+    points: ['Continue de compter pendant les silences.', 'Relâche la touche à temps : une note qui déborde remplit le trou.', 'Mesures 2 et 4 : notes sur le « et », juste après le temps.'],
+    seq: 'C4:1 -:1 E4:1 -:1 | G4:0.5 -:0.5 G4:0.5 -:0.5 A4:1 G4:1 | C4:1 -:1 E4:1 -:1 | -:0.5 G4:0.5 -:0.5 F4:0.5 E4:2 | C4:1 -:1 E4:1 -:1 | G4:0.5 -:0.5 G4:0.5 -:0.5 A4:1 G4:1 | A4:0.5 -:0.5 G4:0.5 -:0.5 E4:0.5 -:0.5 D4:0.5 -:0.5 | C4:2 -:2',
+    outro: 'Un riff respire grâce à ses silences : plus il y a d’espace, plus chaque note a d’impact. C’est le principe des basses funk et des leads house.',
+    studio: 'Sur ta prochaine basse, supprime une note sur deux : le groove devient souvent meilleur. Dans le Labo de basse, compare avant / après.',
+  },
+  // ---------- 3. Premiers accords ----------
+  {
+    id: 'triades', ch: 3, emoji: '🎼', title: 'Do, Fa, Sol : I – IV – V', skill: 'harmonie', bpm: 76,
+    concept: 'Triade = 1-3-5 · degrés I, IV, V',
+    intro: 'Un accord de 3 notes (triade) s’obtient en empilant une note sur deux de la gamme : Do-Mi-Sol. En Do majeur, les accords construits sur le 1er, 4e et 5e degré (Do, Fa, Sol) suffisent à harmoniser des milliers de chansons. Appuie sur les 3 notes en même temps.',
+    points: ['Do = Do-Mi-Sol (C-E-G), Fa = Fa-La-Do (F-A-C), Sol = Sol-Si-Ré (G-B-D).', 'Les renversements gardent la main sur place : Fa et Sol sont joués autour du Do.', 'I = repos, IV = éloignement, V = tension qui veut revenir à I.'],
+    seq: '@C:4 | @F:4 | @G:4 | @C:4 | @C:2 @F:2 | @G:2 @C:2 | @F:2 @G:2 | @C:4',
+    outro: 'Tu as joué tonique (I), sous-dominante (IV) et dominante (V). Le mouvement V → I est la résolution la plus forte de la musique tonale : écoute comme le dernier Do « conclut ».',
+    studio: 'Dans le Lab Accords, choisis I-IV-V-I en Do et écoute. Sur le MPC, active « Chord » ou joue ces 3 formes : tu as déjà une base de morceau.',
+  },
+  {
+    id: 'pop', ch: 3, emoji: '📻', title: 'La progression pop', skill: 'harmonie', bpm: 92,
+    concept: 'I – V – vi – IV · accord mineur',
+    intro: 'Do – Sol – La mineur – Fa : cette suite se retrouve dans d’innombrables tubes (Let It Be, With or Without You, Someone Like You, Africa…). L’accord de La mineur (La-Do-Mi) apporte la couleur mélancolique : il partage 2 notes avec Do majeur.',
+    points: ['Am = La-Do-Mi (A-C-E) : c’est le relatif mineur de Do.', 'D’abord en blanches, puis en noires : même progression, autre énergie.', 'Cherche les notes communes entre deux accords : la main bouge peu.'],
+    seq: '@C:2 @G:2 | @Am:2 @F:2 | @C:2 @G:2 | @Am:2 @F:2 | @C:1 @C:1 @G:1 @G:1 | @Am:1 @Am:1 @F:1 @F:1 | @C:1 @C:1 @G:1 @G:1 | @Am:1 @Am:1 @F:2',
+    outro: 'Une progression ne fait pas un morceau : c’est le rythme et la mélodie qui la rendent unique. Les mêmes 4 accords en blanches (ballade) ou en noires (pop-rock) ne racontent pas la même chose.',
+    studio: 'Dans Live, crée un clip MIDI avec I-V-vi-IV, puis duplique-le et change seulement le rythme (stabs courts, accords tenus, arpège) : 3 ambiances avec la même harmonie.',
+  },
+  {
+    id: 'deuxmains', ch: 3, emoji: '🙌', title: 'Les deux mains', skill: 'harmonie', bpm: 84,
+    concept: 'Basse (main gauche) + mélodie (main droite)', source: 'Au clair de la lune, harmonisé',
+    intro: 'La main gauche joue la fondamentale de l’accord (Do pour Do majeur, Sol pour Sol majeur), la main droite la mélodie. La basse tombe sur les temps forts : elle donne l’assise harmonique.',
+    points: ['Main gauche : Do3 et Sol3 seulement.', 'Les deux mains attaquent ensemble au début des mesures.', 'Fondamentale Do sous la mélodie = repos ; Sol = tension.'],
+    seq: [
+      'C4:1 C4:1 C4:1 D4:1 | E4:2 D4:2 | C4:1 E4:1 D4:1 D4:1 | C4:4 | C4:1 C4:1 C4:1 D4:1 | E4:2 D4:2 | C4:1 E4:1 D4:1 D4:1 | C4:4',
+      'C3:4 | C3:2 G3:2 | C3:2 G3:2 | C3:4 | C3:4 | C3:2 G3:2 | C3:2 G3:2 | C3:4',
+    ],
+    outro: 'Basse + mélodie, c’est déjà un arrangement complet. La basse dit « quel accord », la mélodie dit « quelle histoire ».',
+    studio: 'Dans tes prods, vérifie que ta basse joue la fondamentale sur le 1er temps de chaque accord : le Labo de basse te le signale.',
+  },
+  // ---------- 4. Syncopes ----------
+  {
+    id: 'tresillo', stabs: true, ch: 4, emoji: '🌴', title: 'Le tresillo (3-3-2)', skill: 'rythme', bpm: 100,
+    concept: 'Tresillo : 3 + 3 + 2 croches',
+    intro: 'Découpe la mesure en 8 croches et groupe-les par 3 + 3 + 2 : tu obtiens le tresillo, venu de la musique afro-cubaine. On le retrouve dans le reggaeton (dembow), l’afrobeats, la house, la trap… La 2e note tombe entre deux temps : c’est une syncope.',
+    points: ['Attaques sur 1, sur le « et » du 2, et sur 4.', 'Compte « 1 et 2 ET 3 et 4 et » : la 2e note tombe sur le ET du 2.', 'La basse suit une progression La – Fa – Do – Sol.'],
+    seq: 'A3:1.5 A3:1.5 A3:1 | F3:1.5 F3:1.5 F3:1 | C4:1.5 C4:1.5 C4:1 | G3:1.5 G3:1.5 G3:1 | A3:1.5 A3:1.5 A3:1 | F3:1.5 F3:1.5 F3:1 | C4:1.5 C4:1.5 C4:1 | G3:1.5 G3:1.5 B3:1',
+    outro: 'Le tresillo est l’une des cellules rythmiques les plus présentes dans la musique populaire actuelle. Une fois intégrée, tu la reconnaîtras partout.',
+    studio: 'Dans le Lab Beat, mets un kick sur les pas 1, 7 et 13 (sur 16) : c’est le tresillo. Ajoute un snare sur 5 et 13 pour un groove reggaeton.',
+  },
+  {
+    id: 'house', stabs: true, ch: 4, emoji: '🏠', title: 'Stabs piano house', skill: 'harmonie', bpm: 118,
+    concept: 'Accords m7 en tresillo', source: 'Style piano house des années 90',
+    intro: 'Le piano house joue des accords courts (stabs) en rythme syncopé : tape-les, inutile de les tenir. On combine le tresillo et les accords de septième mineure : Am7 = La-Do-Mi-Sol (A-C-E-G). 4 notes à la fois, en rythme : c’est le niveau qui réunit rythme et harmonie.',
+    points: ['m7 = triade mineure + septième (une note sous l’octave).', 'Am7 → Dm7 → Em7 → Am7 : on reste en La mineur.', 'Les accords sont courts : relâche vite, laisse respirer.'],
+    seq: '@Am7:1.5 @Am7:1.5 @Am7:1 | @Dm7/3:1.5 @Dm7/3:1.5 @Dm7/3:1 | @Em7/3:1.5 @Em7/3:1.5 @Em7/3:1 | @Am7:1.5 @Am7:1.5 @Am7:1 | @Am7:1.5 @Am7:1.5 @Am7:1 | @Dm7/3:1.5 @Dm7/3:1.5 @Dm7/3:1 | @Em7/3:1.5 @Em7/3:1.5 @Em7/3:1 | @Am7:4',
+    outro: 'Les accords m7 sonnent « doux » et ouverts : c’est la couleur de la deep house et du garage. En rythme syncopé, ils deviennent percussifs.',
+    studio: 'Dans Serum 2, preset piano/organ court (decay bref, sustain 0) et sidechain sur le kick. Dans Live, joue Am7-Dm7-Em7 en tresillo à 120 BPM : tu as un groove house.',
+  },
+  {
+    id: 'clave', stabs: true, ch: 4, emoji: '🥢', title: 'Son clave 3-2', skill: 'rythme', bpm: 100,
+    concept: 'Clave : rythme sur 2 mesures',
+    intro: 'La clave est un rythme-guide sur 2 mesures : 3 coups dans la 1re (le tresillo !), 2 coups dans la 2e (sur 2 et 3). Toute la salsa, le son cubain et beaucoup de musiques latines et afro s’organisent autour d’elle.',
+    points: ['Mesure « 3 » : 1, ET du 2, 4.', 'Mesure « 2 » : 2 et 3 (silence sur le 1 !).', 'Ne joue pas le 1er temps de la mesure 2 : c’est le piège.'],
+    seq: 'E4:1.5 E4:1.5 E4:1 | -:1 G4:1 G4:2 | E4:1.5 E4:1.5 E4:1 | -:1 G4:1 G4:2 | C4:1.5 E4:1.5 G4:1 | -:1 A4:1 G4:2 | C4:1.5 E4:1.5 G4:1 | -:1 D4:1 C4:2',
+    outro: 'La clave alterne tension (3) et détente (2). Penser en cycles de 2 mesures plutôt qu’en mesures isolées rend tes grooves plus vivants.',
+    studio: 'Sur le MPC, programme une clave (rim ou clap) sur 2 mesures et cale tes percussions autour. En afro house, c’est souvent la clave qui porte le groove.',
+  },
+  // ---------- 5. Swing & doubles croches ----------
+  {
+    id: 'boogie', ch: 5, emoji: '🎷', title: 'Boogie shuffle', skill: 'rythme', bpm: 92,
+    concept: 'Triolets : swing long-court', source: 'Ligne de boogie-woogie traditionnelle',
+    intro: 'Un triolet divise le temps en 3. En jouant la 1re et la 3e note du triolet (long-court), on obtient le shuffle : le « swing » du blues, du jazz et du hip-hop. La ligne monte l’accord Do (Do-Mi-Sol-La-Si♭) et redescend.',
+    points: ['Long (⅔) – court (⅓) sur chaque temps.', 'Dis « pom-pa pom-pa » : ça doit balancer.', 'Mesures 3-4 : même motif transposé sur Fa.'],
+    seq: 'C4:2/3 E4:1/3 G4:2/3 A4:1/3 Bb4:2/3 A4:1/3 G4:2/3 E4:1/3 | C4:2/3 E4:1/3 G4:2/3 A4:1/3 Bb4:2/3 A4:1/3 G4:2/3 E4:1/3 | F4:2/3 A4:1/3 C5:2/3 A4:1/3 F4:2/3 A4:1/3 C5:2/3 A4:1/3 | C4:2/3 E4:1/3 G4:2/3 A4:1/3 Bb4:2/3 A4:1/3 G4:2/3 E4:1/3 | G4:2/3 B4:1/3 D5:2/3 B4:1/3 F4:2/3 A4:1/3 C5:2/3 A4:1/3 | C4:2 -:2',
+    outro: 'Le swing, c’est décaler la 2e croche vers la fin du temps. Dans les DAW, c’est le paramètre « swing » ou le groove pool.',
+    studio: 'Dans Live, applique un groove « Swing 16-58 » ou sur le MPC « Swing 58-62 % » à tes hats : tu entends la même sensation que ce shuffle.',
+  },
+  {
+    id: 'elise', ch: 5, emoji: '🌹', title: 'Lettre à Élise', skill: 'rythme', bpm: 66, meter: 1.5, pickup: 0.5,
+    concept: 'Doubles croches · mesure à 3/8', source: 'Beethoven, Für Elise (1810)',
+    intro: 'Les doubles croches durent ¼ de temps : 4 par temps. La mesure est à 3/8 (3 croches par mesure). Le motif Mi-Ré♯-Mi-Ré♯ alterne deux notes voisines (demi-ton) : garde deux doigts posés et bascule de l’un à l’autre.',
+    points: ['Mi – Ré♯ = un demi-ton : touche blanche / touche noire.', 'Après le motif, arpège de La mineur (Do-Mi-La) puis Mi majeur (Mi-Sol♯-Si).', 'Ralentis en Facile au début, la précision vient avant la vitesse.'],
+    seq: 'E5:0.25 D#5:0.25 | E5:0.25 D#5:0.25 E5:0.25 B4:0.25 D5:0.25 C5:0.25 | A4:0.5 -:0.25 C4:0.25 E4:0.25 A4:0.25 | B4:0.5 -:0.25 E4:0.25 G#4:0.25 B4:0.25 | C5:0.5 -:0.25 E4:0.25 E5:0.25 D#5:0.25 | E5:0.25 D#5:0.25 E5:0.25 B4:0.25 D5:0.25 C5:0.25 | A4:0.5 -:0.25 C4:0.25 E4:0.25 A4:0.25 | B4:0.5 -:0.25 E4:0.25 C5:0.25 B4:0.25 | A4:1.5',
+    outro: 'Un arpège, c’est un accord joué note par note : La mineur puis Mi majeur (la dominante, avec son Sol♯ qui « tire » vers La). Mélodie et harmonie sont la même chose vue autrement.',
+    studio: 'Dans Live, joue un accord et ajoute l’effet MIDI « Arpeggiator » en 1/16 : tu obtiens ce type de figure. Idéal pour des leads trance ou synthwave.',
+  },
+  // ---------- 6. Couleurs d'accords ----------
+  {
+    id: 'jazz', ch: 6, emoji: '🎺', title: 'ii – V – I jazz', skill: 'harmonie', bpm: 96,
+    concept: 'Accords de 7e : m7, 7, maj7',
+    intro: 'Le ii-V-I est la cadence du jazz : Dm7 (Ré-Fa-La-Do) → G7 (Sol-Si-Ré-Fa) → Cmaj7 (Do-Mi-Sol-Si). La septième de dominante (G7) contient un triton Si-Fa, très instable, qui se résout sur Do-Mi.',
+    points: ['m7 : doux · 7 : tendu · maj7 : lumineux, rêveur.', '2e moitié : rythme Charleston (1 et le « et » du 2).', 'Fa de G7 → Mi de Cmaj7 : la résolution se joue d’un demi-ton.'],
+    seq: '@Dm7:4 | @G7/3:4 | @Cmaj7:4 | @Cmaj7:4 | @Dm7:1.5 @Dm7:2.5 | @G7/3:1.5 @G7/3:2.5 | @Cmaj7:1.5 @Cmaj7:2.5 | @Cmaj7:4',
+    outro: 'Tu as entendu trois couleurs d’accords de septième et la tension-résolution du triton. Le Charleston montre qu’un même accord peut être « placé » rythmiquement.',
+    studio: 'Remplace les triades de ta progression par des 7e dans le Lab Accords (taille « 7e ») : ton morceau gagne immédiatement en richesse (lo-fi, neo soul, deep house).',
+  },
+  {
+    id: 'lofi', ch: 6, emoji: '☕', title: 'Accords lo-fi', skill: 'harmonie', bpm: 80,
+    concept: 'Neuvièmes et voicings 1-3-7-9',
+    intro: 'Les pianistes jouent souvent les accords de 9e sans quinte : fondamentale, tierce, septième, neuvième. Fmaj9 = Fa-La-Mi-Sol (F-A-E-G). Les voix bougent très peu d’un accord à l’autre : c’est le « voice leading ». Rythme décalé, typique du hip-hop lo-fi.',
+    points: ['Fmaj9 → Em7 → Dm9 → Em7 : une descente douce.', 'Repère les notes qui ne bougent pas d’un accord à l’autre.', 'L’accord arrive sur le « et » du 2 : il « traîne », c’est voulu.'],
+    seq: 'F3+A3+E4+G4=Fmaj9:1.5 F3+A3+E4+G4=Fmaj9:2.5 | E3+G3+B3+D4=Em7:1.5 E3+G3+B3+D4=Em7:2.5 | D3+F3+C4+E4=Dm9:1.5 D3+F3+C4+E4=Dm9:2.5 | E3+G3+B3+D4=Em7:4 | F3+A3+E4+G4=Fmaj9:1.5 F3+A3+E4+G4=Fmaj9:2.5 | E3+G3+B3+D4=Em7:1.5 E3+G3+B3+D4=Em7:2.5 | D3+F3+C4+E4=Dm9:1.5 D3+F3+C4+E4=Dm9:2.5 | F3+A3+E4+G4=Fmaj9:4',
+    outro: 'Neuvièmes + voice leading = le son « chaud » du lo-fi et de la neo soul. L’oreille suit les voix qui glissent plutôt que les accords qui sautent.',
+    studio: 'Dans Live, joue ces voicings avec un Rhodes, ajoute Vinyl Distortion et un swing de 55-60 %. Sur Serum 2, un pad doux avec un filtre passe-bas autour de 2 kHz.',
+  },
+  {
+    id: 'bossa', stabs: true, ch: 6, emoji: '🏖️', title: 'Bossa nova', skill: 'harmonie', bpm: 110,
+    concept: 'Rythme bossa sur 2 mesures', source: 'Accompagnement bossa nova typique',
+    intro: 'La bossa nova accompagne avec des accords de 7e sur un rythme proche de la clave : 1re mesure 3 attaques (1, ET du 2, 4), 2e mesure 2 attaques (2, ET du 3). La progression Cmaj7 – A7 – Dm7 – G7 est un « turnaround » classique.',
+    points: ['A7 (La-Do♯-Mi-Sol) : la dominante qui mène à Dm7.', 'Mesures paires : silence sur le 1er temps.', 'Joue léger : la bossa se murmure.'],
+    seq: '@Cmaj7:1.5 @Cmaj7:1.5 @Cmaj7:1 | -:1 @A7/3:1.5 @A7/3:1.5 | @Dm7:1.5 @Dm7:1.5 @Dm7:1 | -:1 @G7/3:1.5 @G7/3:1.5 | @Cmaj7:1.5 @Cmaj7:1.5 @Cmaj7:1 | -:1 @A7/3:1.5 @A7/3:1.5 | @Dm7:1.5 @Dm7:1.5 @Dm7:1 | @G7/3:1.5 @Cmaj7:2.5',
+    outro: 'A7 n’appartient pas à la gamme de Do : c’est une « dominante secondaire » qui tire vers Dm7. Une seule note étrangère (Do♯) suffit à créer un mouvement fort.',
+    studio: 'Dans tes progressions, essaie de remplacer l’accord avant un accord mineur par sa dominante (ex. Am → A7 avant Dm) : le Lab Accords appelle ça un emprunt.',
+  },
+  // ---------- 7. Grand final ----------
+  {
+    id: 'canon', ch: 7, emoji: '🎻', title: 'Canon de Pachelbel', skill: 'harmonie', bpm: 72,
+    concept: 'Progression de 8 accords en Ré majeur', source: 'Johann Pachelbel (vers 1680)',
+    intro: 'Ré – La – Si mineur – Fa♯ mineur – Sol – Ré – Sol – La : cette progression a inspiré des centaines de chansons pop. Elle est en Ré majeur : 2 dièses (Fa♯ et Do♯). La basse descend presque toujours par degrés.',
+    points: ['Fa♯ et Do♯ = touches noires : Ré majeur = Ré-Fa♯-La.', 'Bm (Si-Ré-Fa♯), F♯m (Fa♯-La-Do♯) : les accords mineurs de la gamme.', 'Seconde fois en noires : même harmonie, plus de mouvement.'],
+    seq: '@D:2 @A/3:2 | @Bm/3:2 @F#m/3:2 | @G/3:2 @D:2 | @G/3:2 @A/3:2 | @D:1 @D:1 @A/3:1 @A/3:1 | @Bm/3:1 @Bm/3:1 @F#m/3:1 @F#m/3:1 | @G/3:1 @G/3:1 @D:1 @D:1 | @G/3:1 @A/3:1 @D:2',
+    outro: 'Tu as joué une progression complète de 8 accords dans une autre tonalité. Changer de tonalité ne change rien aux relations : I-V-vi-iii-IV-I-IV-V.',
+    studio: 'Dans le Lab Accords, recrée cette progression en degrés (I-V-vi-iii-IV-I-IV-V) puis change de tonalité : la musique reste la même, juste plus haut ou plus bas.',
+  },
+  {
+    id: 'greensleeves', ch: 7, emoji: '🍃', title: 'Greensleeves', skill: 'rythme', bpm: 104, meter: 3, pickup: 1,
+    concept: 'Mesure à 3 temps · noire pointée', source: 'Chanson anglaise (XVIe siècle)',
+    intro: 'Mesure à 3 temps : on compte « 1, 2, 3 ». Les blanches (2 temps) et les noires pointées sur le 1er temps donnent un balancement de valse. La mélodie est en La mineur, avec un Sol♯ qui rappelle la dominante.',
+    points: ['Compte en 3 : le 1er temps est le plus fort.', 'Noire pointée-croche-noire : « long-court-moyen ».', 'Sol♯ = sensible : il monte vers La.'],
+    seq: 'A4:1 | C5:2 D5:1 | E5:1.5 F5:0.5 E5:1 | D5:2 B4:1 | G4:1.5 A4:0.5 B4:1 | C5:2 A4:1 | A4:1.5 G#4:0.5 A4:1 | B4:2 G#4:1 | E4:2 A4:1 | C5:2 D5:1 | E5:1.5 F5:0.5 E5:1 | D5:2 B4:1 | G4:1.5 A4:0.5 B4:1 | C5:1.5 B4:0.5 A4:1 | G#4:1.5 F#4:0.5 G#4:1 | A4:3',
+    outro: 'Bravo, tu as terminé le parcours ! Tu sais lire rondes, blanches, noires, croches, doubles croches, triolets, syncopes, et jouer triades, 7e et 9e. Le mode libre te permet maintenant de rejouer chaque niveau plus vite, en Expert, sans noms de notes.',
+    studio: 'Écris une mélodie à 3 temps dans le Lab Mélodie (ou passe Live en 3/4) : la valse change complètement le caractère d’une idée.',
+  },
+];
+
+export const levelById = (id) => LEVELS.find((l) => l.id === id);
+export const chapterOf = (l) => CHAPTERS.find((c) => c.id === l.ch);

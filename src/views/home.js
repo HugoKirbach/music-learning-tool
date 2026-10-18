@@ -128,8 +128,8 @@ export function render(root, params) {
     el('a.tile', { href: '#/studio?dice=1' }, el('div.tile-emoji', '🎲'), el('b', 'Dé à idées'), el('span', 'Une contrainte')),
     el('a.tile', { href: '#/hum' }, el('div.tile-emoji', '🎤'), el('b', 'Fredonne'), el('span', 'Idée à la voix')),
     el('a.tile', { href: '#/remix' }, el('div.tile-emoji', '🧬'), el('b', 'Remix'), el('span', 'Développer')),
-    el('a.tile', { href: '#/studio' }, el('div.tile-emoji', '🎛️'), el('b', 'Studio'), el('span', 'Missions')),
-    el('a.tile', { href: '#/labs' }, el('div.tile-emoji', '🧪'), el('b', 'Tous les Labs'), el('span', '13 ateliers')),
+    el('a.tile', { href: '#/rush' }, el('div.tile-emoji', '🎹'), el('b', 'Piano Rush'), el('span', 'Jouer en rythme')),
+    el('a.tile', { href: '#/labs' }, el('div.tile-emoji', '🧪'), el('b', 'Tous les Labs'), el('span', '14 ateliers')),
   );
 
   root.append(

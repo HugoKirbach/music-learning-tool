@@ -7,7 +7,7 @@ import { transport, ensureAudio } from './core/audio.js';
 export const NAV_KEYS = {
   s: ['home', 'Session'], l: ['labs', 'Labs'], b: ['beat', 'Lab Beat'], a: ['chords', 'Lab Accords'],
   m: ['melody', 'Lab Mélodie'], g: ['basslab', 'Labo de basse'], y: ['synth', 'Lab Synthé'], o: ['ear', 'Quiz d’oreille'],
-  r: ['arrange', 'Lab Arrangement'], x: ['remix', 'Remix'], k: ['notebook', 'Carnet'], p: ['profile', 'Profil'],
+  r: ['arrange', 'Lab Arrangement'], j: ['rush', 'Piano Rush'], x: ['remix', 'Remix'], k: ['notebook', 'Carnet'], p: ['profile', 'Profil'],
 };
 
 const LAYERS = ['drums', 'bass', 'chords', 'melody'];
