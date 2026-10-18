@@ -81,13 +81,21 @@ function renderStatus() {
   ));
 }
 
-// ---------- Compte : pastille ☁️ (seulement si un compte est connecté) ----------
-const CLOUD_ICON = { syncing: '🔄', loading: '⏳', pending: '⏳', synced: '☁️', offline: '📴', error: '⚠️' };
+// ---------- Compte : toujours visible en haut à droite (connexion, ou état de la synchro) ----------
+const CLOUD_ICON = { syncing: '🔄', loading: '⏳', pending: '⏳', synced: '✓', offline: '📴', error: '⚠️' };
+const CLOUD_TXT = { syncing: 'synchronisation…', loading: 'connexion…', pending: 'modifications en attente', synced: 'synchronisé', offline: 'hors-ligne', error: 'problème de synchro' };
 function cloudChip() {
   const st = cloudStatus();
-  if (!st.user && !['loading', 'error', 'offline'].includes(st.state)) return null;
-  if (!st.user && !cloudWanted()) return null;
-  return el('a.chip.cloud.' + st.state, { href: '#/profile', title: `Compte : ${st.state}` }, CLOUD_ICON[st.state] || '☁️');
+  const href = '#/profile?account=1';
+  if (!st.user) {
+    const busy = cloudWanted() && st.state !== 'off';
+    return el('a.chip.cloud.signin.' + st.state, { href, title: busy ? `Compte : ${CLOUD_TXT[st.state] || ''}` : 'Se connecter / créer un compte (synchro téléphone ↔ PC)' },
+      busy ? CLOUD_ICON[st.state] || '⏳' : '👤', busy ? null : el('span.chip-label', 'Connexion'));
+  }
+  const who = st.user.name || st.user.email || '';
+  return el('a.chip.cloud.on.' + st.state, { href, title: `Connecté : ${who} — ${CLOUD_TXT[st.state] || ''}` },
+    st.user.photo ? el('img.chip-avatar', { src: st.user.photo, alt: '', referrerpolicy: 'no-referrer' }) : el('span.chip-initial', (who[0] || '?').toUpperCase()),
+    el('span.chip-badge', CLOUD_ICON[st.state] || '☁️'));
 }
 onCloud(() => renderStatus());
 

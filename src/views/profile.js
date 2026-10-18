@@ -9,7 +9,7 @@ import { playSynth, ensureAudio, now } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { accountCard } from './account.js';
 
-export function render(root) {
+export function render(root, params = {}) {
   const s = getState();
   const lv = levelFromXp(s.xp);
   const maxSkill = Math.max(100, ...Object.values(s.skills));
@@ -116,5 +116,6 @@ export function render(root) {
       ),
     ),
   );
+  if (params.account) requestAnimationFrame(() => { acct.node.scrollIntoView({ block: 'center', behavior: 'smooth' }); acct.node.classList.add('flash'); });
   return () => { offStatus(); offTest(); acct.destroy(); voices.forEach((x) => x.release()); };
 }

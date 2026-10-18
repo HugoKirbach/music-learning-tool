@@ -30,7 +30,7 @@
   (Android + câble OTG fonctionne aussi ; iOS ne supporte pas Web MIDI.)
 
 ### Synchroniser téléphone ↔ PC
-- **Compte (facultatif, gratuit)** : *Profil → Compte & synchro* → « Continuer avec Google » ou e-mail + mot de passe, avec le même compte sur chaque appareil. La progression est sauvegardée en ligne (Firebase) quelques secondes après chaque changement, récupérée à l'ouverture, et reste utilisable hors-ligne. Si deux appareils ont été modifiés, les données sont **fusionnées** (XP, jours, badges, carnet, records Piano Rush réunis ; idée en cours et réglages du plus récent). Pastille ☁️ en haut = état de la synchro. Sur iPhone (app installée), préfère l'e-mail : la fenêtre Google peut y être bloquée.
+- **Compte (facultatif, gratuit)** : *Profil → Compte & synchro* → « Continuer avec Google » ou e-mail + mot de passe, avec le même compte sur chaque appareil. La progression est sauvegardée en ligne (Firebase) quelques secondes après chaque changement, récupérée à l'ouverture, et reste utilisable hors-ligne. Si deux appareils ont été modifiés, les données sont **fusionnées** (XP, jours, badges, carnet, records Piano Rush réunis ; idée en cours et réglages du plus récent). Bouton **👤 Connexion** toujours visible en haut à droite ; une fois connecté il affiche ton avatar et l'état de la synchro (✓, ⏳, 📴, ⚠️). Sur iPhone (app installée), préfère l'e-mail : la fenêtre Google peut y être bloquée.
 - **Sans compte** : *Profil → Exporter* crée un fichier `.json` ; *Importer* sur l'autre appareil.
 
 ---
