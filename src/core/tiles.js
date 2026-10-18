@@ -306,3 +306,59 @@ export function randomLevel(diffId = 'normal', seed = Date.now()) {
     seed,
   };
 }
+
+// ---------- Mode apprentissage : les notes dans l'ordre, sans rythme imposé ----------
+/** Étapes : les notes qui commencent en même temps (accord, deux mains) forment une seule étape. */
+export function learnSteps(chart) {
+  const steps = [];
+  for (const n of chart.notes) {
+    const last = steps[steps.length - 1];
+    if (last && Math.abs(last.t - n.t) < 1e-6) last.notes.push({ id: n.id, midi: n.midi });
+    else steps.push({ t: n.t, beat: n.beat, notes: [{ id: n.id, midi: n.midi }] });
+  }
+  return steps;
+}
+
+export class LearnSession {
+  constructor(chart) {
+    this.steps = learnSteps(chart);
+    this.step = 0;
+    this.got = new Set();
+    this.reps = 0;
+    this.errors = 0;
+    this.loopErrors = 0;
+    this.lastLoopErrors = 0;
+  }
+
+  get current() { return this.steps[this.step]; }
+  /** La boucle n'a pas encore commencé (1re note attendue). */
+  get atStart() { return this.step === 0 && this.got.size === 0; }
+
+  /** Appui : 'ok' (note attendue), 'again' (déjà jouée dans cette étape) ou 'wrong'. */
+  press(midi, { octaveFree = false } = {}) {
+    const s = this.current;
+    const todo = s.notes.filter((x) => !this.got.has(x.id));
+    const hit = todo.find((x) => x.midi === midi) || (octaveFree ? todo.find((x) => mod12(x.midi) === mod12(midi)) : null);
+    if (!hit) {
+      if (s.notes.some((x) => this.got.has(x.id) && (x.midi === midi || (octaveFree && mod12(x.midi) === mod12(midi))))) return { type: 'again' };
+      this.errors++;
+      this.loopErrors++;
+      return { type: 'wrong', midi };
+    }
+    this.got.add(hit.id);
+    const res = { type: 'ok', noteId: hit.id, midi: hit.midi, stepDone: false, loopDone: false };
+    if (this.got.size === s.notes.length) {
+      res.stepDone = true;
+      this.got.clear();
+      this.step++;
+      if (this.step >= this.steps.length) {
+        this.step = 0;
+        this.reps++;
+        this.lastLoopErrors = this.loopErrors;
+        this.loopErrors = 0;
+        res.loopDone = true;
+      }
+    }
+    return res;
+  }
+}

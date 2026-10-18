@@ -5,14 +5,14 @@ import { ensureAudio, now, playSynth, playClick, outputLatency } from '../core/a
 import { presetParams } from '../player.js';
 import { onMidi, midiStatus } from '../midiin.js';
 import { viewKeys } from '../shortcuts.js';
-import { DIFFS, CHORD_TYPES, buildChart, keyRange, whiteKeys, isBlack, noteFr, noteEn, noteLabel, parseChord, TileGame, randomLevel } from '../core/tiles.js';
+import { DIFFS, CHORD_TYPES, buildChart, keyRange, whiteKeys, isBlack, noteFr, noteEn, noteLabel, parseChord, TileGame, LearnSession, randomLevel } from '../core/tiles.js';
 import { CHAPTERS, LEVELS, levelById, chapterOf } from '../data/rush.js';
 
 const HOME_ROW = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote'];
 const UPPER_ROW = ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU', 'KeyI', 'KeyO', 'KeyP', 'BracketLeft', 'BracketRight'];
 const QWERTY = { Semicolon: ';', Quote: '\'', BracketLeft: '[', BracketRight: ']' };
-const COLORS = { tap: '#5ce1e6', hold: '#b388ff', chord: '#ffb84d', perfect: '#4ade80', good: '#ffe066', miss: '#ff5d73' };
-const GRADE_TXT = { perfect: 'Parfait !', good: 'Bien', miss: 'Raté', wrong: 'Fausse note' };
+const COLORS = { ok: '#4ade80', tap: '#5ce1e6', hold: '#b388ff', chord: '#ffb84d', perfect: '#4ade80', good: '#ffe066', miss: '#ff5d73' };
+const GRADE_TXT = { ok: '✓', perfect: 'Parfait !', good: 'Bien', miss: 'Raté', wrong: 'Fausse note' };
 
 function rushState() {
   const s = getState();
@@ -20,6 +20,7 @@ function rushState() {
 }
 const setRush = (fn) => update((s) => { s.rush = { ...rushState(), ...(s.rush || {}) }; fn(s.rush); });
 const isUnlocked = (i) => i === 0 || (rushState().best[LEVELS[i - 1].id]?.stars || 0) >= 1;
+const learnCount = (l) => rushState().learn?.[l.id] || 0;
 const starsTxt = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
 
 export function render(root, params = {}) {
@@ -123,7 +124,10 @@ export function render(root, params = {}) {
           el('span', `≈ ${Math.round(chart.length)} s`), chart.notes.some((n) => n.hold) ? el('span', '🟪 notes à tenir') : null),
         el('div.row.gap.wrap', { style: { marginTop: '10px' } },
           el('button.btn', { onclick: () => play(l, ctx, { demo: true }) }, '👀 Voir la démo'),
+          el('button.btn', { onclick: () => play(l, ctx, { learn: true }) }, '🎓 Apprentissage'),
           el('button.btn.primary', { style: { flex: 1 }, onclick: () => play(l, ctx) }, '▶ Jouer')),
+        el('p.small.muted', { style: { margin: '8px 0 0' } }, '🎓 Apprentissage : les notes dans l’ordre, à ton rythme, sans chrono. La suivante s’allume quand tu as joué la bonne.',
+          learnCount(l) ? ` Déjà ${learnCount(l)} répétition${learnCount(l) > 1 ? 's' : ''}.` : ''),
         el('p.small.muted', { style: { margin: '8px 0 0' } }, '🟦 taper · 🟪 tenir jusqu’au bout de la tuile · 🟧 accord (toutes les notes ensemble)'),
       ),
     );
@@ -166,15 +170,16 @@ export function render(root, params = {}) {
   }
 
   // ---------- Partie ----------
-  function play(l, ctx, { demo = false } = {}) {
+  function play(l, ctx, { demo = false, learn = false } = {}) {
     stopGame?.();
     ensureAudio();
     const diff = DIFFS[ctx.diff] || DIFFS.normal;
     const chart = buildChart(l, diff);
     const game = new TileGame(chart, diff);
+    const lesson = learn ? new LearnSession(chart) : null;
     const st = rushState();
     const lang = st.lang;
-    const showLabels = diff.labels;
+    const showLabels = learn || diff.labels;
     const range = keyRange(chart.lo, chart.hi);
     const whites = whiteKeys(range.lo, range.hi);
     const pcKeys = new Map(); // code → midi
@@ -196,9 +201,9 @@ export function render(root, params = {}) {
     const canvas = el('canvas.rush-canvas');
     const wrap = el('div.rush-game',
       el('div.rush-hud',
-        el('div', el('div.small.muted', demo ? '👀 Démo' : `${l.emoji} ${l.title}`), el('div.row.gap', scoreEl, comboEl, accEl)),
+        el('div', el('div.small.muted', demo ? '👀 Démo' : learn ? `🎓 Apprentissage · ${l.title}` : `${l.emoji} ${l.title}`), el('div.row.gap', scoreEl, comboEl, accEl)),
         chordEl,
-        el('div.row.gap', demo ? null : pauseBtn, el('button.btn.small', { onclick: () => { stop(); intro(l, ctx); } }, '✕'))),
+        el('div.row.gap', demo || learn ? null : pauseBtn, el('button.btn.small', { onclick: () => { stop(); intro(l, ctx); } }, '✕'))),
       el('div.bar.rush-prog', prog),
       canvas,
     );
@@ -291,6 +296,7 @@ export function render(root, params = {}) {
       down.set(midi, (down.get(midi) || 0) + 1);
       sound(midi, true);
       if (demo) return;
+      if (learn) return learnPress(midi, src);
       const ev = game.press(midi, T(), { octaveFree: src.startsWith('midi') });
       if (ev.type === 'hit') feedback(ev.note.midi, ev.grade);
       else if (T() > -0.2) feedback(midi, 'wrong');
@@ -301,7 +307,7 @@ export function render(root, params = {}) {
       pressed.delete(src);
       const c = (down.get(midi) || 1) - 1;
       if (c <= 0) { down.delete(midi); sound(midi, false); } else down.set(midi, c);
-      if (!demo) game.release(midi, T());
+      if (!demo && !learn) game.release(midi, T());
     }
 
     // ---- Entrées : toucher / souris ----
@@ -334,8 +340,8 @@ export function render(root, params = {}) {
     window.addEventListener('keyup', ku);
     // ---- MIDI (MPC Key 37…) : l'octave est libre ----
     const offMidi = onMidi({ noteOn: (n) => doPress(n, 'midi' + n), noteOff: (n) => doRelease('midi' + n) });
-    viewKeys({ space: () => { if (!demo) togglePause(); } });
-    const onVis = () => { if (document.hidden && !paused && !demo) togglePause(); };
+    viewKeys({ space: () => { if (!demo && !learn) togglePause(); } });
+    const onVis = () => { if (document.hidden && !paused && !demo && !learn) togglePause(); };
     document.addEventListener('visibilitychange', onVis);
 
     function togglePause() {
@@ -430,7 +436,8 @@ export function render(root, params = {}) {
       g2.fillStyle = grd; g2.fillRect(0, hitY - 1, W, 3);
       // clavier
       const soon = new Map();
-      for (let i = game.cursor; i < game.notes.length; i++) {
+      if (learn) for (const x of lesson.current.notes) { if (game.notes[x.id].state === 'wait') soon.set(x.midi, 1); }
+      else for (let i = game.cursor; i < game.notes.length; i++) {
         const n = game.notes[i];
         if (n.t > t + chart.spb * 1.2) break;
         if (n.state === 'wait' && n.t > t - diff.window) soon.set(n.midi, Math.max(soon.get(n.midi) || 0, 1 - Math.max(0, n.t - t) / (chart.spb * 1.2)));
@@ -474,6 +481,15 @@ export function render(root, params = {}) {
         g2.fillText(f.txt, Math.max(30, Math.min(W - 30, f.x)), f.y - a * 26);
       }
       g2.globalAlpha = 1; g2.textAlign = 'left';
+      if (learn && lesson.atStart) {
+        g2.fillStyle = 'rgba(13,13,22,0.7)'; roundRect(W / 2 - Math.min(W / 2 - 8, 220), 14, Math.min(W - 16, 440), 62, 12);
+        g2.fillStyle = '#ececf6'; g2.textAlign = 'center';
+        g2.font = `800 ${W < 500 ? 15 : 18}px ${font}`;
+        g2.fillText(lesson.reps ? `✅ Boucle ${lesson.reps} terminée : ${lastLoop}` : '🎓 À ton rythme, note par note', W / 2, 40);
+        g2.font = `500 ${W < 500 ? 12 : 13}px ${font}`; g2.fillStyle = '#9a9ab8';
+        g2.fillText(lesson.reps ? 'Rejoue la 1re note pour recommencer' : 'Joue la note qui s’allume pour commencer', W / 2, 62);
+        g2.textAlign = 'left';
+      }
       // décompte / pause
       if (t < 0 || paused) {
         g2.fillStyle = 'rgba(13,13,22,0.55)'; g2.fillRect(0, 0, W, hitY);
@@ -493,19 +509,40 @@ export function render(root, params = {}) {
 
     let lastChord = '';
     function hud(t) {
+      if (learn) {
+        scoreEl.textContent = `🔁 ${lesson.reps}`;
+        accEl.textContent = `Note ${lesson.step + 1}/${lesson.steps.length}` + (lesson.loopErrors ? ` · ${lesson.loopErrors} erreur${lesson.loopErrors > 1 ? 's' : ''}` : '');
+        comboEl.textContent = '';
+        prog.style.width = `${(lesson.step / lesson.steps.length) * 100}%`;
+      }
       const r = game.results();
+      if (learn) { chordHud(t); return; }
       scoreEl.textContent = demo ? '' : String(game.score);
       comboEl.textContent = !demo && game.combo >= 4 ? `🔥 ×${game.combo}` : '';
       const judged = game.notes.filter((n) => n.state === 'done' || n.state === 'miss').length;
       accEl.textContent = !demo && judged ? `${r.acc} %` : '';
       prog.style.width = `${Math.max(0, Math.min(100, (t / chart.length) * 100))}%`;
+      chordHud(t);
+    }
+    function chordHud(t) {
       const cur = [...chart.chords].reverse().find((c) => c.t <= t + chart.spb * 0.5);
       const label = cur ? `${cur.label} : ${cur.notes.map((m) => noteLabel(m, lang === 'both' ? 'fr' : lang)).join(' · ')}` : '';
       if (label !== lastChord) { lastChord = label; chordEl.textContent = label ? `🎼 ${label}` : ''; }
     }
 
+    let viewT = lesson ? lesson.current.t : 0, lastFrame = performance.now();
     function frame() {
       if (!running) return;
+      if (learn) {
+        // la partition glisse jusqu'à l'étape attendue, puis attend le joueur
+        const pn = performance.now();
+        viewT += (lesson.current.t - viewT) * Math.min(1, ((pn - lastFrame) / 1000) * 10);
+        lastFrame = pn;
+        draw(viewT);
+        hud(viewT);
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       const t = paused ? pausedAt : T();
       if (!paused) {
         schedule();
@@ -545,6 +582,27 @@ export function render(root, params = {}) {
       stop();
       if (demo) intro(l, ctx); else outro(l, ctx, game.results());
     }
+    // ---- Apprentissage : la note suivante n'est disponible qu'une fois la bonne jouée ----
+    let lastLoop = '', loopStart = 0;
+    function learnPress(midi, src) {
+      const wasStart = lesson.atStart;
+      const res = lesson.press(midi, { octaveFree: src.startsWith('midi') });
+      if (res.type === 'wrong') { feedback(midi, 'wrong'); return; }
+      if (res.type !== 'ok') return;
+      if (wasStart) loopStart = performance.now();
+      const n = game.notes[res.noteId];
+      n.state = 'done'; n.grade = 'perfect';
+      feedback(res.midi, 'ok');
+      if (res.loopDone) {
+        const secs = Math.round((performance.now() - loopStart) / 1000);
+        lastLoop = `${lesson.lastLoopErrors ? `${lesson.lastLoopErrors} erreur${lesson.lastLoopErrors > 1 ? 's' : ''}` : 'sans faute ✨'} · ${secs} s`;
+        // la boucle repart : la 1re note se rallume, prête à être rejouée
+        game.notes.forEach((x) => { x.state = 'wait'; x.grade = null; });
+        if (!l.random) setRush((x) => { x.learn = { ...(x.learn || {}) }; x.learn[l.id] = (x.learn[l.id] || 0) + 1; });
+        if (lesson.reps <= 5) recordExercise({ key: 'rush:learn', title: `Piano Rush · apprentissage · ${l.title}`, xp: lesson.lastLoopErrors ? 3 : 5, skill: l.skill, success: true });
+        if (!lesson.lastLoopErrors) confetti();
+      }
+    }
     stopGame = stop;
   }
 
@@ -578,7 +636,7 @@ export function render(root, params = {}) {
     if (r.shortHolds) tips.push(`${r.shortHolds} note${r.shortHolds > 1 ? 's' : ''} tenue${r.shortHolds > 1 ? 's' : ''} relâchée${r.shortHolds > 1 ? 's' : ''} trop tôt : compte la durée jusqu’au bout de la tuile.`);
     if (r.weakBars.length && r.miss) tips.push(`Mesures à retravailler : ${r.weakBars.join(', ')}.`);
     if (r.wrong > 3) tips.push(`${r.wrong} fausses notes : regarde le nom sur la tuile et la touche qui s’allume avant d’appuyer.`);
-    if (r.stars === 0) tips.push('Il faut 60 % pour valider. Astuce : regarde la démo, ou passe en Mode libre › Facile pour ralentir le tempo.');
+    if (r.stars === 0) tips.push('Il faut 60 % pour valider. Astuce : travaille-le d’abord en 🎓 Apprentissage (sans chrono), regarde la démo, ou passe en Mode libre › Facile.');
 
     window.scrollTo(0, 0);
     root.replaceChildren(
@@ -603,6 +661,7 @@ export function render(root, params = {}) {
       el('div.row.gap.wrap',
         el('button.btn', { onclick: () => play(l.random ? randomLevel(ctx.diff) : l, ctx) }, '↻ Rejouer'),
         el('button.btn', { onclick: () => intro(l, ctx) }, '📖 Relire l’intro'),
+        el('button.btn', { onclick: () => play(l, ctx, { learn: true }) }, '🎓 Apprentissage'),
         ctx.mode === 'parcours' && next && isUnlocked(idx + 1)
           ? el('button.btn.primary', { style: { flex: 1 }, onclick: () => intro(next, ctx) }, `Niveau suivant : ${next.emoji} ${next.title} →`)
           : el('button.btn.primary', { style: { flex: 1 }, onclick: menu }, '☰ Menu'),

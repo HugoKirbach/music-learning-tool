@@ -92,3 +92,22 @@ test('niveaux « stabs » : aucune note tenue', async () => {
   assert.ok(buildChart(levelById('house'), DIFFS.normal).notes.every((n) => !n.hold));
   assert.ok(buildChart(levelById('pulse'), DIFFS.normal).notes.every((n) => n.hold));
 });
+
+test('apprentissage : ordre, accords en une étape, boucle et répétitions', async () => {
+  const { LearnSession } = await import('../src/core/tiles.js');
+  const chart = buildChart({ bpm: 60, seq: 'C4:1 D4:1 @C:2' }, DIFFS.normal);
+  const s = new LearnSession(chart);
+  assert.equal(s.steps.length, 3);
+  assert.equal(s.press(62).type, 'wrong'); // D avant C
+  assert.equal(s.press(60).type, 'ok');
+  assert.equal(s.press(62).stepDone, true);
+  assert.equal(s.press(67).stepDone, false); // accord : dans n'importe quel ordre
+  assert.equal(s.press(67).type, 'again');
+  s.press(60);
+  const last = s.press(64 + 12, { octaveFree: true });
+  assert.equal(last.loopDone, true);
+  assert.equal(s.reps, 1);
+  assert.equal(s.lastLoopErrors, 1);
+  assert.ok(s.atStart);
+  assert.equal(s.press(60).type, 'ok'); // on recommence par la 1re note
+});
