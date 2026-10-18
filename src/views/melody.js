@@ -3,7 +3,7 @@ import { getState, update, projectFromGenre, level } from '../store.js';
 import { SCALES, NOTE_NAMES, scaleNotes, midiToName, mod } from '../core/theory.js';
 import { MELODY_STEPS, STEPS_PER_BAR, voiceProgression, projectToSong } from '../core/arrange.js';
 import { analyzeMelody, catchyLabel } from '../core/catchy.js';
-import { playProject, stopAll, previewNote, previewChord, presetParams } from '../player.js';
+import { playProject, stopAll, previewNote, previewChord, presetParams, onPlayhead } from '../player.js';
 import { transport, playSynth, ensureAudio, now as getCtxTime } from '../core/audio.js';
 import { presetOptions } from '../data/presets.js';
 import { GENRES, genreById } from '../data/genres.js';
@@ -321,7 +321,8 @@ export function render(root, params) {
 
   renderTabs();
   renderRoll();
-  return () => { stopAll(); offMidi(); };
+  const offPh = onPlayhead((step) => { if (step < 0) { playStep = -1; paintPlayhead(); } else onVis(step); });
+  return () => { stopAll(); offMidi(); offPh(); };
 }
 
 

@@ -26,7 +26,17 @@ export function playProject(getProject, opts = {}) {
     const on = Object.fromEntries(Object.keys(layers).map((k) => [k, layers[k] && !mutes[k]]));
     lastBass = playEvents(p, ev, time, stepDur, on, lastBass);
     opts.onStep?.(step, time, ev);
-  }, opts.onVisual, { bpm: p0.bpm, swing: p0.swing });
+  }, opts.onVisual, { bpm: p0.bpm, swing: p0.swing, owner: opts.owner || null });
+}
+
+// Tête de lecture du lecteur global : les écrans d'édition s'y abonnent pour afficher la position.
+const playheadListeners = new Set();
+export function onPlayhead(fn) {
+  playheadListeners.add(fn);
+  return () => playheadListeners.delete(fn);
+}
+export function emitPlayhead(step) {
+  playheadListeners.forEach((f) => f(step));
 }
 
 /** Joue les événements d'un pas (batterie, accords, basse, mélodie). Renvoie la dernière note de basse (glide). */

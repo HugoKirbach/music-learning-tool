@@ -46,6 +46,8 @@ La session est **adaptative** : elle cible ta compétence la plus faible et te p
 
 ## Contenu
 
+- **Navigation** : les Labs sont rangés en 4 familles (*Créer*, *Oreille & jeu*, *Son & mix*, *Studio & idées*) avec une rangée **« Reprendre »** (derniers écrans ouverts). L'accueil tient en 3 blocs : la session du jour, une carte de suivi contextuelle (bilan, programme, révisions ou missions en attente) et un accès rapide.
+- **Mini-lecteur « Mon idée »** : barre fixe au-dessus de la navigation avec style, tempo, tonalité et accords de ton idée, ▶/■, mute par couche (batterie, basse, accords, mélodie) et un panneau (tempo, swing, export MIDI, sauvegarde, nouvelle idée). La boucle **continue quand tu passes de Beat à Accords à Mélodie** ; elle s'arrête et la barre se cache dans les exercices.
 - **Lab Beat** : boîte à rythmes 16 pas (6 sons, ghost notes, swing, 4 kits), générateur **euclidien**, mutation, export MIDI. Modes *À l'oreille* (le niveau ajuste le nombre de rangées à trouver) et *Contrainte* (9 règles vérifiées automatiquement).
 - **Lab Accords** : progressions par degrés dans 7 modes, fonctions tonales colorées, **emprunts modaux**, triades/7e/9e, voicings (voice leading, serré, écarté), 10 progressions célèbres, **détection des accords joués au clavier MIDI**, mode *Recette*.
 - **Lab Mélodie** : piano roll calé sur la gamme (notes de l'accord surlignées), 4 mesures sur ta boucle (batterie + accords + basse), outils de variation (copie, AABA, rétrograde, miroir, séquence, « graine »), **Catchy-mètre** (7 critères : répétition, ambitus, notes d'accord sur les temps, mouvement conjoint, syncopes, respiration, résolution) avec conseils concrets, saisie pas à pas au clavier MIDI, modes *Défi hook* et *Dictée*.

@@ -5,6 +5,8 @@ import { levelFromXp, dayKey } from './core/progress.js';
 import { transport, ensureAudio, setVolume, playSynth, now } from './core/audio.js';
 import { autoEnableMidi, enableMidi, midiStatus, midiStatusText, onMidiStatus, onDeviceChange, setMidiFallback, midiSupported } from './midiin.js';
 import { presetParams } from './player.js';
+import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
+import { pushRecent } from './catalog.js';
 
 const ROUTES = {
   home: () => import('./views/home.js'),
@@ -42,6 +44,9 @@ const nav = document.getElementById('nav');
 const status = document.getElementById('status');
 let cleanup = null;
 let renderToken = 0;
+let currentId = 'home';
+const mini = mountMiniPlayer(document.getElementById('miniplayer'));
+const paintMini = () => mini.setVisible(MINI_ROUTES.includes(currentId) && !!getState().settings.onboarded);
 
 function renderNav(current) {
   clear(nav);
@@ -116,9 +121,16 @@ async function route() {
   const hash = location.hash || '#/home';
   const [path, query = ''] = hash.slice(2).split('?');
   const id = ROUTES[path] ? path : 'home';
-  transport.stop();
+  // La boucle du mini-lecteur continue entre les écrans d'édition ; tout le reste s'arrête.
+  const keep = transport.owner === 'mini' && MINI_ROUTES.includes(id);
+  if (!keep) transport.stop();
   if (getState().settings.onboarded) document.getElementById('modal-root').replaceChildren();
+  transport.guard = keep ? 'mini' : null;
   if (cleanup) { try { cleanup(); } catch (e) { console.error(e); } cleanup = null; }
+  transport.guard = null;
+  currentId = id;
+  paintMini();
+  if (getState().recent?.[0] !== id && pushRecent([], id).length) update((s) => { s.recent = pushRecent(s.recent, id); });
   renderNav(id);
   let mod;
   try {
@@ -171,6 +183,7 @@ window.addEventListener('pointerdown', unlock);
 
 window.addEventListener('hashchange', route);
 subscribe(renderStatus);
+subscribe(paintMini);
 renderStatus();
 route();
 onboarding();

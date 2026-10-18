@@ -4,6 +4,7 @@ import { DRUM_ROWS, STEPS, VEL, gridFromPatterns, emptyGrid, cloneGrid, compareG
 import { transport, playDrum, kitForGenre, KITS } from '../core/audio.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { onMidi, drumForNote } from '../midiin.js';
+import { onPlayhead } from '../player.js';
 
 // ---------- Grille réutilisable ----------
 export function drumGrid({ getGrid, onChange, locked = [], hidden = [], onLabel, getKit = () => getState().project.kit }) {
@@ -189,6 +190,7 @@ function freeMode(root, params) {
     () => playGrid(grid, { bpm: P().bpm, swing: P().swing, kit: P().kit, onVisual: g.setPlayhead }),
     () => { transport.stop(); g.setPlayhead(-1); },
   );
+  const offPh = onPlayhead((step) => g.setPlayhead(step < 0 ? -1 : step % STEPS));
   const genre = genreById(P().genre);
   const genreSel = select(GENRES.map((x) => ({ value: x.id, label: `${x.emoji} ${x.name}` })), P().genre, (v) => {
     loadGenreDrums(v);
@@ -233,7 +235,7 @@ function freeMode(root, params) {
       el('p.small', el('b', 'Live 12 : '), genre.tips.ableton), el('p.small', el('b', 'MPC : '), genre.tips.mpc),
       el('a.btn.small', { href: '#/melody' }, '→ Ajouter accords et mélodie')),
   );
-  return () => { transport.stop(); g.destroy(); };
+  return () => { transport.stop(); g.destroy(); offPh(); };
 }
 
 function loadGenreDrums(id) {

@@ -1,0 +1,36 @@
+// Catalogue des écrans : familles des Labs, libellés, et historique « Reprendre où j'en étais ».
+
+export const FAMILIES = [
+  { id: 'create', name: 'Créer', emoji: '✍️', desc: 'Écrire rythmes, accords, mélodies et basses' },
+  { id: 'ear', name: 'Oreille & jeu', emoji: '👂', desc: 'Entraîner l’oreille et jouer en rythme' },
+  { id: 'sound', name: 'Son & mix', emoji: '🎚️', desc: 'Sound design, Serum 2 et mixage' },
+  { id: 'studio', name: 'Studio & idées', emoji: '🧱', desc: 'Arranger, développer, analyser, explorer' },
+];
+
+export const SCREENS = [
+  { id: 'beat', fam: 'create', href: '#/beat', emoji: '🥁', name: 'Lab Beat', desc: 'Boîte à rythmes 16 pas, euclidien, défis à l’oreille et sous contrainte.' },
+  { id: 'chords', fam: 'create', href: '#/chords', emoji: '🎼', name: 'Lab Accords', desc: 'Degrés, modes, emprunts, voicings, détection d’accords au clavier MIDI.' },
+  { id: 'melody', fam: 'create', href: '#/melody', emoji: '🎵', name: 'Lab Mélodie', desc: 'Piano roll en gamme, outils de variation et Catchy-mètre.' },
+  { id: 'basslab', fam: 'create', href: '#/basslab', emoji: '🎸', name: 'Labo de basse', desc: 'Ta basse critiquée comme par un prof, et 3 variantes.' },
+  { id: 'hum', fam: 'create', href: '#/hum', emoji: '🎤', name: 'Fredonne → MIDI', desc: 'Chante ou siffle une idée : elle devient des notes.' },
+  { id: 'ear', fam: 'ear', href: '#/ear', emoji: '👂', name: 'Quiz d’oreille', desc: 'Intervalles, accords, progressions, styles, paramètres, révisions.' },
+  { id: 'callresponse', fam: 'ear', href: '#/callresponse', emoji: '🔁', name: 'Call & Response', desc: 'L’app joue une phrase, tu réponds en rythme (clavier, pads, MPC).' },
+  { id: 'synth', fam: 'sound', href: '#/synth', emoji: '🔊', name: 'Lab Synthé', desc: 'Synthé décodé pour Serum 2, son mystère, potards MIDI.' },
+  { id: 'mixdown', fam: 'sound', href: '#/mixdown', emoji: '🎚️', name: 'Mixdown express', desc: 'Une boucle mal mixée à corriger à l’oreille.' },
+  { id: 'arrange', fam: 'studio', href: '#/arrange', emoji: '🧱', name: 'Lab Arrangement', desc: 'De la boucle au morceau de 64 mesures.' },
+  { id: 'remix', fam: 'studio', href: '#/remix', emoji: '🧬', name: 'Remix ton idée', desc: 'Style, mode, réharmonisation, half-time… développe ton idée.' },
+  { id: 'analyze', fam: 'studio', href: '#/analyze', emoji: '🎧', name: 'Analyse de référence', desc: 'BPM, tonalité, structure, extraction basse/lead, recréation Serum.' },
+  { id: 'atlas', fam: 'studio', href: '#/atlas', emoji: '🗺️', name: 'Atlas des styles', desc: '20 styles : ingrédients, références, astuces.' },
+  // Écrans hors Labs (utilisés par « Reprendre »)
+  { id: 'studio', fam: null, href: '#/studio', emoji: '🎛️', name: 'Studio (missions)', desc: '' },
+  { id: 'program', fam: null, href: '#/program', emoji: '📅', name: 'Programme 4 semaines', desc: '' },
+  { id: 'bilan', fam: null, href: '#/bilan', emoji: '📈', name: 'Bilan de la semaine', desc: '' },
+];
+
+export const screenById = (id) => SCREENS.find((s) => s.id === id);
+
+/** Ajoute un écran à l'historique (plus récent en tête, sans doublon, 6 max). */
+export function pushRecent(list = [], id) {
+  if (!screenById(id)) return list;
+  return [id, ...list.filter((x) => x !== id)].slice(0, 6);
+}

@@ -2,7 +2,7 @@ import { el, card, header, segmented, select, hintBox, finishExercise, downloadM
 import { getState, update, projectFromGenre } from '../store.js';
 import { SCALES, HEPTATONIC, NOTE_NAMES, slotChord, borrowOptions, detectChord, romanFor, mod } from '../core/theory.js';
 import { CHORD_RHYTHMS, BASS_RHYTHMS, projectToSong, voiceProgression } from '../core/arrange.js';
-import { playProject, previewChord, stopAll, presetParams } from '../player.js';
+import { playProject, previewChord, stopAll, presetParams, onPlayhead } from '../player.js';
 import { playSynth, ensureAudio, now } from '../core/audio.js';
 import { presetOptions } from '../data/presets.js';
 import { slider } from '../ui.js';
@@ -223,5 +223,6 @@ export function render(root, params) {
       }, '✓ Valider la recette')) : el('a.btn.wide', { href: '#/melody' }, '→ Écrire une mélodie par-dessus'),
   );
   renderAll();
-  return () => { stopAll(); offMidi(); voices.forEach((x) => x.release()); };
+  const offPh = onPlayhead((step) => { if (step < 0) renderSlots(); else if (step % 16 === 0) renderSlots(Math.floor(step / 16) % 4); });
+  return () => { stopAll(); offMidi(); offPh(); voices.forEach((x) => x.release()); };
 }

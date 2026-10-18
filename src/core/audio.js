@@ -693,15 +693,30 @@ class Transport {
     this.onStep = null;
     this.onVisual = null;
     this.onStop = null;
+    this.owner = null; // 'mini' = lecteur global ; null = un écran
+    this.guard = null; // pendant un changement d'écran : protège le lecteur global
+    this.listeners = new Set();
+  }
+
+  /** Abonnement aux démarrages / arrêts : fn(playing, owner). */
+  subscribe(fn) {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  emit() {
+    this.listeners.forEach((f) => f(this.playing, this.owner));
   }
 
   get stepDur() {
     return 60 / this.bpm / 4;
   }
 
-  start(onStep, onVisual, { bpm, swing } = {}) {
+  start(onStep, onVisual, { bpm, swing, owner = null } = {}) {
     ensureAudio();
+    this.guard = null;
     this.stop();
+    this.owner = owner;
     if (bpm) this.bpm = bpm;
     if (swing != null) this.swing = swing;
     setTempo(this.bpm);
@@ -712,6 +727,7 @@ class Transport {
     this.playing = true;
     this.timer = setInterval(() => this.tick(), 25);
     this.tick();
+    this.emit();
   }
 
   tick() {
@@ -731,6 +747,8 @@ class Transport {
   }
 
   stop() {
+    // Un écran qui se ferme ne coupe pas le lecteur global
+    if (this.guard && this.playing && this.owner === this.guard) return;
     const was = this.playing;
     if (was) resetMasterFilter();
     this.playing = false;
@@ -738,6 +756,8 @@ class Transport {
     this.timer = null;
     if (was) this.onStop?.();
     this.onStop = null;
+    this.owner = null;
+    if (was) this.emit();
   }
 }
 

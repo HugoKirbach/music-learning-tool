@@ -53,6 +53,7 @@ function fresh() {
     review: {},
     program: { startedAt: null, done: {} },
     customDice: [],
+    recent: [],
   };
 }
 

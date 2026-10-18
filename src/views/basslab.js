@@ -5,7 +5,7 @@ import { critiqueBass, bassVariants, lineToNotes, notesToLine, BASS_LOW, BASS_HI
 import { voiceProgression, eventsAt, MELODY_STEPS } from '../core/arrange.js';
 import { scaleNotes, midiToName, NOTE_NAMES, SCALES, mod } from '../core/theory.js';
 import { transport, playSynth, playDrum, ensureAudio } from '../core/audio.js';
-import { presetParams, previewNote } from '../player.js';
+import { presetParams, previewNote, onPlayhead } from '../player.js';
 import { presetOptions } from '../data/presets.js';
 
 /** Ligne de basse actuelle : celle écrite, sinon celle produite par le motif de basse du style. */
@@ -155,5 +155,6 @@ export function render(root) {
   );
   drawTabs();
   drawRoll();
-  return () => transport.stop();
+  const offPh = onPlayhead((step) => { playing = step < 0 ? -1 : step % 64; if (step < 0 || Math.floor(playing / 16) === bar) drawRoll(); });
+  return () => { transport.stop(); offPh(); };
 }
