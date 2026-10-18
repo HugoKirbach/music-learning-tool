@@ -126,6 +126,11 @@ npm run check   # vérification des imports/exports
 - **Partager une idée par lien** (mini-lecteur › 🔗 Partager, ou depuis le Carnet) : l'idée est compressée dans l'adresse, ton ami l'écoute sans compte et peut l'ajouter à son carnet.
 - **Quoi de neuf** après chaque mise à jour, avec une **visite guidée** (aussi dans Profil › Réglages).
 
+## Motivation
+
+- **🏆 Défi de la semaine** : la même contrainte pour tout le monde du lundi au dimanche (ex. « Hook à 3 notes », « Trap sans hi-hats »), règles vérifiées sur ton idée, publication avec ton pseudo et **écoute des versions des autres** (compte requis).
+- **🔔 Rappels intelligents** (Profil) : un seul rappel par jour, seulement si tu n'as pas joué ; le message s'adapte (série en danger, test du lundi, étape du projet). Notification même app fermée sur Chrome / Android avec l'app installée ; ailleurs, rappel d'agenda (.ics). L'accueil signale aussi une série en danger.
+
 ## Compte, amis et règles Firebase
 
 - **Compte facultatif** (Profil › Compte & synchro) : progression sauvegardée en ligne et fusionnée entre appareils (fusion à trois voies : une modification faite d'un seul côté n'est jamais écrasée). Le carnet est rangé à part (1 document par idée) et une **sauvegarde par jour** est gardée sur 7 jours, restaurable en un clic.

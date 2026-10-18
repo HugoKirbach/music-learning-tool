@@ -42,13 +42,14 @@ const ROUTES = {
   project: () => import('./views/project.js'),
   critique: () => import('./views/critique.js'),
   listen: () => import('./views/listen.js'),
+  challenge: () => import('./views/challenge.js'),
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
   profile: () => import('./views/profile.js'),
 };
 
 const NAV = [
-  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills'] },
+  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills', 'challenge'] },
   { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads', 'critique'] },
   { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
@@ -229,6 +230,7 @@ onboarding();
 setTimeout(() => { if (!document.querySelector('#modal-root .modal-back')) showWhatsNew(); }, 800);
 if (midiSupported()) autoEnableMidi();
 if (cloudWanted()) startCloud();
+if (getState().settings.reminders?.enabled) import('./reminders.js').then((m) => m.writeReminderData());
 // Pseudo : demandé à la 1re connexion (ou au prochain démarrage pour un compte existant), une fois par session.
 let pseudoAsked = false;
 onSocial((p) => {

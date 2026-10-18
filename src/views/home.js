@@ -8,6 +8,7 @@ import { missionById } from '../data/missions.js';
 import { genreById } from '../data/genres.js';
 import { screenById, SCREENS } from '../catalog.js';
 import { placementDue, weekFocus, weekId, projectProgress, PROJECT_STEPS, weekday } from '../core/pedagogy.js';
+import { streakAtRisk } from '../core/reminder.js';
 
 const HABITS = [
   'Termine avant de perfectionner : une boucle finie vaut 10 idées en cours.',
@@ -91,6 +92,7 @@ export function render(root, params) {
   const later = (s.later || []).map(missionById).filter(Boolean);
   const dow = new Date().getDay();
   const items = [];
+  if (streakAtRisk(s)) items.push({ emoji: '🔥', title: `Ta série de ${s.streak.count} jours s’arrête ce soir`, text: '5 minutes suffisent : lance une session express et elle continue.', action: el('button.btn.small.primary', { onclick: () => { const ns = newSession(); location.hash = ns.steps[0].route; } }, '⚡ Session'), chip: '🔥 Série', href: '#/home?start=1' });
   if (placementDue(s)) items.push({ emoji: '🧪', title: 'Test de la semaine', text: '5 minutes pour mesurer tes progrès et choisir le focus de tes sessions.', action: el('a.btn.small.primary', { href: '#/placement' }, 'Passer le test'), chip: '🧪 Test de la semaine', href: '#/placement' });
   const wp = (s.weekProjects || {})[weekId()];
   if (!wp) items.push({ emoji: '🏁', title: 'Projet de la semaine', text: 'Un morceau construit un peu chaque jour, exporté vers Live dimanche.', action: el('a.btn.small.primary', { href: '#/project' }, 'Démarrer'), chip: '🏁 Projet', href: '#/project' });
@@ -136,7 +138,7 @@ export function render(root, params) {
     el('a.tile', { href: quick.route }, el('div.tile-emoji', '⏱️'), el('b', 'Défi 2 min'), el('span', quick.title)),
     el('a.tile', { href: '#/studio?dice=1' }, el('div.tile-emoji', '🎲'), el('b', 'Dé à idées'), el('span', 'Une contrainte')),
     el('a.tile', { href: '#/hum' }, el('div.tile-emoji', '🎤'), el('b', 'Fredonne'), el('span', 'Idée à la voix')),
-    el('a.tile', { href: '#/remix' }, el('div.tile-emoji', '🧬'), el('b', 'Remix'), el('span', 'Développer')),
+    el('a.tile', { href: '#/challenge' }, el('div.tile-emoji', '🏆'), el('b', 'Défi'), el('span', 'de la semaine')),
     el('a.tile', { href: '#/rush' }, el('div.tile-emoji', '🎹'), el('b', 'Piano Rush'), el('span', 'Jouer en rythme')),
     el('a.tile', { href: '#/labs' }, el('div.tile-emoji', '🧪'), el('b', 'Tous les Labs'), el('span', `${SCREENS.filter((x) => x.fam).length} ateliers`)),
   );

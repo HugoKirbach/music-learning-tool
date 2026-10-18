@@ -166,3 +166,31 @@ onSynced(() => {
   else publishProfile().catch((e) => console.warn(e));
 });
 onCloud((st) => { if (!st.user && myProfile) { myProfile = null; emit(); } });
+
+// ---------- Défi de la semaine (participations publiques) ----------
+const entryRef = (c, week, uid) => c.F.doc(c.db, 'challenges', week, 'entries', uid);
+
+/** Publie (ou remplace) ma version du défi. */
+export async function publishEntry(week, challengeId, project) {
+  const c = cloudCtx();
+  if (!c) throw new Error('Connecte-toi pour publier');
+  if (!myProfile) await loadProfile();
+  if (!myProfile?.pseudo) throw new Error('Choisis d’abord ton pseudo');
+  const { mutes, ...p } = project;
+  const data = JSON.stringify(p);
+  if (data.length > 55000) throw new Error('Idée trop volumineuse');
+  await c.F.setDoc(entryRef(c, week, c.user.uid), { pseudo: myProfile.pseudo, challenge: challengeId, project: data, at: Date.now(), level: publicStats().level });
+}
+
+/** Participations de la semaine (les plus récentes d'abord). */
+export async function listEntries(week) {
+  const c = cloudCtx();
+  if (!c) return [];
+  const snap = await c.F.getDocs(c.F.collection(c.db, 'challenges', week, 'entries'));
+  return snap.docs.map((d) => ({ uid: d.id, mine: d.id === c.user.uid, ...d.data() })).sort((a, b) => b.at - a.at);
+}
+
+export async function removeEntry(week) {
+  const c = cloudCtx();
+  if (c) await c.F.deleteDoc(entryRef(c, week, c.user.uid));
+}

@@ -9,6 +9,7 @@ import { playSynth, ensureAudio, now } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { accountCard } from './account.js';
 import { audioCard } from './audiodiag.js';
+import { remindersCard } from './reminderscard.js';
 
 export function render(root, params = {}) {
   const s = getState();
@@ -113,6 +114,7 @@ export function render(root, params = {}) {
             el('p.small.muted', 'Où ça sert : Lab Synthé (touches + potards Q-Link), quiz d’Oreille (réponds en jouant), Lab Accords (reconnaissance d’accords), Lab Mélodie (saisie pas à pas), Lab Beat (pads → batterie, enregistrement live).')),
         ),
         audio.node,
+        remindersCard(),
         card(el('h3', '💾 Sauvegarde en fichier'),
           el('p.small.muted', 'Sans compte : exporte un fichier ici et importe-le sur l’autre appareil. Utile aussi comme copie de secours.'),
           el('div.row.gap.wrap',

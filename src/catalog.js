@@ -27,6 +27,7 @@ export const SCREENS = [
   // Écrans hors Labs (utilisés par « Reprendre »)
   { id: 'studio', fam: null, href: '#/studio', emoji: '🎛️', name: 'Studio (missions)', desc: '' },
   { id: 'program', fam: null, href: '#/program', emoji: '📅', name: 'Programme 4 semaines', desc: '' },
+  { id: 'challenge', fam: null, href: '#/challenge', emoji: '🏆', name: 'Défi de la semaine', desc: '' },
   { id: 'project', fam: null, href: '#/project', emoji: '🏁', name: 'Projet de la semaine', desc: '' },
   { id: 'placement', fam: null, href: '#/placement', emoji: '🧪', name: 'Test de la semaine', desc: '' },
   { id: 'skills', fam: null, href: '#/skills', emoji: '🌳', name: 'Arbre de compétences', desc: '' },
