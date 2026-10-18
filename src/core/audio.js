@@ -14,6 +14,59 @@ let volume = 0.8;
 let pump = 0;
 let tempo = 120;
 
+// ---------- Mode du moteur (Performance / Stable) et statistiques de diagnostic ----------
+// stable : grande réserve de son, notes programmées plus tôt, effets allégés (téléphones).
+let mode = { stable: false };
+const MAX_VOICES = () => (mode.stable ? 24 : 32);
+export const audioStats = { late: 0, stolen: 0, cleaned: 0, voices: 0, drums: 0, pending: 0, maxTickGap: 0, ticks: 0 };
+
+/** Applique le mode audio. Si le moteur tourne déjà, il est reconstruit au prochain son. */
+export function configureAudio({ stable = false } = {}) {
+  const changed = !!ctx && stable !== mode.stable;
+  mode = { stable: !!stable };
+  if (changed) {
+    transport.stop();
+    try { ctx.close(); } catch (e) { /* déjà fermé */ }
+    ctx = null; openHat = null; shared.clear(); voiceList.length = 0; cleanupQ.length = 0;
+  }
+}
+export const audioMode = () => ({ ...mode });
+export function resetAudioStats() { Object.assign(audioStats, { late: 0, stolen: 0, cleaned: 0, maxTickGap: 0, ticks: 0 }); }
+/** Avance de programmation des notes (secondes). */
+export const scheduleAhead = () => (mode.stable ? 0.3 : 0.12);
+
+export function audioInfo() {
+  return {
+    mode: mode.stable ? 'stable' : 'performance', state: ctx?.state || 'off', sampleRate: ctx?.sampleRate || 0,
+    baseLatency: Math.round((ctx?.baseLatency || 0) * 1000), outputLatency: Math.round((ctx?.outputLatency || 0) * 1000),
+    ...audioStats, voices: ctx ? voiceList.filter((v) => v.end > ctx.currentTime).length : 0, maxVoices: MAX_VOICES(),
+  };
+}
+
+// Chaque note crée un petit graphe : une fois le son fini, on le débranche des bus (sinon il s'accumule, surtout sur mobile).
+const cleanupQ = [];
+let cleanupTimer = null;
+let bag = null; // nœuds de la note en cours de création qui sont reliés aux bus partagés
+function dispose(nodes, at) {
+  cleanupQ.push({ at, nodes });
+  audioStats.pending = cleanupQ.length;
+  if (!cleanupTimer) cleanupTimer = setInterval(runCleanup, 250);
+}
+function runCleanup() {
+  if (!ctx) { cleanupQ.length = 0; clearInterval(cleanupTimer); cleanupTimer = null; return; }
+  const t = ctx.currentTime;
+  let w = 0;
+  for (const item of cleanupQ) {
+    if (item.at <= t) {
+      for (const n of item.nodes) { try { n.disconnect(); } catch (e) { /* déjà débranché */ } }
+      audioStats.cleaned++;
+    } else cleanupQ[w++] = item;
+  }
+  cleanupQ.length = w;
+  audioStats.pending = w;
+  if (!w) { clearInterval(cleanupTimer); cleanupTimer = null; }
+}
+
 export function audioReady() {
   return !!ctx;
 }
@@ -27,7 +80,7 @@ export function ensureAudio() {
 
 function build() {
   const AC = window.AudioContext || window.webkitAudioContext;
-  ctx = new AC({ latencyHint: 'interactive' });
+  ctx = new AC({ latencyHint: mode.stable ? 'balanced' : 'interactive' });
 
   // ----- Master : filtre d'arrangement → glue → saturation → limiteur → volume
   master = ctx.createGain();
@@ -37,7 +90,7 @@ function build() {
   limiter.attack.value = 0.002; limiter.release.value = 0.08;
   saturator = ctx.createWaveShaper();
   saturator.curve = softClip(0.35);
-  saturator.oversample = '2x';
+  saturator.oversample = mode.stable ? 'none' : '2x';
   glue = ctx.createDynamicsCompressor();
   glue.threshold.value = -16; glue.knee.value = 8; glue.ratio.value = 2.5;
   glue.attack.value = 0.012; glue.release.value = 0.22;
@@ -45,7 +98,10 @@ function build() {
   makeup.gain.value = 0.9;
   masterFilter = ctx.createBiquadFilter();
   masterFilter.type = 'lowpass'; masterFilter.frequency.value = 20000; masterFilter.Q.value = 0.9;
-  masterFilter.connect(glue).connect(makeup).connect(saturator).connect(limiter).connect(master).connect(ctx.destination);
+  // Mode stable : un seul compresseur (le limiteur) pour alléger le calcul
+  if (mode.stable) masterFilter.connect(makeup);
+  else masterFilter.connect(glue).connect(makeup);
+  makeup.connect(saturator).connect(limiter).connect(master).connect(ctx.destination);
 
   // ----- Bus
   drumBus = ctx.createGain(); drumBus.gain.value = 0.42;
@@ -57,7 +113,7 @@ function build() {
   // ----- Réverbe : pré-délai → convolution → EQ (coupe le grave boueux et les aigus agressifs)
   reverbSend = ctx.createGain(); reverbSend.gain.value = 0.45;
   const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.022;
-  const conv = ctx.createConvolver(); conv.buffer = makeImpulse(2.8);
+  const conv = ctx.createConvolver(); conv.buffer = makeImpulse(mode.stable ? 1.3 : 2.8);
   const rvHp = ctx.createBiquadFilter(); rvHp.type = 'highpass'; rvHp.frequency.value = 220;
   const rvLp = ctx.createBiquadFilter(); rvLp.type = 'lowpass'; rvLp.frequency.value = 7500;
   reverbSend.connect(pre).connect(conv).connect(rvHp).connect(rvLp).connect(pumpGain);
@@ -149,7 +205,15 @@ export function setPump(amount) {
   pump = Math.max(0, Math.min(1, amount || 0));
 }
 
+const clipCache = new Map();
 function softClip(amount) {
+  const key = Math.round(amount * 100);
+  if (clipCache.has(key)) return clipCache.get(key);
+  const c = makeSoftClip(amount);
+  clipCache.set(key, c);
+  return c;
+}
+function makeSoftClip(amount) {
   const n = 2048, curve = new Float32Array(n), k = 1 + amount * 4;
   for (let i = 0; i < n; i++) {
     const x = (i * 2) / n - 1;
@@ -197,11 +261,17 @@ function env(param, time, peak, attack, decay, floor = 0.0001) {
   param.exponentialRampToValueAtTime(floor, time + attack + decay);
 }
 
+// Envois partagés : un seul gain par (bus, quantité) au lieu d'un nouveau nœud par note.
+const shared = new Map();
 function sendTo(node, bus, amount) {
   if (amount <= 0) return;
-  const g = ctx.createGain();
-  g.gain.value = amount;
-  node.connect(g).connect(bus);
+  const a = Math.round(amount * 100) / 100;
+  let m = shared.get(bus);
+  if (!m) shared.set(bus, (m = new Map()));
+  let g = m.get(a);
+  if (!g) { g = ctx.createGain(); g.gain.value = a; g.connect(bus); m.set(a, g); }
+  node.connect(g);
+  if (bag) bag.push(node);
 }
 
 /** Automatisation du filtre master : valeur fixe (to seul) ou balayage exponentiel de from à to. */
@@ -241,6 +311,7 @@ export function playRiser(time, dur) {
   plfo.connect(pan.pan); plfo.start(time); plfo.stop(time + dur + 0.1);
   n.connect(bp).connect(g).connect(pan).connect(masterFilter);
   sendTo(pan, reverbSend, 0.5);
+  dispose([pan], time + dur + 0.3);
   const o = ctx.createOscillator(); o.type = 'sawtooth';
   o.frequency.setValueAtTime(110, time); o.frequency.exponentialRampToValueAtTime(880, time + dur);
   const og = ctx.createGain();
@@ -259,6 +330,7 @@ export function playClick(time, accent = false) {
   env(g.gain, time, accent ? 0.35 : 0.2, 0.001, 0.05);
   o.connect(g).connect(master);
   o.start(time); o.stop(time + 0.08);
+  dispose([g], time + 0.2);
 }
 
 /** Décode un fichier audio (MP3, WAV, M4A…) importé par l'utilisateur. */
@@ -285,6 +357,7 @@ export function playBuffer(buffer, offset = 0, { loopStart = null, loopEnd = nul
   if (low || high) g.gain.value = 1.4;
   node.connect(g).connect(master);
   const startAt = ctx.currentTime;
+  src.onended = () => { try { g.disconnect(); } catch (e) { /* déjà débranché */ } };
   src.start(startAt, offset);
   return { stop: () => { try { src.stop(); } catch (e) { /* déjà stoppé */ } }, startAt, offset, rate, node: src };
 }
@@ -358,16 +431,25 @@ const HAT_RATIOS = [2, 3, 4.16, 5.43, 6.79, 8.21];
 
 export function playDrum(id, time, vel = 1, kitId = 'club', outNode = null) {
   if (!ctx) return;
+  if (time < ctx.currentTime - 0.01) audioStats.late++;
   time = Math.max(time, ctx.currentTime);
   const kit = KITS[kitId] || KITS.club;
   const out = ctx.createGain();
   out.gain.value = vel;
+  bag = [out];
   let dest = outNode || drumBus;
   if (kit.dusty) { // filtre « vinyle » : aigus adoucis
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000; lp.Q.value = 0.5;
-    lp.connect(outNode || drumBus); dest = lp;
+    lp.connect(outNode || drumBus); dest = lp; bag.push(lp);
   }
   out.connect(dest);
+  try { drumVoice(id, time, kit, out); } finally {
+    dispose(bag, time + (id === 'crash' ? 2.2 : id === 'ohat' ? 1 : 0.8));
+    bag = null;
+  }
+}
+
+function drumVoice(id, time, kit, out) {
   switch (id) {
     case 'kick': {
       const k = kit.kick;
@@ -380,7 +462,7 @@ export function playDrum(id, time, vel = 1, kitId = 'club', outNode = null) {
       g.gain.setValueAtTime(0.0001, time);
       g.gain.linearRampToValueAtTime(0.78, time + 0.0015);
       g.gain.setTargetAtTime(0.0001, time + 0.02, k.decay / 4);
-      const sh = ctx.createWaveShaper(); sh.curve = softClip(k.drive); sh.oversample = '2x';
+      const sh = ctx.createWaveShaper(); sh.curve = softClip(k.drive); sh.oversample = mode.stable ? 'none' : '2x';
       o.connect(g).connect(sh).connect(out);
       o.start(time); o.stop(time + k.decay * 1.6 + 0.1);
       // Click d'attaque
@@ -393,6 +475,7 @@ export function playDrum(id, time, vel = 1, kitId = 'club', outNode = null) {
         const rg = ctx.createGain(); rg.gain.value = 0.35;
         const rlp = ctx.createBiquadFilter(); rlp.type = 'lowpass'; rlp.frequency.value = 180;
         sh.connect(rg).connect(rlp).connect(reverbSend);
+        bag.push(rlp);
       }
       duck(time);
       break;
@@ -443,7 +526,7 @@ export function playDrum(id, time, vel = 1, kitId = 'club', outNode = null) {
       // Partie métallique (6 carrés inharmoniques, à la 808/909)
       if (h.metal > 0) {
         const mg = ctx.createGain(); mg.gain.value = 0.22 * h.metal;
-        HAT_RATIOS.forEach((r) => {
+        (mode.stable ? HAT_RATIOS.slice(0, 4) : HAT_RATIOS).forEach((r) => {
           const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 40 * r * 1.6;
           o.connect(mg); o.start(time); o.stop(time + dec + 0.1);
         });
@@ -546,9 +629,18 @@ function driveCurve(amount) {
  * @param {number} vel 0..1
  * @param {{fromMidi?:number, send?:number}} opts send = réverbe (sinon valeur du preset)
  */
+// Polyphonie limitée : au-delà, la voix la plus ancienne est coupée en douceur (vol de voix).
+const voiceList = [];
+function reserveVoice(time) {
+  for (let i = voiceList.length - 1; i >= 0; i--) if (voiceList[i].end <= time) voiceList.splice(i, 1);
+  while (voiceList.length >= MAX_VOICES()) { voiceList.shift().kill(time); audioStats.stolen++; }
+}
+
 export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
   if (!ctx) return { release() {} };
+  if (time < ctx.currentTime - 0.01) audioStats.late++;
   time = Math.max(time, ctx.currentTime);
+  reserveVoice(time);
   const nodes = [];
   const vg = ctx.createGain();
   const slope = p.filter.slope === 24 ? 2 : 1;
@@ -567,7 +659,7 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
   if (p.drive > 0) {
     const sh = ctx.createWaveShaper();
     sh.curve = driveCurve(p.drive);
-    sh.oversample = '2x';
+    sh.oversample = mode.stable ? 'none' : '2x';
     fOut.connect(sh);
     last = sh;
   }
@@ -608,7 +700,7 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
   const oscA = [];
   p.osc.forEach((osc, oi) => {
     if ((osc.level ?? 1) <= 0.001) return;
-    const voices = Math.max(1, osc.voices || 1);
+    const voices = Math.min(mode.stable ? 3 : 16, Math.max(1, osc.voices || 1));
     for (let v = 0; v < voices; v++) {
       const spread = voices === 1 ? 0 : (v / (voices - 1)) * 2 - 1;
       // Unison : voix réparties en stéréo (alternance gauche/droite)
@@ -677,6 +769,7 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
   const allNodes = lfo ? [...nodes, lfo] : nodes;
 
   let released = false;
+  const voice = { end: Infinity, kill: null };
   const release = (t = ctx.currentTime) => {
     if (released) return;
     released = true;
@@ -686,6 +779,18 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
     vg.gain.setTargetAtTime(0.0001, t, Math.max(0.005, a.r / 4));
     filters.forEach((f) => f.frequency.setTargetAtTime(cutoff, t, Math.max(0.01, fe.r / 4)));
     allNodes.forEach((n) => { try { n.stop(t + a.r * 1.5 + 0.2); } catch (e) { /* déjà stoppé */ } });
+    voice.end = t + a.r * 1.5 + 0.2;
+    dispose([vg], voice.end + 0.2);
+  };
+  // Coupure rapide (vol de voix) : 15 ms de fondu pour éviter le clic
+  voice.kill = (t) => {
+    t = Math.max(t, ctx.currentTime);
+    vg.gain.cancelScheduledValues(t);
+    vg.gain.setValueAtTime(vg.gain.value, t);
+    vg.gain.setTargetAtTime(0.0001, t, 0.005);
+    allNodes.forEach((n) => { try { n.stop(t + 0.05); } catch (e) { /* déjà stoppé */ } });
+    if (!released) { released = true; dispose([vg], t + 0.1); }
+    voice.end = t;
   };
   if (dur != null) {
     // Relâchement programmé : on évite cancelScheduledValues dans le futur (bug Safari) en utilisant setTargetAtTime.
@@ -693,7 +798,11 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
     vg.gain.setTargetAtTime(0.0001, t, Math.max(0.005, a.r / 4));
     allNodes.forEach((n) => n.stop(t + a.r * 1.5 + 0.3));
     released = true;
+    voice.end = t + a.r * 1.5 + 0.3;
+    dispose([vg], voice.end + 0.2);
   }
+  voiceList.push(voice);
+  audioStats.voices = voiceList.length;
   return { release };
 }
 
@@ -745,14 +854,22 @@ class Transport {
     this.step = 0;
     this.nextTime = ctx.currentTime + 0.06;
     this.playing = true;
-    this.timer = setInterval(() => this.tick(), 25);
+    this.lastTick = performance.now();
+    this.timer = makeTicker(() => this.tick(), mode.stable ? 40 : 25);
     this.tick();
     this.emit();
   }
 
   tick() {
+    if (!this.playing || !ctx) return;
+    const pn = performance.now();
+    audioStats.maxTickGap = Math.max(audioStats.maxTickGap, Math.round(pn - this.lastTick));
+    audioStats.ticks++;
+    this.lastTick = pn;
     if (this.bpm !== tempo) setTempo(this.bpm);
-    while (this.playing && this.nextTime < ctx.currentTime + 0.12) {
+    // Retard trop important (onglet en pause, téléphone saturé) : on se recale au lieu d'empiler les notes en retard
+    if (this.nextTime < ctx.currentTime - 0.25) { audioStats.late++; this.nextTime = ctx.currentTime + 0.02; }
+    while (this.playing && this.nextTime < ctx.currentTime + scheduleAhead()) {
       const dur = this.stepDur;
       const t = this.nextTime + (this.step % 2 === 1 ? this.swing * dur * 0.66 : 0);
       const s = this.step;
@@ -772,7 +889,7 @@ class Transport {
     const was = this.playing;
     if (was) resetMasterFilter();
     this.playing = false;
-    if (this.timer) clearInterval(this.timer);
+    if (this.timer) this.timer();
     this.timer = null;
     if (was) this.onStop?.();
     this.onStop = null;
@@ -782,3 +899,21 @@ class Transport {
 }
 
 export const transport = new Transport();
+
+/** Minuteur dans un Web Worker : il n'est pas ralenti quand la page est chargée (dessin, calculs) ou en arrière-plan. */
+let tickerUrl = null;
+function makeTicker(fn, ms) {
+  try {
+    if (!tickerUrl) {
+      const src = 'let id=null;onmessage=(e)=>{clearInterval(id);if(e.data>0)id=setInterval(()=>postMessage(0),e.data);}';
+      tickerUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    }
+    const w = new Worker(tickerUrl);
+    w.onmessage = fn;
+    w.postMessage(ms);
+    return () => { w.postMessage(0); w.terminate(); };
+  } catch (e) {
+    const id = setInterval(fn, ms);
+    return () => clearInterval(id);
+  }
+}

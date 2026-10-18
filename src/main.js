@@ -8,6 +8,8 @@ import { presetParams } from './player.js';
 import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
 import { pushRecent } from './catalog.js';
 import { cloudWanted, startCloud, onCloud, cloudStatus } from './cloud.js';
+import { applyAudioMode } from './audiomode.js';
+applyAudioMode();
 import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
 const ROUTES = {

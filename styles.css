@@ -562,3 +562,10 @@ p.bad, .small.bad { color: #ff5d73; }
 .pad-mini.assist span { aspect-ratio: 1 / 1; font-size: 16px; }
 .pad-mini.assist span.cur { border: 3px solid var(--accent2); box-shadow: 0 0 14px var(--accent2); }
 .pad-mini.assist span.done { background: rgba(74, 222, 128, .18); border-color: #4ade80; }
+
+/* ---------- Diagnostic audio ---------- */
+.diag { display: grid; gap: 4px; margin-top: 6px; }
+.diag-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 4px 8px; border-radius: 8px; background: var(--card2); }
+.diag-row span { color: var(--muted); }
+.diag-row.warn { background: rgba(255, 184, 77, .15); }
+.diag-row.warn b { color: #ffb84d; }

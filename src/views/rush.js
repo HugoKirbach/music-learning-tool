@@ -1,7 +1,7 @@
 // Piano Rush : les notes tombent, on les joue en rythme (touches, clavier PC, MPC). Chaque niveau = théorie + pratique.
 import { el, header, segmented, confetti, showBadges } from '../ui.js';
 import { getState, update, recordExercise } from '../store.js';
-import { ensureAudio, now, playSynth, playClick, outputLatency } from '../core/audio.js';
+import { ensureAudio, now, playSynth, playClick, outputLatency, scheduleAhead } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { onMidi, midiStatus } from '../midiin.js';
 import { viewKeys } from '../shortcuts.js';
@@ -257,7 +257,7 @@ export function render(root, params = {}) {
     const guide = demo || st.guide;
 
     function schedule() {
-      const horizon = now() + 0.15;
+      const horizon = now() + scheduleAhead() + 0.03;
       // métronome : décompte toujours, puis selon le réglage
       for (;;) {
         const beat = clickK * clickUnit;
@@ -508,19 +508,22 @@ export function render(root, params = {}) {
     }
 
     let lastChord = '';
+    // Bandeau du haut : 10 mises à jour par seconde suffisent (moins de travail pendant la partie)
+    let hudAt = 0;
     function hud(t) {
+      const pn = performance.now();
+      if (pn - hudAt < 100) return;
+      hudAt = pn;
       if (learn) {
         scoreEl.textContent = `🔁 ${lesson.reps}`;
         accEl.textContent = `Note ${lesson.step + 1}/${lesson.steps.length}` + (lesson.loopErrors ? ` · ${lesson.loopErrors} erreur${lesson.loopErrors > 1 ? 's' : ''}` : '');
         comboEl.textContent = '';
         prog.style.width = `${(lesson.step / lesson.steps.length) * 100}%`;
       }
-      const r = game.results();
       if (learn) { chordHud(t); return; }
       scoreEl.textContent = demo ? '' : String(game.score);
       comboEl.textContent = !demo && game.combo >= 4 ? `🔥 ×${game.combo}` : '';
-      const judged = game.notes.filter((n) => n.state === 'done' || n.state === 'miss').length;
-      accEl.textContent = !demo && judged ? `${r.acc} %` : '';
+      accEl.textContent = !demo && game.judged ? `${game.liveAcc()} %` : '';
       prog.style.width = `${Math.max(0, Math.min(100, (t / chart.length) * 100))}%`;
       chordHud(t);
     }

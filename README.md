@@ -92,7 +92,9 @@ Les fichiers `.mid` sont multipistes (Drums, Accords, Basse, Mélodie) au tempo 
   - **6 kits de batterie** (909, 808, techno avec rumble, acoustique, lo-fi, minimal) : kicks à enveloppe de pitch + click + saturation, snares à 2 tons, **hats métalliques** (6 oscillateurs inharmoniques façon 808/909), percussions (rim, cowbell, conga, tom) ;
   - **25 sons** en 4 familles (Keys, Pads, Leads, Basses) avec recette Serum 2 : e-piano FM, orgue house, strings, chœur, hoover, marimba, basses Moog / FM / wobble / 808… Unison **stéréo**, FM, filtre 12/24 dB, enveloppe de pitch, couche de bruit ;
   - **chaîne master** : sidechain (pompe réglable), compresseur glue, saturation douce, limiteur ; **effets en envoi** : réverbe (pré-délai, amortissement), delay ping-pong synchronisé, chorus stéréo ;
-  - séquenceur à *lookahead* pour un timing précis.
+  - séquenceur à *lookahead* piloté par un minuteur en Web Worker (non ralenti quand la page est chargée) ;
+  - **stabilité** : chaque note est débranchée des bus une fois finie, envois d'effets partagés (pas de nœud par note), polyphonie limitée avec vol de voix en fondu, courbes de saturation en cache ;
+  - **Moteur audio** (*Profil*) : *Auto* (Stable sur écran tactile), *Performance* (latence minimale, effets complets) ou *Stable* (réserve de son plus grande, notes programmées 300 ms à l'avance, réverbe courte, un seul compresseur, sans suréchantillonnage, unisson limitée) + **diagnostic en direct** (latence, voix actives, notes en retard, nettoyage, minuteur) avec rapport copiable.
 - **MIDI** : Web MIDI API (entrée), écriture de fichiers SMF type 1 (sortie).
 - **Données** : `localStorage` (hors-ligne) + compte facultatif Firebase Auth / Firestore (SDK chargé à la demande, 1 document par utilisateur, règles : chacun n'accède qu'à son document) + export/import JSON.
 

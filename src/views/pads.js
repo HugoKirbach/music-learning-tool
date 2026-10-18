@@ -1,7 +1,7 @@
 // Pad Rush : finger drumming sur une grille de pads (2×4 ou 4×4) — anneaux qui se referment + séquenceur au-dessus.
 import { el, header, segmented, confetti, showBadges, toast } from '../ui.js';
 import { getState, update, recordExercise } from '../store.js';
-import { ensureAudio, now, playSynth, playDrum, playClick, outputLatency } from '../core/audio.js';
+import { ensureAudio, now, playSynth, playDrum, playClick, outputLatency, scheduleAhead } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { onMidi, midiStatus, enableMidi, midiSupported } from '../midiin.js';
 import { viewKeys } from '../shortcuts.js';
@@ -262,7 +262,7 @@ export function render(root, params = {}) {
     const pressed = new Map();
 
     function schedule() {
-      const horizon = now() + 0.15;
+      const horizon = now() + scheduleAhead() + 0.03;
       for (;;) {
         const t = clickK * chart.spb;
         const at = start + t;
@@ -438,7 +438,12 @@ export function render(root, params = {}) {
       overlay.classList.toggle('show', !!txt);
     }
 
+    // Bandeau du haut : 10 mises à jour par seconde suffisent
+    let hudAt = 0;
     function hud(t) {
+      const pn = performance.now();
+      if (pn - hudAt < 100) return;
+      hudAt = pn;
       if (learn) {
         scoreEl.textContent = `🔁 ${lesson.reps}`;
         accEl.textContent = `Coup ${lesson.step + 1}/${lesson.steps.length}` + (lesson.loopErrors ? ` · ${lesson.loopErrors} erreur${lesson.loopErrors > 1 ? 's' : ''}` : '');
@@ -447,8 +452,7 @@ export function render(root, params = {}) {
       }
       scoreEl.textContent = demo ? '' : String(game.score);
       comboEl.textContent = !demo && game.combo >= 4 ? `🔥 ×${game.combo}` : '';
-      const judged = game.notes.filter((n) => n.state === 'done' || n.state === 'miss').length;
-      accEl.textContent = !demo && judged ? `${game.results().acc} %` + (dynTotal ? ` · 🎚️ ${dynOk}/${dynTotal}` : '') : '';
+      accEl.textContent = !demo && game.judged ? `${game.liveAcc()} %` + (dynTotal ? ` · 🎚️ ${dynOk}/${dynTotal}` : '') : '';
       prog.style.width = `${Math.max(0, Math.min(100, (t / chart.length) * 100))}%`;
     }
 

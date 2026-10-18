@@ -13,7 +13,7 @@ import { midiToName, NOTE_NAMES, SCALES, mod } from '../core/theory.js';
 export function render(root, params) {
   const mode = params.mode === 'response' ? 'response' : 'free';
   const P = () => getState().project;
-  let stream = null, analyser = null, buf = null, poll = null;
+  let stream = null, analyser = null, buf = null, dbuf = null, poll = null, micSrc = null;
   let frames = [], recStart = null, recording = false;
   let bars = 2, backing = true, result = null;
 
@@ -31,28 +31,31 @@ export function render(root, params) {
     const ctx = ensureAudio();
     if (!navigator.mediaDevices?.getUserMedia) { toast('Micro non disponible dans ce navigateur', 'bad'); return; }
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+      // Pas d'annulation d'écho : sur mobile elle bascule en mode « appel » (son de la boucle dégradé, grésillements). D'où le conseil du casque.
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
     } catch (e) {
       toast('Accès au micro refusé : autorise-le dans les réglages du site (icône 🔒)', 'bad', 5000);
       return;
     }
-    const src = ctx.createMediaStreamSource(stream);
+    micSrc = ctx.createMediaStreamSource(stream);
     analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
-    src.connect(analyser);
+    micSrc.connect(analyser);
     buf = new Float32Array(analyser.fftSize);
+    dbuf = new Float32Array(analyser.fftSize / 2);
     micBtn.remove();
     status.textContent = 'Micro prêt 🎙️ — mets un casque pour que la boucle ne repasse pas dans le micro';
-    poll = setInterval(sample, 12);
+    poll = setInterval(sample, 30); // ~33 analyses/s (largement assez pour des doubles croches)
   }
 
   function sample() {
     analyser.getFloatTimeDomainData(buf);
+    // Sous-échantillonnage ×2 (moyenne de 2 échantillons) : même fenêtre de temps, calcul de hauteur ~4× plus léger
     let e = 0;
-    for (let i = 0; i < buf.length; i++) e += buf[i] * buf[i];
-    const rms = Math.sqrt(e / buf.length);
-    const sr = analyser.context.sampleRate;
-    const r = rms > 0.01 ? yin(buf, 0, buf.length, sr, 70, 1100, 0.15) : { f0: 0, conf: 0 };
+    for (let i = 0; i < dbuf.length; i++) { const v = (buf[2 * i] + buf[2 * i + 1]) * 0.5; dbuf[i] = v; e += v * v; }
+    const rms = Math.sqrt(e / dbuf.length);
+    const sr = analyser.context.sampleRate / 2;
+    const r = rms > 0.01 ? yin(dbuf, 0, dbuf.length, sr, 70, 1100, 0.15) : { f0: 0, conf: 0 };
     // Accordeur en direct
     if (r.f0 && r.conf > 0.75) {
       const m = freqToMidiF(r.f0), n = Math.round(m), cents = Math.round((m - n) * 100);
@@ -213,6 +216,7 @@ export function render(root, params) {
   return () => {
     transport.stop();
     clearInterval(poll);
+    try { micSrc?.disconnect(); } catch (e) { /* déjà débranché */ }
     stream?.getTracks().forEach((t) => t.stop());
   };
 }

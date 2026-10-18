@@ -153,6 +153,13 @@ export class TileGame {
     this.wrong = 0;
     this.active = new Map();
     this.events = [];
+    this.judged = 0;
+  }
+
+  /** Précision en cours (calcul incrémental, sans parcourir toutes les notes : appelé à chaque image). */
+  liveAcc() {
+    if (!this.judged) return 0;
+    return Math.max(0, Math.round((this.points / (100 * this.judged)) * 100 - Math.min(15, this.wrong * 1.5)));
   }
 
   /** Appui sur une touche. octaveFree : accepte la même note à une autre octave (clavier MIDI décalé). */
@@ -201,6 +208,7 @@ export class TileGame {
   }
 
   award(n) {
+    this.judged++;
     const base = n.grade === 'perfect' ? 100 : 70;
     const pts = n.hold ? base * (0.4 + 0.6 * n.held) : base;
     if (n.hold && n.held < 0.6) this.combo = 0;
@@ -219,7 +227,7 @@ export class TileGame {
     for (let i = this.cursor; i < this.notes.length; i++) {
       const n = this.notes[i];
       if (n.t + this.diff.window >= t) break;
-      if (n.state === 'wait') { n.state = 'miss'; this.combo = 0; missed.push(n); }
+      if (n.state === 'wait') { n.state = 'miss'; this.combo = 0; this.judged++; missed.push(n); }
     }
     while (this.cursor < this.notes.length && this.notes[this.cursor].state !== 'wait' && this.notes[this.cursor].t + this.diff.window < t) this.cursor++;
     return missed;
