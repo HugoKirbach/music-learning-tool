@@ -9,7 +9,10 @@ import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
 import { pushRecent } from './catalog.js';
 import { cloudWanted, startCloud, onCloud, cloudStatus } from './cloud.js';
 import { applyAudioMode } from './audiomode.js';
+import { applyPrefs } from './prefs.js';
+applyPrefs();
 import { onSocial } from './social.js';
+import { showWhatsNew, APP_VERSION } from './whatsnew.js';
 applyAudioMode();
 import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
@@ -38,6 +41,7 @@ const ROUTES = {
   placement: () => import('./views/placement.js'),
   project: () => import('./views/project.js'),
   critique: () => import('./views/critique.js'),
+  listen: () => import('./views/listen.js'),
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
   profile: () => import('./views/profile.js'),
@@ -204,7 +208,7 @@ function onboarding() {
     el('button.btn.primary.wide', {
       onclick: () => {
         ensureAudio();
-        update((st) => { st.settings.onboarded = true; st.settings.dailyGoal = goal; });
+        update((st) => { st.settings.onboarded = true; st.settings.dailyGoal = goal; st.settings.seenVersion = APP_VERSION; });
         close();
       },
     }, 'C’est parti 🎧'),
@@ -222,6 +226,7 @@ initShortcuts(mini);
 renderStatus();
 route();
 onboarding();
+setTimeout(() => { if (!document.querySelector('#modal-root .modal-back')) showWhatsNew(); }, 800);
 if (midiSupported()) autoEnableMidi();
 if (cloudWanted()) startCloud();
 // Pseudo : demandé à la 1re connexion (ou au prochain démarrage pour un compte existant), une fois par session.
@@ -229,7 +234,12 @@ let pseudoAsked = false;
 onSocial((p) => {
   if (!p || p.pseudo || pseudoAsked || !getState().settings.onboarded) return;
   pseudoAsked = true;
-  import('./views/friends.js').then(({ askPseudo }) => askPseudo());
+  // attend qu'aucune autre fenêtre ne soit ouverte (accueil, « Quoi de neuf »…)
+  const ask = (tries = 0) => {
+    if (document.querySelector('#modal-root .modal-back') && tries < 30) { setTimeout(() => ask(tries + 1), 1000); return; }
+    import('./views/friends.js').then(({ askPseudo }) => askPseudo());
+  };
+  ask();
 });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

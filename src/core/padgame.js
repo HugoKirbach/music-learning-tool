@@ -32,13 +32,16 @@ const PREF = {
 };
 
 /** Attribue un pad à chaque son du niveau. Les niveaux mélodiques se rangent dans l'ordre (grave en bas). */
-export function assignPads(level, layout) {
+export function assignPads(level, layout, { lefty = false } = {}) {
   const n = padCount(layout);
+  const cols = LAYOUTS[layout].cols;
+  // Mode gaucher : la grille est inversée gauche ↔ droite (kick sous la main gauche… à droite)
+  const mirror = (i) => (lefty ? Math.floor(i / cols) * cols + (cols - 1 - (i % cols)) : i);
   const used = new Set();
   const out = [];
   level.pads.forEach((p, i) => {
-    let idx = level.melodic ? i : PREF[layout][p.id];
-    if (idx == null || used.has(idx) || idx >= n) idx = [...Array(n).keys()].find((k) => !used.has(k));
+    let idx = level.melodic ? mirror(i) : PREF[layout][p.id] != null ? mirror(PREF[layout][p.id]) : null;
+    if (idx == null || used.has(idx) || idx >= n) idx = [...Array(n).keys()].map(mirror).find((k) => !used.has(k));
     used.add(idx);
     out.push({ ...p, idx, name: p.name || PAD_SOUNDS[p.id]?.name || p.id, color: p.color || PAD_SOUNDS[p.id]?.color || '#b388ff' });
   });
@@ -52,11 +55,11 @@ const clean = (s) => s.replace(/[\s|]/g, '');
  * x = coup, X = accent, g = ghost note, . ou - = silence. Le motif est répété level.repeat fois.
  * rolls=false : au plus une croche par pad (les roulements 1/16 et 1/32 sont simplifiés, pratique au tactile).
  */
-export function buildPadChart(level, diff, { layout = '2x4', rolls = true, repeat = level.repeat || 1 } = {}) {
+export function buildPadChart(level, diff, { layout = '2x4', rolls = true, repeat = level.repeat || 1, lefty = false } = {}) {
   const res = level.res || 4;
   const bpm = Math.round(level.bpm * diff.tempo);
   const spb = 60 / bpm;
-  const pads = assignPads(level, layout);
+  const pads = assignPads(level, layout, { lefty });
   const byId = Object.fromEntries(pads.map((p) => [p.id, p]));
   const steps = Math.max(...Object.values(level.pattern).map((s) => clean(s).length));
   const baseBeats = steps / res;

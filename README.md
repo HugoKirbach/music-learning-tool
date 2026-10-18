@@ -118,6 +118,14 @@ npm run check   # vérification des imports/exports
 - **🏁 Projet de la semaine** : un morceau construit un peu chaque jour (beat, accords, basse, hook, arrangement, son & mix) et exporté vers Live le dimanche : MIDI multipiste et **pistes audio WAV** (batterie, basse, accords, mélodie + mix, dans un ZIP).
 - **🩺 Critique de ma prod** : importe ton export Live (et une référence) → niveau, dynamique, équilibre en 6 bandes, largeur stéréo, contraste de l'arrangement, densité, et les **3 actions prioritaires dans Ableton**. Tout est analysé sur l'appareil.
 
+## Confort
+
+- **Navigation progressive** : les ateliers avancés apparaissent avec ton niveau (Profil › Réglages › Labs : « Tout afficher »).
+- **Thème clair / sombre / auto**, **animations réduites** (ou selon le système), focus clavier visible, zoom autorisé, libellés pour les lecteurs d'écran.
+- **Mode gaucher** pour les pads (grille inversée gauche ↔ droite).
+- **Partager une idée par lien** (mini-lecteur › 🔗 Partager, ou depuis le Carnet) : l'idée est compressée dans l'adresse, ton ami l'écoute sans compte et peut l'ajouter à son carnet.
+- **Quoi de neuf** après chaque mise à jour, avec une **visite guidée** (aussi dans Profil › Réglages).
+
 ## Compte, amis et règles Firebase
 
 - **Compte facultatif** (Profil › Compte & synchro) : progression sauvegardée en ligne et fusionnée entre appareils (fusion à trois voies : une modification faite d'un seul côté n'est jamais écrasée). Le carnet est rangé à part (1 document par idée) et une **sauvegarde par jour** est gardée sur 7 jours, restaurable en un clic.

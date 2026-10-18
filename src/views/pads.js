@@ -56,7 +56,7 @@ export function render(root, params = {}) {
         el('span.small.muted', 'Pads'),
         segmented([{ value: '2x4', label: '2 × 4 (8 pads)' }, { value: '4x4', label: '4 × 4 (16 pads)' }], st.layout, (v) => setPads((r) => { r.layout = v; })),
         toggle('rolls', 'Roulements 1/16 · 1/32', 'Désactivé : au plus une croche par pad, plus confortable au tactile'),
-        toggle('metro', 'Métronome'), toggle('guide', 'Guide audio'),
+        toggle('metro', 'Métronome'), toggle('guide', 'Guide audio'), toggle('lefty', 'Gaucher', 'Inverse la grille gauche ↔ droite'),
         el('button.btn.small', { onclick: assistant }, '🎛️ Assistant pads MIDI')),
       el('p.small.muted', { style: { margin: '8px 0 0' } }, inputHint(st.layout)),
     );
@@ -108,7 +108,7 @@ export function render(root, params = {}) {
     stopGame?.(); stopGame = null;
     const st = padsState();
     const diff = DIFFS[ctx.diff] || DIFFS.normal;
-    const chart = buildPadChart(l, diff, { layout: st.layout, rolls: st.rolls });
+    const chart = buildPadChart(l, diff, { layout: st.layout, rolls: st.rolls, lefty: st.lefty });
     const ch = padChapterOf(l);
     window.scrollTo(0, 0);
     root.replaceChildren(
@@ -175,7 +175,7 @@ export function render(root, params = {}) {
     const layout = st.layout;
     const L = LAYOUTS[layout];
     const diff = DIFFS[ctx.diff] || DIFFS.normal;
-    const chart = buildPadChart(l, diff, { layout, rolls: st.rolls, repeat: learn ? 1 : ear ? 2 : l.repeat || 1 });
+    const chart = buildPadChart(l, diff, { layout, rolls: st.rolls, lefty: st.lefty, repeat: learn ? 1 : ear ? 2 : l.repeat || 1 });
     const game = new TileGame(chart, diff);
     const lesson = learn ? new LearnSession(chart) : null;
     const byIdx = Object.fromEntries(chart.pads.map((p) => [p.idx, p]));

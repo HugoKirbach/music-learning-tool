@@ -60,6 +60,7 @@ export function mountMiniPlayer(host) {
             import('./ui.js').then(({ toast }) => toast('Idée sauvée dans le Carnet 📓', 'good'));
           },
         }, '📓 Sauver'),
+        el('button.btn.small', { onclick: () => import('./share.js').then(({ shareIdea }) => shareIdea(getState().project)) }, '🔗 Partager'),
         select([{ value: '', label: '✨ Nouvelle idée dans un style…' }, ...GENRES.map((g) => ({ value: g.id, label: `${g.emoji} ${g.name}` }))], '', (v) => {
           if (!v) return;
           if (!confirm('Remplacer l’idée en cours ? (Sauve-la d’abord dans le Carnet si tu veux la garder.)')) return;

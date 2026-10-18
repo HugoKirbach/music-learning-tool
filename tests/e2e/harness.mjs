@@ -106,8 +106,8 @@ function midiInit(connected) {
 export function createHarness({ browser, base }) {
   const contexts = [];
   const errors = [];
-  async function open({ device = 'pc', midi = false, midiConnected = true, cloud = null, onboard = true, route = '#/home', name = device } = {}) {
-    const ctx = await browser.newContext(VIEWPORTS[device]);
+  async function open({ device = 'pc', midi = false, midiConnected = true, cloud = null, onboard = true, route = '#/home', name = device, permissions = [] } = {}) {
+    const ctx = await browser.newContext({ ...VIEWPORTS[device], permissions });
     contexts.push(ctx);
     if (midi) await ctx.addInitScript(midiInit, midiConnected);
     if (cloud) {
@@ -122,7 +122,7 @@ export function createHarness({ browser, base }) {
     page.on('pageerror', (e) => errors.push(`[${name}] ${e.message}\n${(e.stack || '').split('\n').slice(0, 4).join('\n')}`));
     page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR_FAILED/.test(m.text())) errors.push(`[${name}] console : ${m.text()}`); });
     page.go = async (hash, wait = 350) => {
-      if (page.url().endsWith(hash)) { await page.goto(base + '#/labs'); await page.waitForTimeout(100); } // même écran : on force le rechargement
+      if (page.url().endsWith(hash)) { await page.goto(base + (hash === '#/atlas' ? '#/labs' : '#/atlas')); await page.waitForTimeout(100); } // même écran : on force le rechargement
       await page.goto(base + hash); await page.waitForTimeout(wait);
     };
     // Clic après avoir centré l'élément (les barres fixes du bas ne le recouvrent plus)

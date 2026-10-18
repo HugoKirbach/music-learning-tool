@@ -46,6 +46,7 @@ export function render(root) {
         el('div.row.gap.wrap',
           it.type !== 'note' ? el('button.btn.small', { onclick: () => open(it) }, '↗ Ouvrir') : null,
           it.type === 'idea' ? el('button.btn.small', { onclick: () => downloadMidi(`idee-${it.genre}`, projectToSong(it.project)) }, '⬇ MIDI') : null,
+          it.type === 'idea' && it.project ? el('button.btn.small', { title: 'Partager par lien', onclick: () => import('../share.js').then(({ shareIdea }) => shareIdea(it.project, it.title)) }, '🔗') : null,
           it.type === 'beat' ? el('button.btn.small', { onclick: () => downloadMidi(`beat-${it.genre}`, beatSong(it)) }, '⬇ MIDI') : null,
           it.type === 'chords' ? el('button.btn.small', { onclick: () => downloadMidi('accords', projectToSong({ ...getState().project, chords: it.chords, rootPc: it.rootPc, scale: it.scale, ext: it.ext }, { chords: true, bass: true })) }, '⬇ MIDI') : null,
           el('button.btn.small', { onclick: () => editNote(it, draw) }, '✏️'),

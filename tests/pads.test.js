@@ -67,3 +67,12 @@ test('vélocité et notes MIDI', () => {
   assert.equal(padForNote(51, {}, '4x4'), 15);
   assert.equal(padForNote(60, { 60: 3 }, '2x4'), 3);
 });
+
+test('mode gaucher : grille inversée gauche ↔ droite', () => {
+  const l = PAD_LEVELS.find((x) => x.id === 'hats8');
+  const p = assignPads(l, '2x4', { lefty: true });
+  assert.equal(p.find((x) => x.id === 'kick').idx, 3);
+  assert.equal(p.find((x) => x.id === 'snare').idx, 2);
+  const m = assignPads(PAD_LEVELS.find((x) => x.id === 'gamme'), '4x4', { lefty: true });
+  assert.deepEqual(m.map((x) => x.idx), [3, 2, 1, 0, 7, 6, 5, 4]);
+});

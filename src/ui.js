@@ -30,6 +30,8 @@ export function el(spec, props = {}, ...children) {
     else if (k in node && typeof v !== 'string') node[k] = v;
     else node.setAttribute(k, v === true ? '' : v);
   }
+  // Accessibilité : un bouton ou lien qui n'a qu'une infobulle reçoit le même texte pour les lecteurs d'écran
+  if (props && props.title && !props['aria-label'] && (tag === 'button' || tag === 'a')) node.setAttribute('aria-label', props.title);
   append(node, children);
   return node;
 }
@@ -179,6 +181,7 @@ export function finishExercise(r) {
 }
 
 export function confetti() {
+  if (document.documentElement.dataset.motion === 'reduce' || (document.documentElement.dataset.motion !== 'full' && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
   const host = document.body;
   const colors = ['#ff5d73', '#ffb84d', '#ffe066', '#5ce1e6', '#7c9cff', '#c77dff'];
   for (let i = 0; i < 40; i++) {

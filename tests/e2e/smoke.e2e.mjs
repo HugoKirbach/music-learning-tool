@@ -4,10 +4,12 @@ export const ROUTES = ['home', 'labs', 'beat', 'beat?mode=ear&genre=dnb', 'beat?
   'ear', 'ear?mode=intervals', 'ear?mode=chords', 'ear?mode=progressions', 'ear?mode=genre', 'ear?mode=sound', 'ear?mode=review',
   'atlas', 'atlas?g=afrohouse', 'studio', 'studio?mission=m-euclid', 'studio?dice=1', 'notebook', 'profile', 'callresponse',
   'arrange', 'arrange?challenge=contrast', 'analyze', 'program', 'program?project=2', 'hum', 'hum?mode=response', 'basslab',
-  'mixdown', 'remix', 'bilan', 'rush', 'rush?level=house', 'pads', 'pads?level=trap', 'friends'];
+  'mixdown', 'remix', 'bilan', 'rush', 'rush?level=house', 'pads', 'pads?level=trap', 'friends',
+  'skills', 'placement', 'project', 'critique', 'listen?i=zcassé'];
 
-async function tour(t, device) {
+async function tour(t, device, theme = null) {
   const page = await t.open({ device });
+  if (theme) { await page.store(`s.settings.theme = '${theme}'; s.settings.allModules = true;`); t.assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), theme); }
   const problems = [];
   for (const r of ROUTES) {
     await page.go('#/' + r, 300);
@@ -24,4 +26,5 @@ async function tour(t, device) {
 export const tests = {
   'tous les écrans (PC)': (t) => tour(t, 'pc'),
   'tous les écrans (mobile)': (t) => tour(t, 'mobile'),
+  'tous les écrans (mobile, thème clair)': (t) => tour(t, 'mobile', 'light'),
 };

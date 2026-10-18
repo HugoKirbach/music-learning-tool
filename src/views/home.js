@@ -6,7 +6,7 @@ import { buildSession, genreOfDay, WARMUPS, rng, pick } from '../core/daily.js';
 import { dayKey, titleFor, SKILLS } from '../core/progress.js';
 import { missionById } from '../data/missions.js';
 import { genreById } from '../data/genres.js';
-import { screenById } from '../catalog.js';
+import { screenById, SCREENS } from '../catalog.js';
 import { placementDue, weekFocus, weekId, projectProgress, PROJECT_STEPS, weekday } from '../core/pedagogy.js';
 
 const HABITS = [
@@ -138,7 +138,7 @@ export function render(root, params) {
     el('a.tile', { href: '#/hum' }, el('div.tile-emoji', '🎤'), el('b', 'Fredonne'), el('span', 'Idée à la voix')),
     el('a.tile', { href: '#/remix' }, el('div.tile-emoji', '🧬'), el('b', 'Remix'), el('span', 'Développer')),
     el('a.tile', { href: '#/rush' }, el('div.tile-emoji', '🎹'), el('b', 'Piano Rush'), el('span', 'Jouer en rythme')),
-    el('a.tile', { href: '#/labs' }, el('div.tile-emoji', '🧪'), el('b', 'Tous les Labs'), el('span', '15 ateliers')),
+    el('a.tile', { href: '#/labs' }, el('div.tile-emoji', '🧪'), el('b', 'Tous les Labs'), el('span', `${SCREENS.filter((x) => x.fam).length} ateliers`)),
   );
 
   root.append(
