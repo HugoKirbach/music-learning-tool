@@ -82,6 +82,8 @@ export function render(root) {
         card(el('h3', `🎖️ Badges (${Object.keys(s.badges).length}/${BADGES.length})`),
           el('div.badges', BADGES.map((b) => el('div.badge' + (s.badges[b.id] ? '' : '.locked'), { title: b.desc }, el('span.be', b.emoji), el('b', b.name), el('div.muted', b.desc))))),
         card(el('h3', '⚙️ Réglages'),
+          // Version web (hugokirbach.github.io) : lien vers le menu qui regroupe les applis.
+          /\.github\.io$/.test(location.hostname) ? el('a.btn.small', { href: '/', style: { marginBottom: '12px' } }, '← Retour au menu des applis') : null,
           slider({ label: 'Volume', min: 0, max: 1, step: 0.01, value: s.settings.volume, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => { setVolume(v); update((st) => { st.settings.volume = v; }); } }),
           el('div.ctrl-row', el('label', 'Objectif / jour'), segmented([{ value: 100, label: '100' }, { value: 150, label: '150' }, { value: 250, label: '250' }, { value: 400, label: '400' }], s.settings.dailyGoal, (v) => update((st) => { st.settings.dailyGoal = v; }))),
           el('div.ctrl-row', el('label', 'Indices'), segmented([{ value: 'auto', label: 'Auto (disparaissent niv. 6)' }, { value: 'on', label: 'Toujours' }, { value: 'off', label: 'Jamais' }], s.settings.hints, (v) => update((st) => { st.settings.hints = v; }))),
