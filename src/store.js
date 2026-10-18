@@ -1,7 +1,7 @@
 // État persistant de l'application (localStorage) + événements.
 import { levelFromXp, updateStreak, dayKey, newBadges, SKILLS } from './core/progress.js';
 import { gridFromPatterns } from './core/rhythm.js';
-import { genreById } from './data/genres.js';
+import { genreById, defaultPump } from './data/genres.js';
 import { MELODY_STEPS } from './core/arrange.js';
 import { kitForGenre } from './core/audio.js';
 import { stepMatches } from './core/daily.js';
@@ -9,9 +9,6 @@ import { reviewUpdate, dueItems } from './core/srs.js';
 
 const KEY = 'beatforge.v1';
 const listeners = new Set();
-
-// Pompe (sidechain) par défaut : forte en house/trance, nulle hors club.
-const PUMP = { house: 0.45, deephouse: 0.3, techno: 0.25, acid: 0.2, ukg: 0.3, trance: 0.55, disco: 0.4, synthwave: 0.25, afrohouse: 0.3, jersey: 0.3, dnb: 0.2 };
 
 export function projectFromGenre(id) {
   const g = genreById(id);
@@ -29,7 +26,7 @@ export function projectFromGenre(id) {
     bassStyle: g.bassStyle,
     sounds: { ...g.sounds },
     kit: kitForGenre(g.id),
-    pump: PUMP[g.id] ?? 0,
+    pump: defaultPump(g.id),
     melody: new Array(MELODY_STEPS).fill(null),
     mutes: {},
   };
@@ -123,7 +120,13 @@ export function recordExercise(r) {
   day.exercises++;
   state.days[d] = day;
   state.stats.exercises++;
-  if (r.skill && state.skills[r.skill] != null) state.skills[r.skill] += xp;
+  if (r.skill && state.skills[r.skill] != null) {
+    state.skills[r.skill] += xp;
+    day.skills = day.skills || {};
+    day.skills[r.skill] = (day.skills[r.skill] || 0) + xp;
+  }
+  // Journal (pour le bilan hebdo) : 400 dernières entrées
+  state.log = [...(state.log || []), { d, key: r.key, xp, skill: r.skill || null, genre: r.genre || null, score: r.score ?? null }].slice(-400);
   if (r.genre) state.genres[r.genre] = (state.genres[r.genre] || 0) + 1;
   if (r.hintUsed) state.stats.hints++;
   else if (r.success) state.stats.noHintWins++;
@@ -171,6 +174,9 @@ export function checkBadges() {
 /** Enregistre une réponse d'oreille pour les révisions espacées (clé du type 'intervals:7'). */
 export function recordReview(key, ok, inReview = false) {
   const d = dayKey();
+  const day = state.days[d] || { xp: 0, sessions: 0, exercises: 0 };
+  day.ear = { ok: ((day.ear || {}).ok || 0) + (ok ? 1 : 0), total: ((day.ear || {}).total || 0) + 1 };
+  state.days[d] = day;
   const next = reviewUpdate(state.review[key], ok, d, inReview);
   if (next) state.review[key] = next;
   else delete state.review[key];

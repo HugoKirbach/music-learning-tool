@@ -117,6 +117,8 @@ export function render(root, params) {
     el('a.tile', { href: quick.route }, el('div.tile-emoji', '⏱️'), el('b', 'Défi 2 minutes'), el('span', quick.title), el('span.tile-xp', '+XP')),
     el('a.tile', { href: '#/studio?dice=1' }, el('div.tile-emoji', '🎲'), el('b', 'Dé à idées'), el('span', 'Une contrainte pour ton prochain son')),
     el('a.tile', { href: '#/melody' }, el('div.tile-emoji', '💡'), el('b', 'Mon idée en cours'), el('span', 'Beat + accords + mélodie')),
+    el('a.tile', { href: '#/hum' }, el('div.tile-emoji', '🎤'), el('b', 'Fredonne'), el('span', 'Capture une idée à la voix')),
+    el('a.tile', { href: '#/remix' }, el('div.tile-emoji', '🧬'), el('b', 'Remix'), el('span', 'Développe une idée')),
     el('a.tile', { href: '#/callresponse' }, el('div.tile-emoji', '🔁'), el('b', 'Call & Response'), el('span', 'Réponds en rythme au MPC')),
     el('a.tile', { href: '#/arrange' }, el('div.tile-emoji', '🧱'), el('b', 'Arrangement'), el('span', 'De la boucle au morceau')),
     el('a.tile', { href: '#/analyze' }, el('div.tile-emoji', '🎧'), el('b', 'Analyse'), el('span', 'Dissèque un morceau de référence')),
@@ -146,11 +148,16 @@ export function render(root, params) {
   const reviewCard = due ? card(el('div.row.between', el('h3', `🔁 ${due} révision(s)`), el('a.btn.small.primary', { href: '#/ear?mode=review' }, 'Réviser')),
     el('p.small.muted', 'Les notions que tu as ratées reviennent au bon moment pour s’ancrer durablement.')) : null;
 
+  // Bilan hebdo : mis en avant le week-end et le lundi
+  const dow = new Date().getDay();
+  const bilanCard = [0, 1, 6].includes(dow) ? card(el('div.row.between', el('h3', '📈 Ton bilan de la semaine est prêt'), el('a.btn.small.primary', { href: '#/bilan' }, 'Voir')),
+    el('p.small.muted', 'Tes progrès, tes idées à réécouter et le plan de la semaine prochaine.')) : null;
+
   const habit = HABITS[Math.floor(Date.now() / 86400000) % HABITS.length];
 
   root.append(
     el('div.hero', el('h1', `${hello} 👋`), el('p.sub', `Niveau ${lv} · ${titleFor(lv)} — série de ${s.streak.count || 0} jour(s)`)),
-    el('div.cols', el('div', sessCard, programCard, reviewCard, questCard), el('div', genreCard, laterCard, card(el('h3', '🧭 Habitude de producteur'), el('p', habit)))),
+    el('div.cols', el('div', sessCard, bilanCard, programCard, reviewCard, questCard), el('div', genreCard, laterCard, card(el('h3', '🧭 Habitude de producteur'), el('p', habit)))),
     el('h3', { style: { margin: '6px 0 8px' } }, 'Accès rapide'),
     shortcuts,
   );

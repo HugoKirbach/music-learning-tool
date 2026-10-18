@@ -34,6 +34,9 @@ export const CREATES = [
   { key: 'cr:repeat', title: 'Call & Response', desc: 'Rejoue en rythme les phrases d’un groove {genre}', route: '#/callresponse?kind=melody&mode=repeat&genre={genre}', skill: 'melodie', min: 3 },
   { key: 'cr:repeat', title: 'Call & Response aux pads', desc: 'Rejoue les rythmes {genre} aux pads', route: '#/callresponse?kind=rhythm&mode=repeat&genre={genre}', skill: 'rythme', min: 3 },
   { key: 'cr:improv', title: 'Réponds à la basse', desc: 'Improvise des réponses sur un groove {genre}', route: '#/callresponse?kind=bass&mode=improv&genre={genre}', skill: 'oreille', min: 3 },
+  { key: 'hum:free', title: 'Fredonne une idée', desc: 'Chante un hook sur une boucle {genre}', route: '#/hum', skill: 'melodie', min: 4 },
+  { key: 'bass:critique', title: 'Labo de basse', desc: 'Écris une basse sur une boucle, l’app la critique', route: '#/basslab', skill: 'harmonie', min: 5 },
+  { key: 'mix:express', title: 'Mixdown express', desc: 'Corrige un mix {genre} à l’oreille', route: '#/mixdown?genre={genre}', skill: 'sound', min: 5 },
   { key: 'synth:match', title: 'Reproduis le son', desc: 'Retrouve les réglages d’un son mystère', route: '#/synth?mode=match', skill: 'sound', min: 4 },
 ];
 

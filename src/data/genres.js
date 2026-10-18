@@ -285,3 +285,7 @@ export const GENRES = [
 ];
 
 export const genreById = (id) => GENRES.find((g) => g.id === id) || GENRES[0];
+
+// Pompe (sidechain) par défaut : forte en house/trance, nulle hors club.
+const PUMP = { house: 0.45, deephouse: 0.3, techno: 0.25, acid: 0.2, ukg: 0.3, trance: 0.55, disco: 0.4, synthwave: 0.25, afrohouse: 0.3, jersey: 0.3, dnb: 0.2 };
+export const defaultPump = (id) => PUMP[id] ?? 0;

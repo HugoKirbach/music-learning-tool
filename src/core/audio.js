@@ -94,6 +94,33 @@ function build() {
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
 }
 
+/**
+ * Tranche de console (Mixdown) : passe-haut → pan → volume → bus (pompe incluse pour les synthés), + envoi de réverbe.
+ * Les sons joués avec { out: channel.input } passent par cette tranche.
+ */
+export function createChannel(kind = 'synth') {
+  ensureAudio();
+  const input = ctx.createGain();
+  const hpf = ctx.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = 20; hpf.Q.value = 0.7;
+  const hpf2 = ctx.createBiquadFilter(); hpf2.type = 'highpass'; hpf2.frequency.value = 20; hpf2.Q.value = 0.7;
+  const pan = ctx.createStereoPanner();
+  const vol = ctx.createGain();
+  const send = ctx.createGain(); send.gain.value = 0;
+  input.connect(hpf).connect(hpf2).connect(pan).connect(vol).connect(kind === 'drum' ? drumBus : synthBus);
+  vol.connect(send).connect(reverbSend);
+  const t = () => ctx.currentTime;
+  return {
+    input,
+    set({ vol: db, hpf: hz, pan: p, verb }) {
+      if (db != null) vol.gain.setTargetAtTime(Math.pow(10, db / 20), t(), 0.02);
+      if (hz != null) { hpf.frequency.setTargetAtTime(hz, t(), 0.02); hpf2.frequency.setTargetAtTime(hz, t(), 0.02); }
+      if (p != null) pan.pan.setTargetAtTime(p, t(), 0.02);
+      if (verb != null) send.gain.setTargetAtTime(verb * 1.2, t(), 0.02);
+    },
+    destroy() { try { vol.disconnect(); send.disconnect(); } catch (e) { /* déjà déconnecté */ } },
+  };
+}
+
 export function now() {
   return ctx ? ctx.currentTime : 0;
 }
@@ -329,16 +356,16 @@ function duck(time) {
 
 const HAT_RATIOS = [2, 3, 4.16, 5.43, 6.79, 8.21];
 
-export function playDrum(id, time, vel = 1, kitId = 'club') {
+export function playDrum(id, time, vel = 1, kitId = 'club', outNode = null) {
   if (!ctx) return;
   time = Math.max(time, ctx.currentTime);
   const kit = KITS[kitId] || KITS.club;
   const out = ctx.createGain();
   out.gain.value = vel;
-  let dest = drumBus;
+  let dest = outNode || drumBus;
   if (kit.dusty) { // filtre « vinyle » : aigus adoucis
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000; lp.Q.value = 0.5;
-    lp.connect(drumBus); dest = lp;
+    lp.connect(outNode || drumBus); dest = lp;
   }
   out.connect(dest);
   switch (id) {
@@ -525,7 +552,7 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
     last = sh;
   }
   last.connect(vg);
-  vg.connect(synthBus);
+  vg.connect(opts.out || synthBus);
   sendTo(vg, reverbSend, opts.send ?? p.reverb ?? 0.2);
   sendTo(vg, delaySend, p.delay || 0);
   sendTo(vg, chorusSend, p.chorus || 0);

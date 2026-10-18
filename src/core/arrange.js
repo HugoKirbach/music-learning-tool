@@ -77,11 +77,16 @@ export function eventsAt(project, voiced, globalStep) {
     for (const [hs, len] of (CHORD_RHYTHMS[project.chordStyle] || CHORD_RHYTHMS.pad).hits) {
       if (hs === s) ev.chords.push({ notes: chord.notes, len });
     }
-    const root = bassRoot(chord);
-    for (const [hs, len, iv] of (BASS_RHYTHMS[project.bassStyle] || BASS_RHYTHMS.none).hits) {
-      if (hs === s) ev.bass.push({ note: root + iv, len });
+    if (!project.bassLine) {
+      const root = bassRoot(chord);
+      for (const [hs, len, iv] of (BASS_RHYTHMS[project.bassStyle] || BASS_RHYTHMS.none).hits) {
+        if (hs === s) ev.bass.push({ note: root + iv, len });
+      }
     }
   }
+  // Ligne de basse écrite note par note (Labo de basse, Remix) : prioritaire sur le motif de basse
+  const bl = project.bassLine?.[globalStep % (BARS * STEPS_PER_BAR)];
+  if (bl) ev.bass.push({ note: bl.n, len: bl.len || 1 });
   const m = project.melody?.[(globalStep) % (BARS * STEPS_PER_BAR)];
   if (m) ev.melody.push({ note: m.n, len: m.len || 1 });
   return ev;

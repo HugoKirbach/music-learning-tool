@@ -55,6 +55,7 @@ export function render(root) {
 
   root.append(
     header('🏆 Profil', `${titleFor(lv.level)} — niveau ${lv.level}`, null),
+    el('a.btn.primary.wide', { href: '#/bilan', style: { marginBottom: '12px' } }, '📈 Bilan de la semaine & plan du coach'),
     el('div.cols',
       el('div',
         card(

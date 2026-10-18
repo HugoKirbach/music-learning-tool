@@ -369,3 +369,25 @@ ul.clean { padding-left: 18px; margin: 6px 0; }
 .wave { width: 100%; height: 120px; border-radius: 10px; display: block; margin: 8px 0 4px; touch-action: none; cursor: pointer; }
 .big-val { font-size: 26px; }
 .card textarea + textarea { margin-top: 6px; }
+
+/* Fredonne */
+.tuner { text-align: center; margin: 10px 0; }
+.tuner-note { font-size: 34px; font-weight: 900; }
+.tuner-bar { position: relative; height: 10px; background: var(--line); border-radius: 5px; margin: 6px 20%; }
+.tuner-bar::after { content: ''; position: absolute; left: 50%; top: -4px; bottom: -4px; width: 2px; background: var(--muted); }
+.tuner-bar span { position: absolute; left: 50%; top: -3px; width: 10px; height: 16px; margin-left: -5px; border-radius: 4px; background: var(--warn); transition: left .08s; }
+/* Labo de basse */
+.rcell.issue { box-shadow: inset 0 0 0 2px var(--bad); }
+.rcell.kickcol { border-bottom: 2px solid #ff5d7366; }
+/* Mixdown */
+.mixer { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
+@media (min-width: 700px) { .mixer { grid-template-columns: repeat(3, 1fr); } }
+.strip { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+/* Bilan */
+.week-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 110px; margin-top: 14px; align-items: end; }
+.week-bars > div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.week-bars span { width: 70%; min-height: 3px; border-radius: 4px 4px 0 0; background: linear-gradient(var(--accent2), var(--accent)); }
+.week-bars small { color: var(--muted); margin-top: 4px; }
+.meter.dual { height: 10px; }
+.meter.dual.prev { height: 4px; margin-top: 3px; opacity: .6; }
+.meter.dual.prev > div { background: var(--muted); }
