@@ -7,6 +7,7 @@ import { scaleNotes, midiToName, NOTE_NAMES, SCALES, mod } from '../core/theory.
 import { transport, playSynth, playDrum, ensureAudio } from '../core/audio.js';
 import { presetParams, previewNote, onPlayhead } from '../player.js';
 import { presetOptions } from '../data/presets.js';
+import { viewKeys } from '../shortcuts.js';
 
 /** Ligne de basse actuelle : celle écrite, sinon celle produite par le motif de basse du style. */
 function currentLine(p) {
@@ -155,6 +156,7 @@ export function render(root) {
   );
   drawTabs();
   drawRoll();
+  viewKeys({ left: () => { bar = (bar + 3) % 4; drawRoll(); drawTabs(); }, right: () => { bar = (bar + 1) % 4; drawRoll(); drawTabs(); } });
   const offPh = onPlayhead((step) => { playing = step < 0 ? -1 : step % 64; if (step < 0 || Math.floor(playing / 16) === bar) drawRoll(); });
   return () => { transport.stop(); offPh(); };
 }

@@ -89,6 +89,9 @@ export function mountMiniPlayer(host) {
   paint();
 
   return {
+    toggle,
+    visible: () => !host.hidden,
+    closePanel() { if (open) { open = false; paint(); } },
     setVisible(v) {
       host.hidden = !v;
       document.body.classList.toggle('has-mini', v);

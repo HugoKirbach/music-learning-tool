@@ -336,7 +336,7 @@ function runQuiz(root, { mode, n, M, nextQuestion, inReview, label }) {
             fb.replaceChildren(
               el('div.lesson', el('div.lesson-title', ok ? '✅ Bien joué' : '❌ Pas tout à fait'), el('p', q.explain),
                 pad ? el('p.small.muted', `Notes : ${q.notes.map(midiToName).join(' · ')} — surlignées sur le clavier, rejoue-les pour les mémoriser.`) : null),
-              el('div.row.gap', el('button.btn', { onclick: () => q.play() }, '↻ Réécouter'), el('button.btn.primary', { style: { flex: 1 }, onclick: () => { idx++; next(); } }, idx + 1 >= n ? 'Voir le résultat' : 'Suivant →')),
+              el('div.row.gap', el('button.btn', { onclick: () => q.play() }, '↻ Réécouter'), el('button.btn.primary', { style: { flex: 1 }, 'data-key': 'enter', onclick: () => { idx++; next(); } }, idx + 1 >= n ? 'Voir le résultat' : 'Suivant →')),
             );
             if (pad) pad.reveal(q);
             drawProgress();

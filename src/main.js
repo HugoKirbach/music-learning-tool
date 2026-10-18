@@ -7,6 +7,7 @@ import { autoEnableMidi, enableMidi, midiStatus, midiStatusText, onMidiStatus, o
 import { presetParams } from './player.js';
 import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
 import { pushRecent } from './catalog.js';
+import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
 const ROUTES = {
   home: () => import('./views/home.js'),
@@ -55,6 +56,8 @@ function renderNav(current) {
     nav.appendChild(el('a.nav-item' + (active ? '.active' : ''), { href: '#/' + n.id },
       el('span.nav-icon', n.icon), el('span.nav-label', n.label)));
   }
+  nav.appendChild(el('button.nav-item.nav-kbd', { type: 'button', title: 'Raccourcis clavier (?)', onclick: showShortcutHelp },
+    el('span.nav-icon', '⌨️'), el('span.nav-label', 'Raccourcis')));
 }
 
 function renderStatus() {
@@ -128,6 +131,7 @@ async function route() {
   transport.guard = keep ? 'mini' : null;
   if (cleanup) { try { cleanup(); } catch (e) { console.error(e); } cleanup = null; }
   transport.guard = null;
+  resetViewKeys();
   currentId = id;
   paintMini();
   if (getState().recent?.[0] !== id && pushRecent([], id).length) update((s) => { s.recent = pushRecent(s.recent, id); });
@@ -184,6 +188,7 @@ window.addEventListener('pointerdown', unlock);
 window.addEventListener('hashchange', route);
 subscribe(renderStatus);
 subscribe(paintMini);
+initShortcuts(mini);
 renderStatus();
 route();
 onboarding();

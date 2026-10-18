@@ -8,6 +8,7 @@ import { transport, playSynth, ensureAudio, now as getCtxTime } from '../core/au
 import { presetOptions } from '../data/presets.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { onMidi } from '../midiin.js';
+import { viewKeys } from '../shortcuts.js';
 
 const CHALLENGES = [
   { text: 'Hook avec 3 hauteurs différentes maximum. Catchy-mètre ≥ 60.', min: 60,
@@ -321,6 +322,8 @@ export function render(root, params) {
 
   renderTabs();
   renderRoll();
+  const goBar = (d) => { if (maxBars < 2) return; bar = (bar + d + maxBars) % maxBars; follow = false; renderTabs(); renderRoll(); };
+  viewKeys({ left: () => goBar(-1), right: () => goBar(1) });
   const offPh = onPlayhead((step) => { if (step < 0) { playStep = -1; paintPlayhead(); } else onVis(step); });
   return () => { stopAll(); offMidi(); offPh(); };
 }

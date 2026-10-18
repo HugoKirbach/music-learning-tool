@@ -434,3 +434,13 @@ body.has-mini .view { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 84px);
   .mini { left: 92px; bottom: 0; padding: 0 12px 10px; }
   body.has-mini .view { padding-bottom: 96px; }
 }
+
+/* ---------- Raccourcis clavier ---------- */
+.nav-kbd { display: none; background: none; color: var(--muted); border: 0; font: inherit; cursor: pointer; }
+@media (min-width: 900px) and (pointer: fine) { .nav-kbd { display: flex; margin-top: auto; margin-bottom: 12px; font-size: 11px; } }
+kbd { display: inline-block; min-width: 22px; padding: 2px 6px; margin-right: 4px; border-radius: 6px; border: 1px solid var(--line); border-bottom-width: 2px; background: var(--card2); font: 600 12px/1.4 ui-monospace, monospace; text-align: center; color: var(--text); }
+.kbd-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0; font-size: 13.5px; }
+.kbd-row > span:first-child { white-space: nowrap; }
+.kbd-row > span:last-child { color: var(--muted); text-align: right; }
+.kbd-grid { display: grid; grid-template-columns: 1fr; column-gap: 20px; }
+@media (min-width: 560px) { .kbd-grid { grid-template-columns: 1fr 1fr; } }

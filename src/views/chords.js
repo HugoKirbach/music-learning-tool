@@ -8,6 +8,7 @@ import { presetOptions } from '../data/presets.js';
 import { slider } from '../ui.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { onMidi } from '../midiin.js';
+import { viewKeys } from '../shortcuts.js';
 
 const FN = ['T', 'S', 'T', 'S', 'D', 'T', 'D'];
 const FN_LABEL = { T: 'Tonique (repos)', S: 'Sous-dominante (départ)', D: 'Dominante (tension)' };
@@ -223,6 +224,8 @@ export function render(root, params) {
       }, '✓ Valider la recette')) : el('a.btn.wide', { href: '#/melody' }, '→ Écrire une mélodie par-dessus'),
   );
   renderAll();
+  const pick = (d) => { sel = (sel + d + 4) % 4; renderSlots(); const ch = voiced()[sel]; if (ch) previewChord(ch.notes, P().sounds.chords); };
+  viewKeys({ left: () => pick(-1), right: () => pick(1) });
   const offPh = onPlayhead((step) => { if (step < 0) renderSlots(); else if (step % 16 === 0) renderSlots(Math.floor(step / 16) % 4); });
   return () => { stopAll(); offMidi(); offPh(); voices.forEach((x) => x.release()); };
 }

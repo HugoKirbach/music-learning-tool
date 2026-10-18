@@ -55,7 +55,7 @@ export function keyboard({ base = 48, octaves = 2, onDown, onUp, inScale }) {
 
   const map = 'awsedftgyhujkolp';
   const kd = (e) => {
-    if (e.repeat || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.repeat || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
     const i = map.indexOf(e.key.toLowerCase());
     if (i >= 0) down('k' + e.key, base + 12 + i);
   };
