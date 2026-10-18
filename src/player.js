@@ -45,18 +45,18 @@ export function playEvents(p, ev, time, stepDur, on = { drums: true, chords: tru
   if (on.drums) ev.drums.forEach((d) => playDrum(d.id, time, d.vel, p.kit));
   if (on.chords) {
     const pr = presetParams(p.sounds.chords);
-    ev.chords.forEach((c) => c.notes.forEach((n) => playSynth(pr, n, time, c.len * stepDur * 0.95, 0.6)));
+    ev.chords.forEach((c) => c.notes.forEach((n) => playSynth(pr, n, time, c.len * stepDur * 0.95, 0.6, { ch: 2 })));
   }
   if (on.bass) {
     const pr = presetParams(p.sounds.bass);
     ev.bass.forEach((b) => {
-      playSynth(pr, b.note, time, b.len * stepDur * 0.92, 0.8, { send: 0, fromMidi: lastBass });
+      playSynth(pr, b.note, time, b.len * stepDur * 0.92, 0.8, { send: 0, fromMidi: lastBass, ch: 3 });
       lastBass = b.note;
     });
   }
   if (on.melody) {
     const pr = presetParams(p.sounds.lead);
-    ev.melody.forEach((m) => playSynth(pr, m.note, time, m.len * stepDur * 0.9, 0.8));
+    ev.melody.forEach((m) => playSynth(pr, m.note, time, m.len * stepDur * 0.9, 0.8, { ch: 1 }));
   }
   return lastBass;
 }

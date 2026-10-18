@@ -89,8 +89,19 @@ export async function autoEnableMidi() {
   if (granted || getState().settings.midiAuto) await enableMidi();
 }
 
+// Horloge MIDI (tempo de Live) : 24 tops par noire, + Start / Continue / Stop
+const clockListeners = new Set();
+export function onClock(fn) { clockListeners.add(fn); return () => clockListeners.delete(fn); }
+/** Accès Web MIDI (sorties comprises), null tant que le MIDI n'est pas activé. */
+export function midiAccess() { return access; }
+
 function onMessage(e) {
   const [st, d1, d2] = e.data;
+  if (st >= 0xf8) {
+    const kind = { 0xf8: 'tick', 0xfa: 'start', 0xfb: 'continue', 0xfc: 'stop' }[st];
+    if (kind) clockListeners.forEach((f) => f(kind, e.timeStamp || performance.now()));
+    return;
+  }
   const type = st & 0xf0;
   const channel = st & 0x0f;
   const targets = handlers.size ? handlers : fallback ? [fallback] : [];

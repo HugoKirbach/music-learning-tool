@@ -32,6 +32,11 @@ export function configureAudio({ stable = false } = {}) {
 }
 export const audioMode = () => ({ ...mode });
 
+// ---------- Sortie MIDI : chaque note jouée peut aussi partir vers Live / Serum / le MPC ----------
+let midiSink = null, midiMute = false;
+/** sink : { drum(id, time, vel), note(ch, midi, vel, time, dur), on(ch, midi, vel, time), off(ch, midi, time) } ; mute = couper le son de l'app. */
+export function setMidiSink(sink, mute = false) { midiSink = sink; midiMute = !!(sink && mute); }
+
 /**
  * Rendu hors temps réel (export audio) : tout le moteur est reconstruit sur un OfflineAudioContext le temps
  * de programmer les sons, puis l'état temps réel est remis en place avant le calcul.
@@ -40,6 +45,8 @@ export const audioMode = () => ({ ...mode });
 export async function renderOffline(seconds, schedule, { sampleRate = 44100 } = {}) {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const off = new OAC(2, Math.ceil(seconds * sampleRate), sampleRate);
+  const savedSink = midiSink;
+  midiSink = null; // le rendu audio n'envoie rien en MIDI
   const saved = { ctx, master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain, reverbSend, delaySend, chorusSend, delayL, delayR, noiseBuf, openHat, pump, tempo, volume };
   const savedShared = new Map(shared), savedVoices = [...voiceList], savedQ = [...cleanupQ];
   shared.clear(); voiceList.length = 0;
@@ -53,6 +60,7 @@ export async function renderOffline(seconds, schedule, { sampleRate = 44100 } = 
     shared.clear(); savedShared.forEach((v, k) => shared.set(k, v));
     voiceList.length = 0; voiceList.push(...savedVoices);
     cleanupQ.length = 0; cleanupQ.push(...savedQ);
+    midiSink = savedSink;
   }
   return off.startRendering();
 }
@@ -458,6 +466,7 @@ export function playDrum(id, time, vel = 1, kitId = 'club', outNode = null) {
   if (!ctx) return;
   if (time < ctx.currentTime - 0.01) audioStats.late++;
   time = Math.max(time, ctx.currentTime);
+  if (midiSink && !outNode) { midiSink.drum(id, time, vel); if (midiMute) return; }
   const kit = KITS[kitId] || KITS.club;
   const out = ctx.createGain();
   out.gain.value = vel;
@@ -665,6 +674,13 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
   if (!ctx) return { release() {} };
   if (time < ctx.currentTime - 0.01) audioStats.late++;
   time = Math.max(time, ctx.currentTime);
+  let midiOff = null;
+  if (midiSink && !opts.out) {
+    const ch = opts.ch || 1;
+    if (dur != null) midiSink.note(ch, midi, vel, time, dur);
+    else { midiSink.on(ch, midi, vel, time); midiOff = (t) => midiSink?.off(ch, midi, t); }
+    if (midiMute) return { release: (t = ctx.currentTime) => midiOff?.(t) };
+  }
   reserveVoice(time);
   const nodes = [];
   const vg = ctx.createGain();
@@ -796,6 +812,8 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
   let released = false;
   const voice = { end: Infinity, kill: null };
   const release = (t = ctx.currentTime) => {
+    midiOff?.(Math.max(t, time + 0.005));
+    midiOff = null;
     if (released) return;
     released = true;
     t = Math.max(t, time + 0.005);

@@ -131,6 +131,12 @@ npm run check   # vérification des imports/exports
 - **🏆 Défi de la semaine** : la même contrainte pour tout le monde du lundi au dimanche (ex. « Hook à 3 notes », « Trap sans hi-hats »), règles vérifiées sur ton idée, publication avec ton pseudo et **écoute des versions des autres** (compte requis).
 - **🔔 Rappels intelligents** (Profil) : un seul rappel par jour, seulement si tu n'as pas joué ; le message s'adapte (série en danger, test du lundi, étape du projet). Notification même app fermée sur Chrome / Android avec l'app installée ; ailleurs, rappel d'agenda (.ics). L'accueil signale aussi une série en danger.
 
+## Studio : Ableton Live, Serum 2, MPC
+
+- **Sortie MIDI** (Profil › Studio) : l'app joue aussi ses notes en MIDI — canal 1 mélodie, 2 accords, 3 basse, 10 batterie (notes Drum Rack). Vers Live via un port virtuel (loopMIDI sous Windows, IAC sous macOS) ou directement vers le MPC. Option « Couper le son de l'app » pour n'entendre que tes instruments, bouton de coupure des notes bloquées.
+- **Suivre le tempo de Live** : l'horloge MIDI de Live règle le tempo de ton idée ; Play / Stop dans Live lancent et arrêtent le mini-lecteur.
+- **📦 Pack Live** (mini-lecteur, projet de la semaine) : ZIP avec le MIDI multipiste (boucle + arrangement), les pistes WAV (batterie, basse, accords, mélodie, mix) et un LISEZ-MOI (tempo, tonalité, sons et recettes Serum 2, étapes d'import).
+
 ## Compte, amis et règles Firebase
 
 - **Compte facultatif** (Profil › Compte & synchro) : progression sauvegardée en ligne et fusionnée entre appareils (fusion à trois voies : une modification faite d'un seul côté n'est jamais écrasée). Le carnet est rangé à part (1 document par idée) et une **sauvegarde par jour** est gardée sur 7 jours, restaurable en un clic.

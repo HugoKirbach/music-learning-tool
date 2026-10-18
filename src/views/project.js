@@ -7,7 +7,7 @@ import { arrangementToSong } from '../core/arrangement.js';
 import { genreOfDay } from '../core/daily.js';
 import { PROJECT_STEPS, projectProgress, weekId, weekday, addDays } from '../core/pedagogy.js';
 import { dayKey } from '../core/progress.js';
-import { exportStems, stemsSupported } from '../stems.js';
+import { exportStems, stemsSupported, exportLivePack } from '../stems.js';
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
@@ -45,7 +45,8 @@ export function render(root) {
         el('div.row.gap.wrap',
           el('button.btn', { onclick: () => exportMidi(p) }, '⬇ MIDI (boucle)'),
           s.arrangement ? el('button.btn', { onclick: () => exportMidi(p, true) }, '⬇ MIDI (arrangement complet)') : null,
-          stemsSupported() ? el('button.btn', { onclick: async (e) => { e.target.disabled = true; try { await exportStems(getState().project, p.title); markExport(); } finally { e.target.disabled = false; } } }, '⬇ Pistes audio (WAV)') : null),
+          stemsSupported() ? el('button.btn', { onclick: async (e) => { e.target.disabled = true; try { await exportStems(getState().project, p.title); markExport(); } finally { e.target.disabled = false; } } }, '⬇ Pistes audio (WAV)') : null,
+          stemsSupported() ? el('button.btn.primary', { onclick: async (e) => { e.target.disabled = true; try { await exportLivePack(getState().project, { title: p.title, arrangement: getState().arrangement }); markExport(); } finally { e.target.disabled = false; } } }, '📦 Pack Live complet') : null),
         el('p.small', '🎛️ Dans Live : glisse le fichier .mid dans la vue Arrangement, puis assigne tes instruments (Drum Rack, Serum 2…) à chaque piste.')),
       p.finished ? el('div.card.levelup', '🏆 Projet terminé ! Il est rangé dans ton Carnet. Un nouveau projet t’attend lundi.') : null,
       pastProjects(s),

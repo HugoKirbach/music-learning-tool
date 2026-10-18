@@ -228,7 +228,12 @@ renderStatus();
 route();
 onboarding();
 setTimeout(() => { if (!document.querySelector('#modal-root .modal-back')) showWhatsNew(); }, 800);
-if (midiSupported()) autoEnableMidi();
+if (midiSupported()) {
+  autoEnableMidi().then(() => {
+    if (getState().settings.midiOut?.enabled) import('./midiout.js').then((m) => m.applyMidiOut());
+  });
+  import('./midisync.js');
+}
 if (cloudWanted()) startCloud();
 if (getState().settings.reminders?.enabled) import('./reminders.js').then((m) => m.writeReminderData());
 // Pseudo : demandé à la 1re connexion (ou au prochain démarrage pour un compte existant), une fois par session.

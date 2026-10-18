@@ -10,6 +10,7 @@ import { presetParams } from '../player.js';
 import { accountCard } from './account.js';
 import { audioCard } from './audiodiag.js';
 import { remindersCard } from './reminderscard.js';
+import { studioCard } from './studiocard.js';
 
 export function render(root, params = {}) {
   const s = getState();
@@ -49,6 +50,7 @@ export function render(root, params = {}) {
 
   const acct = accountCard();
   const audio = audioCard();
+  const studio = studioCard();
   const fileIn = el('input', {
     type: 'file', accept: 'application/json,.json', style: { display: 'none' },
     onchange: async (e) => {
@@ -114,6 +116,7 @@ export function render(root, params = {}) {
             el('p.small.muted', 'Où ça sert : Lab Synthé (touches + potards Q-Link), quiz d’Oreille (réponds en jouant), Lab Accords (reconnaissance d’accords), Lab Mélodie (saisie pas à pas), Lab Beat (pads → batterie, enregistrement live).')),
         ),
         audio.node,
+        studio,
         remindersCard(),
         card(el('h3', '💾 Sauvegarde en fichier'),
           el('p.small.muted', 'Sans compte : exporte un fichier ici et importe-le sur l’autre appareil. Utile aussi comme copie de secours.'),
@@ -134,5 +137,5 @@ export function render(root, params = {}) {
     ),
   );
   if (params.account) requestAnimationFrame(() => { acct.node.scrollIntoView({ block: 'center', behavior: 'smooth' }); acct.node.classList.add('flash'); });
-  return () => { offStatus(); offTest(); acct.destroy(); audio.destroy(); voices.forEach((x) => x.release()); };
+  return () => { offStatus(); offTest(); acct.destroy(); audio.destroy(); studio.destroy?.(); voices.forEach((x) => x.release()); };
 }

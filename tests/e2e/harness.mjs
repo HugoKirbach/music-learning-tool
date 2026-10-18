@@ -94,10 +94,13 @@ export function fakeCloud() {
 function midiInit(connected) {
   const input = { name: 'MPC Key 37', state: 'connected', onmidimessage: null };
   const inputs = new Map(connected ? [['1', input]] : []);
-  const access = { inputs, onstatechange: null };
+  window.__sent = [];
+  const output = { id: 'out-loop', name: 'loopMIDI BeatForge', state: 'connected', send: (bytes, ts) => window.__sent.push([...bytes, ts || 0]) };
+  const access = { inputs, outputs: new Map([['out-loop', output]]), onstatechange: null };
   window.__plug = () => { inputs.set('1', input); access.onstatechange?.({}); };
   window.__unplug = () => { inputs.delete('1'); access.onstatechange?.({}); };
   window.__midi = (...bytes) => input.onmidimessage?.({ data: new Uint8Array(bytes) });
+  window.__midiAt = (ts, ...bytes) => input.onmidimessage?.({ data: new Uint8Array(bytes), timeStamp: ts });
   navigator.requestMIDIAccess = async () => access;
   const q = navigator.permissions.query.bind(navigator.permissions);
   navigator.permissions.query = async (d) => (d.name === 'midi' ? { state: 'granted' } : q(d));

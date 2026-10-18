@@ -61,6 +61,7 @@ export function mountMiniPlayer(host) {
           },
         }, '📓 Sauver'),
         el('button.btn.small', { onclick: () => import('./share.js').then(({ shareIdea }) => shareIdea(getState().project)) }, '🔗 Partager'),
+        el('button.btn.small', { title: 'MIDI + pistes WAV + mode d’emploi, dans un ZIP', onclick: (e) => { e.target.disabled = true; import('./stems.js').then(({ exportLivePack }) => exportLivePack(getState().project, { title: `idee-${getState().project.genre}`, arrangement: getState().arrangement })).finally(() => { e.target.disabled = false; }); } }, '📦 Pack Live'),
         select([{ value: '', label: '✨ Nouvelle idée dans un style…' }, ...GENRES.map((g) => ({ value: g.id, label: `${g.emoji} ${g.name}` }))], '', (v) => {
           if (!v) return;
           if (!confirm('Remplacer l’idée en cours ? (Sauve-la d’abord dans le Carnet si tu veux la garder.)')) return;
