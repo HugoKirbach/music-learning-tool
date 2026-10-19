@@ -15,6 +15,7 @@ export const SCREENS = [
   { id: 'hum', minLevel: 2, fam: 'create', href: '#/hum', emoji: '🎤', name: 'Fredonne → MIDI', desc: 'Chante ou siffle une idée : elle devient des notes.' },
   { id: 'rush', fam: 'ear', href: '#/rush', emoji: '🎹', name: 'Piano Rush', desc: 'Les notes tombent, joue-les en rythme : 19 niveaux de la ronde au jazz, théorie + pratique.' },
   { id: 'pads', fam: 'ear', href: '#/pads', emoji: '🔲', name: 'Pad Rush', desc: 'Finger drumming sur tes pads (2×4 ou 4×4) : grooves, vélocité, roulements, défi à l’oreille.' },
+  { id: 'club', fam: 'ear', href: '#/club', emoji: '🪩', name: 'Nuit au club', desc: 'Le jeu du téléphone : mini-jeux express (oreille, rythme, théorie), 5 salles, vinyles à collectionner.' },
   { id: 'ear', fam: 'ear', href: '#/ear', emoji: '👂', name: 'Quiz d’oreille', desc: 'Intervalles, accords, progressions, styles, paramètres, révisions.' },
   { id: 'callresponse', minLevel: 2, fam: 'ear', href: '#/callresponse', emoji: '🔁', name: 'Call & Response', desc: 'L’app joue une phrase, tu réponds en rythme (clavier, pads, MPC).' },
   { id: 'synth', fam: 'sound', href: '#/synth', emoji: '🔊', name: 'Lab Synthé', desc: 'Synthé décodé pour Serum 2, son mystère, potards MIDI.' },

@@ -1,8 +1,10 @@
 // Service worker : app utilisable hors-ligne (stale-while-revalidate sur les fichiers de l'app).
-const CACHE = 'beatforge-v24';
+const CACHE = 'beatforge-v25';
 // Module de compte (Firebase, versionné dans l'URL) : gardé en cache pour retrouver sa session hors-ligne
 const SDK_CACHE = 'beatforge-sdk-10.12.2';
 const SHELL = [
+  './src/views/club.js',
+  './src/core/club.js',
   './src/cert.js',
   './src/core/goals.js',
   './src/core/latency.js',

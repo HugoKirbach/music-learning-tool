@@ -2,8 +2,16 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '2.2';
+export const APP_VERSION = '2.3';
 export const CHANGELOG = [
+  {
+    version: '2.3', date: 'octobre 2026', items: [
+      ['🪩', 'Nuit au club', 'le jeu du téléphone : des mini-jeux de quelques secondes (oreille, rythme, notes, styles, drops), 5 salles à débloquer, un set du jour et des vinyles à collectionner. Tu apprends sans y penser.'],
+      ['🏠', 'Nouvel accueil', 'rangé en sections (Aujourd’hui, Jouer, Studio, Suivi). Sur téléphone, les jeux d’abord ; sur PC, le studio d’abord. Bouton Jouer / Studio en haut pour changer.'],
+      ['🎹', 'Piano Rush et Pad Rush', 'en accès direct depuis l’accueil, avec ta progression.'],
+      ['♿', 'Accessibilité', 'sections titrées pour les lecteurs d’écran, boutons plus grands au doigt.'],
+    ],
+  },
   {
     version: '2.2', date: 'octobre 2026', items: [
       ['📊', 'Mes progrès', 'courbes sur 12 semaines (temps de pratique, score, tempo maîtrisé, oreille) et compétences qui stagnent.'],
@@ -39,7 +47,8 @@ export const CHANGELOG = [
 ];
 
 const TOUR = [
-  { route: '#/home', title: 'Ton plan du jour', text: 'La session express, puis UNE carte de suivi : test de la semaine, étape du projet, révisions…' },
+  { route: '#/home', title: 'Ton accueil', text: 'Sur téléphone, les jeux d’abord ; sur PC, le studio d’abord (bouton Jouer / Studio en haut). La session express et ta carte de suivi sont toujours là.' },
+  { route: '#/club', title: 'Nuit au club', text: 'Le jeu du téléphone : mini-jeux express, salles à débloquer, vinyles à collectionner… et ton oreille progresse sans que tu y penses.' },
   { route: '#/skills', title: 'Arbre de compétences', text: 'Ouvre une compétence pour voir comment la valider : chaque jeu ou Lab y contribue.' },
   { route: '#/project', title: 'Projet de la semaine', text: 'Une étape par jour, puis l’export vers Live le dimanche.' },
   { route: '#/labs', title: 'Labs', text: 'Les ateliers par familles. Les plus avancés apparaissent avec ton niveau (ou « Tout afficher » dans le Profil).' },

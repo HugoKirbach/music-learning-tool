@@ -67,3 +67,13 @@ test('fusion à trois voies : une modification d\'un seul côté n\'est jamais �
   assert.deepEqual(both.project.melody, [2]);
   assert.equal(both.project.bpm, 137);
 });
+
+test('Nuit au club : meilleures nuits, vinyles et set du jour fusionnés', () => {
+  const a = { xp: 10, updatedAt: 1, club: { best: { bar: { stars: 3, score: 900 } }, crate: { house: { n: 2, kind: 'black' } }, nights: 4, daily: { day: '2026-10-19', score: 500 }, vib: false } };
+  const b = { xp: 12, updatedAt: 2, club: { best: { bar: { stars: 2, score: 1200 }, warehouse: { stars: 1, score: 300 } }, crate: { house: { n: 1, kind: 'gold' }, trap: { n: 1, kind: 'color' } }, nights: 3, daily: { day: '2026-10-19', score: 800 }, vib: true } };
+  const m = mergeStates(a, b);
+  assert.deepEqual(m.club.best, { bar: { stars: 3, score: 1200 }, warehouse: { stars: 1, score: 300 } });
+  assert.deepEqual(m.club.crate, { house: { n: 2, kind: 'gold' }, trap: { n: 1, kind: 'color' } });
+  assert.equal(m.club.nights, 4);
+  assert.equal(m.club.daily.score, 800);
+});

@@ -46,13 +46,14 @@ const ROUTES = {
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
   review: () => import('./views/review.js'),
+  club: () => import('./views/club.js'),
   progress: () => import('./views/progress.js'),
   latency: () => import('./views/latency.js'),
   profile: () => import('./views/profile.js'),
 };
 
 const NAV = [
-  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills', 'challenge', 'review'] },
+  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills', 'challenge', 'review', 'club'] },
   { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads', 'critique'] },
   { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },

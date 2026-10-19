@@ -75,7 +75,7 @@ export const tests = {
     await page.go('#/profile', 600);
     await page.locator('text=Quoi de neuf ? / visite').scrollIntoViewIfNeeded();
     await page.tap('text=Quoi de neuf ? / visite'); await page.waitForTimeout(400);
-    t.assert.ok(await page.locator('.modal-card >> text=Version 2.0').count(), 'nouveautés précédentes repliées');
+    t.assert.ok(await page.locator('.modal-card summary:has-text("Version 2.")').count(), 'nouveautés précédentes repliées');
     await page.tap('text=🧭 Visite guidée');
     const seen = [];
     for (let i = 0; i < 10; i++) {
@@ -89,7 +89,7 @@ export const tests = {
       t.assert.equal(await page.locator('text=Choisis ton pseudo').count(), 0, 'pseudo demandé pendant la visite');
       await btn.tap();
     }
-    t.assert.equal(seen.length, 8, seen.join(' '));
+    t.assert.equal(seen.length, 9, seen.join(' '));
     t.assert.equal(await page.locator('.tour-bubble').count(), 0);
   },
 };

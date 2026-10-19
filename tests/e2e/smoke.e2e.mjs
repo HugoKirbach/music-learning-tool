@@ -5,7 +5,7 @@ export const ROUTES = ['home', 'labs', 'beat', 'beat?mode=ear&genre=dnb', 'beat?
   'atlas', 'atlas?g=afrohouse', 'studio', 'studio?mission=m-euclid', 'studio?dice=1', 'notebook', 'profile', 'callresponse',
   'arrange', 'arrange?challenge=contrast', 'analyze', 'program', 'program?project=2', 'hum', 'hum?mode=response', 'basslab',
   'mixdown', 'remix', 'bilan', 'rush', 'rush?level=house', 'pads', 'pads?level=trap', 'friends',
-  'skills', 'placement', 'project', 'critique', 'listen?i=zcassé', 'review', 'progress', 'latency'];
+  'skills', 'placement', 'project', 'critique', 'listen?i=zcassé', 'review', 'progress', 'latency', 'club'];
 
 async function tour(t, device, theme = null) {
   const page = await t.open({ device });

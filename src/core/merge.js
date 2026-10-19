@@ -108,6 +108,17 @@ export function mergeStates(local, remote, base = null) {
     }
     out[key] = { ...pick3(ra, rb, base?.[key], newer === remote), best, learn: maxMap(ra.learn, rb.learn) };
   }
+  // Nuit au club : meilleures nuits, vinyles et compteurs au maximum
+  if (local.club || remote.club) {
+    const ca = local.club || {}, cb = remote.club || {};
+    const best = { ...(ca.best || {}) };
+    for (const [k, v] of Object.entries(cb.best || {})) best[k] = best[k] ? { stars: maxNum(best[k].stars, v.stars), score: maxNum(best[k].score, v.score) } : v;
+    const rank = { black: 1, color: 2, gold: 3 };
+    const crate = { ...(ca.crate || {}) };
+    for (const [k, v] of Object.entries(cb.crate || {})) crate[k] = crate[k] ? { n: maxNum(crate[k].n, v.n), kind: rank[v.kind] > rank[crate[k].kind] ? v.kind : crate[k].kind } : v;
+    const daily = (ca.daily?.day || '') > (cb.daily?.day || '') ? ca.daily : (cb.daily?.day || '') > (ca.daily?.day || '') ? cb.daily : (ca.daily && { ...ca.daily, score: maxNum(ca.daily.score, cb.daily?.score) });
+    out.club = { ...pick3(ca, cb, base?.club, newer === remote), best, crate, nights: maxNum(ca.nights, cb.nights), daily: daily || null };
+  }
   out.settings = { ...pick3(local.settings || {}, remote.settings || {}, base?.settings, newer === remote), onboarded: !!(local.settings?.onboarded || remote.settings?.onboarded) };
   out.updatedAt = Math.max(local.updatedAt || 0, remote.updatedAt || 0);
   return out;

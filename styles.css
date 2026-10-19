@@ -703,3 +703,125 @@ p.bad, .small.bad { color: #ff5d73; }
 .certs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 8px; }
 .cert { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 14px; border: 2px solid var(--star); background: var(--card2); }
 .cert.locked { border-style: dashed; border-color: var(--line); opacity: .75; }
+
+/* ---------- 🪩 Nuit au club (jeu mobile) ---------- */
+.club-daily h2 { font-size: 18px; margin: 0 0 4px; }
+.club-daily .row { gap: 12px; flex-wrap: wrap; }
+.club-venues { display: grid; gap: 10px; }
+.club-venue { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.club-venue:active { transform: scale(.98); }
+.club-venue.locked { opacity: .55; cursor: not-allowed; }
+.club-venue-emoji { font-size: 30px; }
+.club-venue-info b { display: block; }
+.club-venue-info small { color: var(--muted); font-size: 12.5px; }
+.club-venue-stars { color: var(--star); font-size: 18px; letter-spacing: 2px; }
+.crate { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.vinyl { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; cursor: pointer; text-align: center; min-height: 48px; }
+.vinyl b { font-size: 13px; }
+.vinyl small { color: var(--muted); font-size: 11px; }
+.vinyl.empty { opacity: .45; }
+.vinyl-disc { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: repeating-radial-gradient(circle, #111 0 2px, #222 2px 4px); border: 2px solid #000; position: relative; }
+.vinyl-disc span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); font-size: 14px; }
+.vinyl.color .vinyl-disc, .vinyl-disc.color { background: repeating-radial-gradient(circle, #7c3aed 0 2px, #a78bfa 2px 4px); }
+.vinyl.gold .vinyl-disc, .vinyl-disc.gold { background: repeating-radial-gradient(circle, #b7791f 0 2px, #f6d365 2px 4px); box-shadow: 0 0 16px #f6d36588; }
+.vinyl.empty .vinyl-disc { background: var(--card2); border-style: dashed; border-color: var(--line); }
+
+.club-game { display: flex; flex-direction: column; gap: 8px; min-height: calc(100dvh - var(--status-h) - var(--safe-t) - 40px); }
+.club-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.club-venue-name { font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-bpm { font-size: 12px; color: var(--accent2); font-weight: 700; }
+.club-lives { letter-spacing: 2px; }
+.club-score { font-size: 18px; min-width: 48px; text-align: right; }
+.club-hype { display: flex; align-items: center; gap: 8px; }
+.club-hype-face { font-size: 26px; }
+.club-hype-bar { flex: 1; height: 10px; border-radius: 99px; background: var(--card2); overflow: hidden; }
+.club-hype-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #ff5d73, #ffb84d); transition: width .3s; }
+.club-time { height: 6px; border-radius: 99px; background: var(--card2); overflow: hidden; }
+.club-time-fill { height: 100%; background: var(--accent2); }
+.club-time-fill.low { background: var(--bad); }
+.club-stage { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; min-height: 340px; }
+.club-intro, .club-feedback { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; animation: club-pop .25s ease-out; }
+.club-intro-emoji { font-size: 64px; }
+.club-intro b { font-size: 28px; }
+.club-intro small, .club-feedback small { color: var(--muted); }
+.club-feedback b { font-size: 64px; }
+.club-feedback span { font-size: 20px; font-weight: 700; }
+.club-feedback.ok b { color: var(--good); }
+.club-feedback.bad b { color: var(--bad); }
+@keyframes club-pop { from { transform: scale(.85); opacity: 0; } }
+.club-head { text-align: center; font-size: 20px; }
+.club-area { display: flex; flex-direction: column; gap: 12px; }
+.club-hint { text-align: center; color: var(--muted); margin: 0; }
+.club-answers { gap: 10px; }
+.club-answers.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.club-opt { min-height: 64px; padding: 10px; border-radius: 16px; border: 2px solid var(--line); background: var(--card2); color: var(--text); font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+.club-opt:active { transform: scale(.97); border-color: var(--accent); }
+.club-beat.now { border-color: var(--accent2); background: rgba(92, 225, 230, .15); }
+.club-replay { align-self: center; }
+.club-dots { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.club-bar { display: flex; gap: 5px; }
+.club-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); transition: background .08s; }
+.club-dot.count { border-color: var(--muted); }
+.club-dot.now { background: var(--accent2); border-color: var(--accent2); }
+.club-dot.on { background: var(--accent); border-color: var(--accent); }
+.club-dot.hidden { visibility: hidden; }
+.club-tap { height: 150px; font-size: 26px; }
+.club-tap.drop { background: rgba(255, 93, 115, .14); border-color: #ff5d73; }
+.club-pads { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.club-pad { aspect-ratio: 1.4; border-radius: 18px; border: 3px solid var(--c); background: color-mix(in srgb, var(--c) 18%, var(--card)); color: var(--text); font: inherit; font-size: 22px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.club-pad { transition: background .12s, transform .12s; }
+.club-pad.lit { background: var(--c); color: #111; transform: scale(1.04); }
+.club-kb { display: flex; position: relative; height: 110px; margin: 0 auto; width: min(100%, 360px); }
+.club-key { flex: 1; border: 1px solid #999; border-radius: 0 0 6px 6px; background: #f4f4f4; }
+.club-key.black { flex: 0 0 0; width: 0; position: relative; z-index: 2; border: 0; }
+.club-key.black::after { content: ''; position: absolute; top: 0; left: -11px; width: 22px; height: 66px; background: #15151f; border-radius: 0 0 4px 4px; }
+.club-key.target { background: var(--accent); box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .2); }
+.club-key.black.target::after { background: var(--accent); }
+.club-lamps { display: flex; justify-content: center; gap: 24px; }
+.club-lamp { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--line); font-size: 22px; font-weight: 800; }
+.club-lamp.lit { animation: club-lamp .3s ease-out; }
+@keyframes club-lamp { from { background: var(--accent); border-color: var(--accent); } }
+.club-end .stat-grid { margin-top: 8px; }
+.club-vinyl-won { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.club-vinyl-won .vinyl-disc { flex-shrink: 0; }
+.club-vinyl-won small { display: block; }
+.club-vinyl-won .vinyl-disc { animation: club-spin 2.4s linear infinite; }
+@keyframes club-spin { to { transform: rotate(360deg); } }
+.club-concept { padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.club-concept p { margin: 4px 0; }
+.club-concept .good { color: var(--good); font-weight: 700; }
+
+/* ---------- Accueil : sections titrées, mode Jouer / Studio ---------- */
+.home-hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.home-mode { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--card2); border: 1px solid var(--line); }
+.home-mode-btn { min-height: 44px; padding: 8px 16px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
+.home-mode-btn.on { background: var(--accent); color: #fff; }
+.home-section { margin: 18px 0 6px; }
+.home-h2 { font-size: 18px; margin: 0 0 2px; }
+.home-sub { margin: 0 0 10px; }
+.sess-title { font-size: 20px; margin: 0; }
+.home-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 155px), 1fr)); gap: 10px; }
+@media (max-width: 380px) { .home-tiles { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .htile:not(.feature) .htile-emoji { font-size: 24px; width: 28px; } }
+.htile { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 12px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); color: var(--text); text-decoration: none; }
+.htile:active { transform: scale(.98); }
+.htile:hover { border-color: var(--accent); }
+.htile-emoji { font-size: 28px; flex-shrink: 0; width: 36px; text-align: center; }
+.htile-text { display: flex; flex-direction: column; min-width: 0; }
+.htile-text b { font-size: 15.5px; }
+.htile-text span { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.htile.feature { grid-column: 1 / -1; border: 2px solid var(--accent); background: linear-gradient(135deg, rgba(179, 136, 255, .16), rgba(92, 225, 230, .08)); min-height: 76px; }
+.htile.feature .htile-emoji { font-size: 34px; }
+.home-section .recent-row { align-items: center; margin-top: 10px; }
+.home-live { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.home-live p { margin: 0; flex: 1; min-width: 200px; }
+.home-day { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.home-day > span { font-size: 28px; }
+.home-day > div { flex: 1; min-width: 0; }
+.home-day p { margin: 2px 0 0; }
+.home-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-links .qchip { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; }
+/* Cibles tactiles confortables sur l'accueil (44 px recommandés) */
+.home-section .btn.small { min-height: 44px; padding: 8px 14px; }
+.home-section a.qchip { min-height: 40px; display: inline-flex; align-items: center; padding: 6px 12px; font-size: 13px; }
+.home-section .chip-tile { min-height: 44px; }

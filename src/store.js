@@ -131,10 +131,13 @@ export function recordExercise(r) {
   day.exercises++;
   state.days[d] = day;
   state.stats.exercises++;
-  if (r.skill && state.skills[r.skill] != null) {
-    state.skills[r.skill] += xp;
+  // XP d'une seule compétence, ou réparti entre plusieurs (r.skills = { rythme: 12, oreille: 6 })
+  const dist = r.skills || (r.skill ? { [r.skill]: xp } : {});
+  for (const [k, v] of Object.entries(dist)) {
+    if (state.skills[k] == null || !(v > 0)) continue;
+    state.skills[k] += Math.round(v);
     day.skills = day.skills || {};
-    day.skills[r.skill] = (day.skills[r.skill] || 0) + xp;
+    day.skills[k] = (day.skills[k] || 0) + Math.round(v);
   }
   // Journal (pour le bilan hebdo) : 400 dernières entrées
   state.log = [...(state.log || []), { d, key: r.key, xp, skill: r.skill || null, genre: r.genre || null, score: r.score ?? null }].slice(-400);
