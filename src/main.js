@@ -1,9 +1,9 @@
 // Point d'entrée : routeur à base de hash, barre de statut, navigation, onboarding.
 import { el, clear, modal, segmented, toast } from './ui.js';
-import { getState, subscribe, update, today } from './store.js';
-import { levelFromXp, dayKey } from './core/progress.js';
+import { getState, subscribe, update, today, addPractice } from './store.js';
+import { levelFromXp, dayKey, titleFor } from './core/progress.js';
 import { transport, ensureAudio, setVolume, playSynth, now } from './core/audio.js';
-import { autoEnableMidi, enableMidi, midiStatus, midiStatusText, onMidiStatus, onDeviceChange, setMidiFallback, midiSupported } from './midiin.js';
+import { autoEnableMidi, enableMidi, onMidiActivity, midiStatus, midiStatusText, onMidiStatus, onDeviceChange, setMidiFallback, midiSupported } from './midiin.js';
 import { presetParams } from './player.js';
 import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
 import { pushRecent } from './catalog.js';
@@ -45,15 +45,18 @@ const ROUTES = {
   challenge: () => import('./views/challenge.js'),
   studio: () => import('./views/studio.js'),
   notebook: () => import('./views/notebook.js'),
+  review: () => import('./views/review.js'),
+  progress: () => import('./views/progress.js'),
+  latency: () => import('./views/latency.js'),
   profile: () => import('./views/profile.js'),
 };
 
 const NAV = [
-  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills', 'challenge'] },
+  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills', 'challenge', 'review'] },
   { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads', 'critique'] },
   { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
-  { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends'] },
+  { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends', 'progress', 'latency'] },
 ];
 
 const view = document.getElementById('view');
@@ -101,17 +104,30 @@ const CLOUD_TXT = { syncing: 'synchronisation…', loading: 'connexion…', pend
 function cloudChip() {
   const st = cloudStatus();
   const href = '#/profile?account=1';
+  if (!st.user && st.known && st.state === 'offline') {
+    // Hors-ligne avec un compte mémorisé : on reste « connecté », la synchro attendra le réseau
+    const who = st.known.name || st.known.email;
+    return el('a.chip.cloud.on.offline', { href, title: `Hors-ligne (${who})${st.pending ? ' — progrès enregistrés sur l’appareil, envoyés au retour du réseau' : ''}` },
+      el('span.chip-initial', (who[0] || '?').toUpperCase()), el('span.chip-badge', '📴'));
+  }
   if (!st.user) {
     const busy = cloudWanted() && st.state !== 'off';
     return el('a.chip.cloud.signin.' + st.state, { href, title: busy ? `Compte : ${CLOUD_TXT[st.state] || ''}` : 'Se connecter / créer un compte (synchro téléphone ↔ PC)' },
       busy ? CLOUD_ICON[st.state] || '⏳' : '👤', busy ? null : el('span.chip-label', 'Connexion'));
   }
   const who = st.user.name || st.user.email || '';
-  return el('a.chip.cloud.on.' + st.state, { href, title: `Connecté : ${who} — ${CLOUD_TXT[st.state] || ''}` },
+  return el('a.chip.cloud.on.' + st.state, { href, title: `Connecté : ${who} — ${CLOUD_TXT[st.state] || ''}${st.state === 'offline' && st.pending ? ' (progrès gardés sur l’appareil, envoyés au retour du réseau)' : ''}` },
     st.user.photo ? el('img.chip-avatar', { src: st.user.photo, alt: '', referrerpolicy: 'no-referrer' }) : el('span.chip-initial', (who[0] || '?').toUpperCase()),
     el('span.chip-badge', CLOUD_ICON[st.state] || '☁️'));
 }
-onCloud(() => renderStatus());
+// Passage hors-ligne / retour du réseau : on prévient une seule fois, sans bloquer
+let wasOffline = false;
+onCloud((st) => {
+  renderStatus();
+  if (!cloudWanted()) return;
+  if (st.state === 'offline' && !wasOffline) { wasOffline = true; toast('📴 Hors-ligne : continue à jouer, tes progrès seront synchronisés au retour du réseau', 'info', 4000); }
+  else if (st.state === 'synced' && wasOffline) { wasOffline = false; toast('✅ Connexion retrouvée : progrès synchronisés', 'good'); }
+});
 
 // ---------- Clavier MIDI : pastille d'état dans la barre du haut ----------
 const midiChip = el('button.chip.midi', { type: 'button', onclick: () => midiClick() });
@@ -220,12 +236,38 @@ function onboarding() {
 const unlock = () => { ensureAudio(); setVolume(getState().settings.volume); window.removeEventListener('pointerdown', unlock); };
 window.addEventListener('pointerdown', unlock);
 
+// ---------- Temps de pratique : compté quand l'app est visible et qu'on s'en sert (ou qu'un son joue) ----------
+let lastInput = Date.now(), practiced = 0;
+const touchInput = () => { lastInput = Date.now(); };
+['pointerdown', 'keydown'].forEach((t) => window.addEventListener(t, touchInput, { passive: true, capture: true }));
+const flushPractice = () => { if (practiced >= 1) { addPractice(practiced); practiced = 0; } };
+setInterval(() => {
+  if (document.visibilityState !== 'visible') return;
+  if (Date.now() - lastInput < 90000 || transport.playing) practiced += 15;
+  if (practiced >= 60) flushPractice();
+}, 15000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPractice(); });
+onMidiActivity(touchInput);
+
+// ---------- Nouveau certificat (à chaque nouveau titre) ----------
+let certsSeen = Object.keys(getState().certs || {}).length;
+subscribe((s) => {
+  const n = Object.keys(s.certs || {}).length;
+  if (n > certsSeen) {
+    const L = Math.max(...Object.keys(s.certs).map(Number));
+    toast(`🎓 Certificat « ${titleFor(L)} » débloqué ! Profil › Mes progrès pour le partager`, 'good', 5000);
+  }
+  certsSeen = n;
+});
+
 window.addEventListener('hashchange', route);
 subscribe(renderStatus);
 subscribe(paintMini);
 initShortcuts(mini);
 renderStatus();
 route();
+// Retire l'écran de démarrage une fois le premier écran affiché
+requestAnimationFrame(() => { const sp = document.getElementById('splash'); if (sp) { sp.classList.add('gone'); setTimeout(() => sp.remove(), 400); } });
 onboarding();
 setTimeout(() => { if (!document.querySelector('#modal-root .modal-back')) showWhatsNew(); }, 800);
 if (midiSupported()) {
@@ -248,6 +290,10 @@ onSocial((p) => {
   };
   ask();
 });
+
+// Installation de l'app (Android / PC) : le navigateur propose l'invite, on la garde pour un bouton « Installer »
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__bfInstall = e; window.dispatchEvent(new Event('bf-installable')); });
+window.addEventListener('appinstalled', () => { window.__bfInstall = null; toast('📲 BeatForge est installée : retrouve-la sur ton écran d’accueil', 'good', 4000); });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

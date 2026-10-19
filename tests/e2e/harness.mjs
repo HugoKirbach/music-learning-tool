@@ -112,6 +112,8 @@ export function createHarness({ browser, base }) {
   async function open({ device = 'pc', midi = false, midiConnected = true, cloud = null, onboard = true, route = '#/home', name = device, permissions = [] } = {}) {
     const ctx = await browser.newContext({ ...VIEWPORTS[device], permissions });
     contexts.push(ctx);
+    // Garde-fou : jamais d'appel aux vrais serveurs Google (comptes, base de données) pendant les tests
+    await ctx.route(/^https:\/\/[^/]*(googleapis\.com|firebaseapp\.com|google\.com)\//, (r) => r.abort());
     if (midi) await ctx.addInitScript(midiInit, midiConnected);
     if (cloud) {
       await ctx.route('https://www.gstatic.com/firebasejs/**', (r) => r.fulfill({ contentType: 'text/javascript', body: readFileSync(join(here, 'fbmock', r.request().url().split('/').pop()), 'utf8') }));

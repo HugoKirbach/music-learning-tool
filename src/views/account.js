@@ -19,6 +19,12 @@ function ago(t) {
   return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : `il y a ${Math.round(m / 60)} h`;
 }
 
+function offlineNote(st) {
+  return el('p.small.muted', st.pending
+    ? 'Tes nouveaux progrès sont bien enregistrés sur cet appareil : ils partiront tout seuls dès que le réseau revient (et seront fusionnés avec tes autres appareils).'
+    : 'Rien en attente : tout était synchronisé' + (st.lastSync ? ` (${ago(st.lastSync)})` : '') + '. Tu peux continuer à jouer hors-ligne.');
+}
+
 export function accountCard() {
   const body = el('div');
   const node = card(el('h3', '☁️ Compte & synchro'), body);
@@ -32,16 +38,19 @@ export function accountCard() {
     busy = false; paint();
   };
 
+  // replaceChildren afficherait « null » pour les éléments facultatifs absents
+  const put = (...kids) => body.replaceChildren(...kids.flat().filter((x) => x != null && x !== false && x !== ''));
   function paint() {
     const st = cloudStatus();
     if (st.user) {
-      body.replaceChildren(
+      put(
         el('div.row.gap', st.user.photo ? el('img.acct-photo', { src: st.user.photo, alt: '', referrerpolicy: 'no-referrer' }) : el('span.acct-photo', '👤'),
           el('div', el('b', getMyProfile()?.pseudo || st.user.name || st.user.email), el('div.small.muted', st.user.email))),
         el('div.row.gap.wrap', { style: { marginTop: '8px' } },
           el('a.btn.small.primary', { href: '#/friends' }, '👥 Mes amis'),
           el('button.btn.small', { onclick: () => askPseudo({ current: getMyProfile()?.pseudo || '' }) }, getMyProfile()?.pseudo ? '✏️ Pseudo' : '✏️ Choisir mon pseudo')),
         el('p.acct-status.' + st.state, STATE_TXT[st.state] || '', st.state === 'synced' && st.lastSync ? ` · ${ago(st.lastSync)}` : ''),
+        st.state === 'offline' ? offlineNote(st) : null,
         st.error ? el('p.small.bad', st.error) : null,
         el('p.small.muted', 'Ta progression est sauvegardée en ligne et reste aussi sur cet appareil (hors-ligne compris). Connecte-toi avec le même compte sur ton téléphone et ton PC.'),
         el('div.row.gap.wrap',
@@ -51,10 +60,16 @@ export function accountCard() {
       );
       return;
     }
+    if (st.known && st.state === 'offline') {
+      put(
+        el('div.row.gap', el('span.acct-photo', '👤'), el('div', el('b', st.known.name || st.known.email), el('div.small.muted', st.known.email))),
+        el('p.acct-status.offline', STATE_TXT.offline), offlineNote(st));
+      return;
+    }
     const email = el('input', { type: 'email', placeholder: 'E-mail', autocomplete: 'email', value: body.querySelector('input[type=email]')?.value || '' });
     const pw = el('input', { type: 'password', placeholder: 'Mot de passe (6 caractères min.)', autocomplete: 'current-password', value: body.querySelector('input[type=password]')?.value || '' });
     const need = () => { if (!email.value.trim()) throw new Error('Entre ton adresse e-mail.'); };
-    body.replaceChildren(
+    put(
       el('p.small.muted', 'Facultatif et gratuit : un compte retrouve ta progression (XP, carnet, Piano Rush…) sur ton téléphone et ton PC. Sans compte, tout reste sur cet appareil.'),
       st.state === 'loading' || busy ? el('p.small', '⏳ Un instant…') : null,
       el('button.btn.wide.acct-google', { disabled: busy, onclick: () => act(() => signInGoogle()) }, el('b', 'G'), ' Continuer avec Google'),

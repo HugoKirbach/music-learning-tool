@@ -1,6 +1,7 @@
 // Pad Rush : finger drumming sur une grille de pads (2×4 ou 4×4) — anneaux qui se referment + séquenceur au-dessus.
-import { el, header, segmented, confetti, showBadges, toast } from '../ui.js';
-import { getState, update, recordExercise } from '../store.js';
+import { el, header, segmented, confetti, showBadges, toast, landscapeBtn } from '../ui.js';
+import { getState, update, recordExercise, recordGameReview } from '../store.js';
+import { inputLatency } from '../core/latency.js';
 import { ensureAudio, now, playSynth, playDrum, playClick, outputLatency, scheduleAhead } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { onMidi, midiStatus, enableMidi, midiSupported } from '../midiin.js';
@@ -208,7 +209,7 @@ export function render(root, params = {}) {
       el('div.rush-hud',
         el('div', el('div.small.muted', title), el('div.row.gap', scoreEl, comboEl, accEl)),
         dynEl,
-        el('div.row.gap', demo || learn ? null : pauseBtn, el('button.btn.small', { onclick: () => { stop(); intro(l, ctx); } }, '✕'))),
+        el('div.row.gap', landscapeBtn(), demo || learn ? null : pauseBtn, el('button.btn.small', { onclick: () => { stop(); intro(l, ctx); } }, '✕'))),
       el('div.bar.rush-prog', prog),
       strip,
       el('div.pad-stage', grid, overlay),
@@ -302,7 +303,7 @@ export function render(root, params = {}) {
       playPad(byIdx[idx], now(), vel ?? 0.85, kit);
       if (demo) return;
       if (learn) return learnPress(idx);
-      const t = T();
+      const t = T() - inputLatency(getState().settings, src);
       if (t < -0.25) return; // écoute / décompte : on peut s'échauffer
       const ev = game.press(idx, t);
       userHits.push({ idx, t });
@@ -549,9 +550,10 @@ export function render(root, params = {}) {
       else { x.best[l.id] = keep(x.best[l.id]); x.best[`${l.id}@${ctx.diff}`] = keep(x.best[`${l.id}@${ctx.diff}`]); }
     });
     const res = recordExercise({
-      key: ear ? 'pads:ear' : 'pads', title: `Pad Rush · ${l.title}`, score: acc, skill: ear ? 'oreille' : l.melodic ? 'melodie' : 'rythme', success: stars >= 1,
+      key: ear ? 'pads:ear' : 'pads', title: `Pad Rush · ${l.title}`, score: acc, skill: ear ? 'oreille' : l.melodic ? 'melodie' : 'rythme', success: stars >= 1, bpm: chart.bpm,
       xp: Math.round((6 + acc * 0.22) * (ear ? 1.3 : ctx.diff === 'expert' ? 1.4 : ctx.diff === 'difficile' ? 1.2 : ctx.diff === 'facile' ? 0.8 : 1) + (firstClear ? 10 : 0)),
     });
+    if (!l.random) recordGameReview(`${ear ? 'padsear' : 'pads'}:${l.id}`, acc >= 80);
     const nowOpen = !ear && idx >= 0 && idx + 1 < PAD_LEVELS.length && isUnlocked(idx + 1);
     const next = idx >= 0 ? PAD_LEVELS[idx + 1] : null;
     if (stars === 3) confetti();

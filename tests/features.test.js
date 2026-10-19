@@ -65,7 +65,7 @@ test('Révisions espacées', () => {
   assert.equal(dueItems({ 'intervals:7': e }, d).length, 0);
   assert.equal(dueItems({ 'intervals:7': e }, '2026-10-18')[0].value, '7');
   e = reviewUpdate(e, true, '2026-10-18', true);
-  assert.deepEqual(e, { box: 1, due: '2026-10-20' });
+  assert.deepEqual(e, { box: 1, due: '2026-10-21' });
   for (let i = 0; i < 4; i++) e = e && reviewUpdate(e, true, e.due, true);
   assert.equal(e, null);
   assert.equal(reviewUpdate(undefined, true, d, false), null);

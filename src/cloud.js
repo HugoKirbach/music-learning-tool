@@ -40,7 +40,16 @@ const syncedListeners = new Set();
 export function onSynced(fn) { syncedListeners.add(fn); return () => syncedListeners.delete(fn); }
 /** Accès au SDK et à l'utilisateur pour les autres modules en ligne (null si pas connecté). */
 export function cloudCtx() { return fb && user ? { F: fb.F, db: fb.db, user } : null; }
-export function cloudStatus() { return { ...status, user, lastSync: readMeta().lastSync || null }; }
+export function cloudStatus() {
+  const m = readMeta();
+  return {
+    ...status, user, lastSync: m.lastSync || null,
+    // des progrès locaux pas encore envoyés (hors-ligne, ou envoi différé)
+    pending: !!m.uid && (getState().updatedAt || 0) > (m.localAt || 0),
+    // compte mémorisé sur cet appareil (affiché même hors-ligne, avant que le module de compte soit chargé)
+    known: m.uid ? { email: m.email || '', name: m.name || '' } : null,
+  };
+}
 function setStatus(state, error = '') { status = { state, error }; listeners.forEach((f) => f(cloudStatus())); }
 
 /** Un compte a déjà été connecté sur cet appareil → on relance la synchro au démarrage. */
@@ -63,8 +72,8 @@ async function loadSdk() {
 /** Démarre le module (chargement du SDK + session mémorisée). */
 export async function startCloud() {
   if (fb) return true;
-  if (!navigator.onLine) { setStatus('offline'); return false; }
-  setStatus('loading');
+  // Hors-ligne : le module de compte est en cache (service worker), la session mémorisée est relue sans réseau.
+  setStatus(navigator.onLine ? 'loading' : 'offline');
   try { await loadSdk(); return true; } catch (e) {
     console.warn(e);
     setStatus(navigator.onLine ? 'error' : 'offline', 'Impossible de charger le module de compte (réseau ?)');
@@ -124,7 +133,7 @@ async function push(s, expectedAt) {
     if (known[id] !== now[id]) await fb.F.setDoc(fb.F.doc(fb.db, 'users', user.uid, 'notebook', id), { data: JSON.stringify(n), date: n.date || 0 });
   }
   for (const id of Object.keys(known)) if (!now[id]) await fb.F.deleteDoc(fb.F.doc(fb.db, 'users', user.uid, 'notebook', id));
-  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, localAt: s.updatedAt || 0, remoteAt: at, lastSync: Date.now(), nb: now });
+  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, name: user.name || '', localAt: s.updatedAt || 0, remoteAt: at, lastSync: Date.now(), nb: now });
   saveBase(s);
   await dailyBackup(s);
 }
@@ -133,7 +142,7 @@ async function push(s, expectedAt) {
 function adopt(state, remoteAt, remoteNb) {
   replaceState(state, { touch: false });
   saveBase(getState());
-  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, localAt: getState().updatedAt || 0, remoteAt, lastSync: Date.now(), nb: nbHashes(remoteNb) });
+  writeMeta({ ...readMeta(), uid: user.uid, email: user.email, name: user.name || '', localAt: getState().updatedAt || 0, remoteAt, lastSync: Date.now(), nb: nbHashes(remoteNb) });
 }
 
 // ---------- Historique : une sauvegarde par jour, les 7 dernières sont gardées ----------

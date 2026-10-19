@@ -104,6 +104,7 @@ function onMessage(e) {
   }
   const type = st & 0xf0;
   const channel = st & 0x0f;
+  activity.forEach((f) => f());
   const targets = handlers.size ? handlers : fallback ? [fallback] : [];
   if (type === 0x90 && d2 > 0) {
     held.add(d1);
@@ -119,6 +120,10 @@ function onMessage(e) {
     targets.forEach((h) => h.cc?.(d1, d2 / 127, channel));
   }
 }
+
+const activity = new Set();
+/** Appelé à chaque message de note / contrôleur (mesure du temps de pratique), sans prendre la main sur les notes. */
+export function onMidiActivity(fn) { activity.add(fn); return () => activity.delete(fn); }
 
 /** S'abonner aux notes. Renvoie une fonction de désabonnement. */
 export function onMidi(h) {

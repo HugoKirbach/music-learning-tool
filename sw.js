@@ -1,6 +1,15 @@
 // Service worker : app utilisable hors-ligne (stale-while-revalidate sur les fichiers de l'app).
-const CACHE = 'beatforge-v23';
+const CACHE = 'beatforge-v24';
+// Module de compte (Firebase, versionné dans l'URL) : gardé en cache pour retrouver sa session hors-ligne
+const SDK_CACHE = 'beatforge-sdk-10.12.2';
 const SHELL = [
+  './src/cert.js',
+  './src/core/goals.js',
+  './src/core/latency.js',
+  './src/core/stats.js',
+  './src/views/latency.js',
+  './src/views/progress.js',
+  './src/views/review.js',
   './', './index.html', './styles.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './src/main.js', './src/ui.js', './src/store.js', './src/player.js', './src/midiin.js', './src/catalog.js', './src/miniplayer.js', './src/shortcuts.js', './src/core/tiles.js', './src/data/rush.js', './src/views/rush.js', './src/cloud.js', './src/core/merge.js', './src/views/account.js', './src/core/padgame.js', './src/data/pads.js', './src/views/pads.js', './src/audiomode.js', './src/views/audiodiag.js', './src/core/schema.js', './src/social.js', './src/views/friends.js', './src/core/pedagogy.js', './src/core/critique.js', './src/stems.js', './src/core/wav.js', './src/views/skills.js', './src/views/placement.js', './src/views/project.js', './src/views/critique.js', './src/prefs.js', './src/core/sharecode.js', './src/views/listen.js', './src/share.js', './src/whatsnew.js', './src/core/challenge.js', './src/views/challenge.js', './src/core/reminder.js', './src/reminders.js', './src/views/reminderscard.js', './src/midiout.js', './src/midisync.js', './src/views/studiocard.js',
   './src/core/audio.js', './src/core/theory.js', './src/core/rhythm.js', './src/core/midi.js', './src/core/arrange.js',
@@ -15,12 +24,24 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== SDK_CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/')) {
+    e.respondWith(caches.open(SDK_CACHE).then(async (cache) => {
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res.ok) cache.put(req, res.clone());
+      return res;
+    }));
+    return;
+  }
+  if (url.origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async (cache) => {
     const cached = await cache.match(req, { ignoreSearch: true });
     const network = fetch(req).then((res) => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => cached);

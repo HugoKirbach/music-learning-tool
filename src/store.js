@@ -1,11 +1,11 @@
 // État persistant de l'application (localStorage) + événements.
-import { levelFromXp, updateStreak, dayKey, newBadges, SKILLS } from './core/progress.js';
+import { levelFromXp, updateStreak, dayKey, newBadges, SKILLS, CERT_LEVELS } from './core/progress.js';
 import { gridFromPatterns } from './core/rhythm.js';
 import { genreById, defaultPump } from './data/genres.js';
 import { MELODY_STEPS } from './core/arrange.js';
 import { kitForGenre } from './core/audio.js';
 import { stepMatches } from './core/daily.js';
-import { reviewUpdate, dueItems } from './core/srs.js';
+import { reviewUpdate, dueItems, isGameItem } from './core/srs.js';
 import { SCHEMA, migrate, looksValid } from './core/schema.js';
 
 const KEY = 'beatforge.v1';
@@ -138,6 +138,9 @@ export function recordExercise(r) {
   }
   // Journal (pour le bilan hebdo) : 400 dernières entrées
   state.log = [...(state.log || []), { d, key: r.key, xp, skill: r.skill || null, genre: r.genre || null, score: r.score ?? null }].slice(-400);
+  // Tableau de bord : score moyen du jour et tempo le plus rapide réussi (≥ 80 %)
+  if (typeof r.score === 'number') day.acc = { n: (day.acc?.n || 0) + 1, sum: (day.acc?.sum || 0) + Math.round(r.score) };
+  if (r.bpm && r.score >= 80) day.tempo = Math.max(day.tempo || 0, Math.round(r.bpm));
   if (r.genre) state.genres[r.genre] = (state.genres[r.genre] || 0) + 1;
   if (r.hintUsed) state.stats.hints++;
   else if (r.success) state.stats.noHintWins++;
@@ -167,9 +170,12 @@ export function recordExercise(r) {
 
   const badges = newBadges(state);
   badges.forEach((b) => { state.badges[b.id] = d; });
-  save();
   const after = levelFromXp(state.xp).level;
-  return { levelUp: after > before, level: after, badges, sessionAdvanced, sessionDone, xp };
+  // Certificat à chaque nouveau titre (niveaux 3, 5, 8, 12…)
+  const certs = CERT_LEVELS.filter((L) => L > before && L <= after && !state.certs?.[L]);
+  if (certs.length) state.certs = { ...(state.certs || {}), ...Object.fromEntries(certs.map((L) => [L, d])) };
+  save();
+  return { levelUp: after > before, level: after, badges, sessionAdvanced, sessionDone, xp, cert: certs.at(-1) || null };
 }
 
 /** Vérifie les badges hors exercice (export, notes MIDI…). */
@@ -194,8 +200,33 @@ export function recordReview(key, ok, inReview = false) {
   save();
 }
 
+/** Temps de pratique (secondes) mesuré pendant que l'app est utilisée. */
+export function addPractice(sec) {
+  if (!(sec > 0)) return;
+  const d = dayKey();
+  const day = state.days[d] || { xp: 0, sessions: 0, exercises: 0 };
+  day.sec = (day.sec || 0) + Math.round(sec);
+  state.days[d] = day;
+  save();
+}
+
+/** Résultat d'un niveau de jeu pour les révisions : raté → revient demain ; réussi à une date prévue → intervalle suivant. */
+export function recordGameReview(key, ok) {
+  const e = state.review[key];
+  if (!e && ok) return;
+  const d = dayKey();
+  const next = reviewUpdate(e, ok, d, !!e && e.due <= d);
+  if (next) state.review[key] = next;
+  else delete state.review[key];
+  save();
+}
+
 export function dueReviews() {
   return dueItems(state.review, dayKey());
+}
+/** Révisions d'oreille seulement (quiz). */
+export function dueEarReviews() {
+  return dueReviews().filter((x) => !isGameItem(x));
 }
 
 export function exportBackup() {

@@ -26,6 +26,9 @@ const TITLES = [
   [12, 'Architecte sonore'], [16, 'Digger émérite'], [20, 'Maestro du groove'], [30, 'Légende du club'],
 ];
 
+/** Niveaux qui donnent un nouveau titre, et donc un certificat. */
+export const CERT_LEVELS = TITLES.map(([l]) => l).filter((l) => l > 1);
+
 export function titleFor(level) {
   let t = TITLES[0][1];
   for (const [l, name] of TITLES) if (level >= l) t = name;

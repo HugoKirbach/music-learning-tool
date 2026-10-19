@@ -1,5 +1,5 @@
 import { el, card } from '../ui.js';
-import { getState, update, today, level, dueReviews } from '../store.js';
+import { getState, update, today, level, dueReviews, dueEarReviews } from '../store.js';
 import { currentDay, startProgramDay } from './program.js';
 import { PROGRAM, PROGRAM_DAYS, dayInfo } from '../data/program.js';
 import { buildSession, genreOfDay, WARMUPS, rng, pick } from '../core/daily.js';
@@ -29,7 +29,7 @@ export function newSession() {
   const s = getState();
   const d = dayKey();
   const count = (s.sessionCount[d] || 0) + 1;
-  const sess = buildSession(`${d}#${count}`, { skills: s.skills, genres: s.genres, missions: s.missions, level: level(), due: dueReviews().length, focus: weekFocus(s) });
+  const sess = buildSession(`${d}#${count}`, { skills: s.skills, genres: s.genres, missions: s.missions, level: level(), due: dueEarReviews().length, focus: weekFocus(s) });
   update((st) => {
     st.sessionCount = { [d]: count };
     st.session = { ...sess, day: d, idx: 0, done: sess.steps.map(() => false), finished: false };
@@ -103,7 +103,7 @@ export function render(root, params) {
   }
   if ([0, 1, 6].includes(dow)) items.push({ emoji: '📈', title: 'Ton bilan de la semaine est prêt', text: 'Tes progrès, tes idées à réécouter et le plan du coach.', action: el('a.btn.small.primary', { href: '#/bilan' }, 'Voir le bilan'), chip: '📈 Bilan', href: '#/bilan' });
   if (info && !doneToday && s.program.startedAt) items.push({ emoji: info.w.emoji, title: `Programme : semaine ${info.week + 1} · ${info.isProject ? 'mini-projet' : `jour ${info.day + 1}`}`, text: `Thème « ${info.w.theme} ».`, action: el('button.btn.small.primary', { onclick: () => startProgramDay(cur) }, '▶ Jour du programme'), chip: '📅 Programme', href: '#/program' });
-  if (due) items.push({ emoji: '🔁', title: `${due} révision(s) à faire`, text: 'Les notions ratées reviennent au bon moment pour s’ancrer.', action: el('a.btn.small.primary', { href: '#/ear?mode=review' }, 'Réviser'), chip: `🔁 ${due} révision(s)`, href: '#/ear?mode=review' });
+  if (due) items.push({ emoji: '🔁', title: `${due} révision(s) à faire`, text: 'Notions d’oreille et niveaux de jeu ratés reviennent au bon moment (1, 3 puis 7 jours) pour s’ancrer.', action: el('a.btn.small.primary', { href: '#/review' }, 'Réviser'), chip: `🔁 ${due} révision(s)`, href: '#/review' });
   if (later.length) items.push({ emoji: '🎛️', title: `${later.length} mission(s) studio en attente`, text: later.slice(0, 2).map((m) => m.title).join(' · '), action: el('a.btn.small.primary', { href: '#/studio' }, 'Voir'), chip: `🎛️ ${later.length} mission(s)`, href: '#/studio' });
   if (info && !s.program.startedAt) items.push({ emoji: '📅', title: 'Programme 4 semaines', text: 'Un thème par semaine, une session par jour, un mini-projet le 7e jour.', action: el('a.btn.small.primary', { href: '#/program' }, 'Découvrir'), chip: '📅 Programme', href: '#/program' });
   const main = items[0];

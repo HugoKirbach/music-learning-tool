@@ -1,6 +1,7 @@
 // Piano Rush : les notes tombent, on les joue en rythme (touches, clavier PC, MPC). Chaque niveau = théorie + pratique.
-import { el, header, segmented, confetti, showBadges } from '../ui.js';
-import { getState, update, recordExercise } from '../store.js';
+import { el, header, segmented, confetti, showBadges, landscapeBtn } from '../ui.js';
+import { getState, update, recordExercise, recordGameReview } from '../store.js';
+import { inputLatency } from '../core/latency.js';
 import { ensureAudio, now, playSynth, playClick, outputLatency, scheduleAhead } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { onMidi, midiStatus } from '../midiin.js';
@@ -203,7 +204,7 @@ export function render(root, params = {}) {
       el('div.rush-hud',
         el('div', el('div.small.muted', demo ? '👀 Démo' : learn ? `🎓 Apprentissage · ${l.title}` : `${l.emoji} ${l.title}`), el('div.row.gap', scoreEl, comboEl, accEl)),
         chordEl,
-        el('div.row.gap', demo || learn ? null : pauseBtn, el('button.btn.small', { onclick: () => { stop(); intro(l, ctx); } }, '✕'))),
+        el('div.row.gap', landscapeBtn(), demo || learn ? null : pauseBtn, el('button.btn.small', { onclick: () => { stop(); intro(l, ctx); } }, '✕'))),
       el('div.bar.rush-prog', prog),
       canvas,
     );
@@ -297,9 +298,10 @@ export function render(root, params = {}) {
       sound(midi, true);
       if (demo) return;
       if (learn) return learnPress(midi, src);
-      const ev = game.press(midi, T(), { octaveFree: src.startsWith('midi') });
+      const t = T() - inputLatency(getState().settings, src);
+      const ev = game.press(midi, t, { octaveFree: src.startsWith('midi') });
       if (ev.type === 'hit') feedback(ev.note.midi, ev.grade);
-      else if (T() > -0.2) feedback(midi, 'wrong');
+      else if (t > -0.2) feedback(midi, 'wrong');
     }
     function doRelease(src) {
       const midi = pressed.get(src);
@@ -307,7 +309,7 @@ export function render(root, params = {}) {
       pressed.delete(src);
       const c = (down.get(midi) || 1) - 1;
       if (c <= 0) { down.delete(midi); sound(midi, false); } else down.set(midi, c);
-      if (!demo && !learn) game.release(midi, T());
+      if (!demo && !learn) game.release(midi, T() - inputLatency(getState().settings, src));
     }
 
     // ---- Entrées : toucher / souris ----
@@ -625,9 +627,10 @@ export function render(root, params = {}) {
       });
     }
     const res = recordExercise({
-      key: 'rush', title: `Piano Rush · ${l.title}`, score: r.acc, skill: l.skill, success: r.stars >= 1,
+      key: 'rush', title: `Piano Rush · ${l.title}`, score: r.acc, skill: l.skill, success: r.stars >= 1, bpm: Math.round(l.bpm * diff.tempo),
       xp: Math.round((6 + r.acc * 0.22) * (ctx.diff === 'expert' ? 1.4 : ctx.diff === 'difficile' ? 1.2 : ctx.diff === 'facile' ? 0.8 : 1) + (firstClear ? 10 : 0)),
     });
+    if (!l.random) recordGameReview(`rush:${l.id}`, r.acc >= 80);
     const nowOpen = idx >= 0 && idx + 1 < LEVELS.length && isUnlocked(idx + 1);
     const next = idx >= 0 ? LEVELS[idx + 1] : null;
     if (r.stars === 3) confetti();
@@ -636,6 +639,7 @@ export function render(root, params = {}) {
     const timing = Math.abs(r.meanOffMs) < 15 ? 'Pile dans le temps en moyenne, bravo.'
       : `Tu joues en moyenne ${Math.abs(r.meanOffMs)} ms ${r.meanOffMs < 0 ? 'en avance : écoute le clic et attends-le' : 'en retard : anticipe un peu, appuie quand la tuile touche la ligne'}.`;
     const tips = r.perfect + r.good ? [timing] : [];
+    if (Math.abs(r.meanOffMs) >= 40 && !Object.keys(getState().settings.latency || {}).length) tips.push('Toujours décalé dans le même sens ? Ton appareil a peut-être de la latence : Profil › ⏱️ Calibrer la latence (30 s).');
     if (r.shortHolds) tips.push(`${r.shortHolds} note${r.shortHolds > 1 ? 's' : ''} tenue${r.shortHolds > 1 ? 's' : ''} relâchée${r.shortHolds > 1 ? 's' : ''} trop tôt : compte la durée jusqu’au bout de la tuile.`);
     if (r.weakBars.length && r.miss) tips.push(`Mesures à retravailler : ${r.weakBars.join(', ')}.`);
     if (r.wrong > 3) tips.push(`${r.wrong} fausses notes : regarde le nom sur la tuile et la touche qui s’allume avant d’appuyer.`);

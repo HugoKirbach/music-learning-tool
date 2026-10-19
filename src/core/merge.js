@@ -77,6 +77,8 @@ export function mergeStates(local, remote, base = null) {
   out.days = deepMax(local.days || {}, remote.days || {});
   out.badges = { ...(newer.badges || {}), ...(older.badges || {}) }; // garde la date d'obtention la plus ancienne
   for (const [k, v] of Object.entries(newer.badges || {})) if (!out.badges[k] || v < out.badges[k]) out.badges[k] = v;
+  out.certs = { ...(newer.certs || {}), ...(older.certs || {}) };
+  for (const [k, v] of Object.entries(newer.certs || {})) if (!out.certs[k] || v < out.certs[k]) out.certs[k] = v;
 
   const sa = local.streak || {}, sb = remote.streak || {};
   const ls = (sa.last || '') >= (sb.last || '') ? sa : sb;

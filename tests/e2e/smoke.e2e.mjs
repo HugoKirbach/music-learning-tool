@@ -5,7 +5,7 @@ export const ROUTES = ['home', 'labs', 'beat', 'beat?mode=ear&genre=dnb', 'beat?
   'atlas', 'atlas?g=afrohouse', 'studio', 'studio?mission=m-euclid', 'studio?dice=1', 'notebook', 'profile', 'callresponse',
   'arrange', 'arrange?challenge=contrast', 'analyze', 'program', 'program?project=2', 'hum', 'hum?mode=response', 'basslab',
   'mixdown', 'remix', 'bilan', 'rush', 'rush?level=house', 'pads', 'pads?level=trap', 'friends',
-  'skills', 'placement', 'project', 'critique', 'listen?i=zcassé'];
+  'skills', 'placement', 'project', 'critique', 'listen?i=zcassé', 'review', 'progress', 'latency'];
 
 async function tour(t, device, theme = null) {
   const page = await t.open({ device });
@@ -16,7 +16,9 @@ async function tour(t, device, theme = null) {
     const info = await page.evaluate(() => ({
       text: document.getElementById('view').innerText.trim().length,
       overflow: document.documentElement.scrollWidth - window.innerWidth,
+      junk: (() => { const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); const out = []; for (let n; (n = w.nextNode());) if (/^(null|undefined|NaN)$|\[object |NaN ?%|undefined /.test(n.textContent.trim())) out.push(n.textContent.trim().slice(0, 40)); return out; })(),
     }));
+    if (info.junk.length) problems.push(`${r} : texte parasite ${JSON.stringify(info.junk)}`);
     if (info.text < 30) problems.push(`${r} : écran vide`);
     if (info.overflow > 2) problems.push(`${r} : débordement horizontal de ${info.overflow}px`);
   }

@@ -237,3 +237,21 @@ export function shuffle(arr, r = Math.random) {
   }
   return a;
 }
+
+/** Bouton « plein écran paysage » pour les jeux sur téléphone (Android : verrouillage ; iPhone : on invite à tourner). */
+export function landscapeBtn() {
+  if (!matchMedia('(pointer: coarse)').matches) return null;
+  const b = el('button.btn.small', { type: 'button', title: 'Plein écran paysage', onclick: async () => {
+    if (document.fullscreenElement) {
+      try { screen.orientation?.unlock?.(); await document.exitFullscreen(); } catch (e) { /* déjà sorti */ }
+      return;
+    }
+    try {
+      await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' });
+      await screen.orientation.lock('landscape');
+    } catch (e) {
+      if (matchMedia('(orientation: portrait)').matches) toast('🔄 Tourne ton téléphone en paysage pour plus de place', 'info', 3000);
+    }
+  } }, '⛶');
+  return b;
+}

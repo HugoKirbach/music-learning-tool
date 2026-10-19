@@ -4,6 +4,7 @@ import { getState, update, recordExercise } from '../store.js';
 import { ensureAudio, now, playClick, outputLatency } from '../core/audio.js';
 import { onMidi } from '../midiin.js';
 import { viewKeys } from '../shortcuts.js';
+import { inputLatency } from '../core/latency.js';
 import { WARMUPS, CREATES } from '../core/daily.js';
 import { DOMAINS, placementPlan, PLACEMENT_LEVEL, scorePlacement, tapScore, placementDue, weekId, nextSkills } from '../core/pedagogy.js';
 import { makeQuestion } from './ear.js';
@@ -78,17 +79,17 @@ export function render(root, params = {}) {
     const best = new Map();
     const status = el('p.muted', { style: { textAlign: 'center' } }, 'Écoute les 4 premiers clics…');
     const pad = el('button.tap-pad', { type: 'button' }, 'TAPE ICI');
-    const tap = () => {
-      const t = now();
+    const tap = (src) => {
+      const t = now() - inputLatency(getState().settings, src);
       pad.classList.remove('hit'); void pad.offsetWidth; pad.classList.add('hit');
       targets.forEach((tg, k) => {
         const off = (t - (tg + lat)) * 1000;
         if (Math.abs(off) < 300 && (!best.has(k) || Math.abs(off) < Math.abs(best.get(k)))) best.set(k, off);
       });
     };
-    pad.addEventListener('pointerdown', (e) => { e.preventDefault(); tap(); });
-    viewKeys({ space: tap });
-    const offMidi = onMidi({ noteOn: () => tap() });
+    pad.addEventListener('pointerdown', (e) => { e.preventDefault(); tap('p'); });
+    viewKeys({ space: () => tap('k') });
+    const offMidi = onMidi({ noteOn: () => tap('m') });
     body.replaceChildren(card(el('h3', '🥁 Régularité'), el('p', 'Frappe en même temps que les 8 clics qui suivent le décompte (écran, barre Espace ou un pad de ton MPC).'), status, pad));
     const timer = setInterval(() => {
       const t = now();

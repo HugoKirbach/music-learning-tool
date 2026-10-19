@@ -676,3 +676,30 @@ p.bad, .small.bad { color: #ff5d73; }
 .tour-bubble .btn { min-height: 44px; touch-action: manipulation; }
 @media (min-width: 900px) { .tour-bubble { left: auto; right: 24px; bottom: 24px; } }
 :root[data-theme="light"] .ps-name, :root[data-theme="light"] .sn-proofs li.ok { filter: brightness(.62) saturate(1.5); }
+
+/* ---------- Mes progrès, révisions, objectifs, certificats ---------- */
+.pgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.pgraph { min-width: 0; }
+.pgraph > b { font-size: 14px; }
+.pchart { width: 100%; height: auto; display: block; margin-top: 6px; }
+.pchart-label { fill: var(--muted); font-size: 11px; }
+.skill-spark { display: grid; grid-template-columns: minmax(0, 130px) minmax(0, 1fr); gap: 10px; align-items: end; margin: 6px 0; font-size: 13px; }
+.spark { display: flex; gap: 3px; height: 30px; align-items: flex-end; }
+.spark i { flex: 1; border-radius: 3px 3px 0 0; min-width: 0; }
+.stagnant { margin-top: 12px; padding: 10px; border-radius: 12px; border: 1px dashed var(--warn); }
+.review-row { padding: 8px 0; border-bottom: 1px dashed var(--line); gap: 10px; }
+.review-row > div { min-width: 0; }
+.goal { padding: 10px 0 12px; border-bottom: 1px dashed var(--line); }
+.goal .bar { margin: 8px 0; }
+.goal-status { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--card2); white-space: nowrap; }
+.goal-status.good { color: var(--good); }
+.goal-status.warn { color: var(--warn); }
+.goal-steps { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.goal-steps span { font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.goal-steps span.past { background: var(--card2); }
+.goal-steps span.now { border-color: var(--accent); color: var(--text); font-weight: 700; }
+.goal-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.goal-target { width: 110px; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg2); color: var(--text); font: inherit; }
+.certs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 8px; }
+.cert { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 14px; border: 2px solid var(--star); background: var(--card2); }
+.cert.locked { border-style: dashed; border-color: var(--line); opacity: .75; }

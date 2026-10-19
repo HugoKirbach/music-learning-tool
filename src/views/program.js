@@ -1,6 +1,6 @@
 // Programme de 4 semaines : un thème par semaine, une session par jour, un mini-projet le 7e jour.
 import { el, card, header, finishExercise, toast, download, confetti } from '../ui.js';
-import { getState, update, dueReviews } from '../store.js';
+import { getState, update, dueEarReviews } from '../store.js';
 import { PROGRAM, PROGRAM_DAYS, dayInfo } from '../data/program.js';
 import { dayKey } from '../core/progress.js';
 
@@ -14,7 +14,7 @@ export function startProgramDay(i) {
   const { week, day, isProject } = dayInfo(i);
   if (isProject) { location.hash = `#/program?project=${week}`; return; }
   const steps = PROGRAM[week].days[day].map((x) => ({ ...x }));
-  const due = dueReviews().length;
+  const due = dueEarReviews().length;
   if (due >= 3 && steps[0].key.startsWith('ear:')) {
     steps[0] = { key: 'ear:review', title: 'Révisions', desc: `${due} notions ratées à revoir`, route: '#/ear?mode=review', skill: 'oreille', min: 2 };
   }

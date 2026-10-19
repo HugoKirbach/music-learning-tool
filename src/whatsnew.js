@@ -2,8 +2,19 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '2.1';
+export const APP_VERSION = '2.2';
 export const CHANGELOG = [
+  {
+    version: '2.2', date: 'octobre 2026', items: [
+      ['📊', 'Mes progrès', 'courbes sur 12 semaines (temps de pratique, score, tempo maîtrisé, oreille) et compétences qui stagnent.'],
+      ['🎯', 'Objectifs personnels', 'un but avec une échéance, découpé en paliers chaque semaine.'],
+      ['🎓', 'Certificats', 'une image à partager à chaque nouveau titre.'],
+      ['🔁', 'Révisions pour tout', 'notions d’oreille et niveaux de Piano Rush / Pad Rush ratés reviennent après 1, 3 puis 7 jours.'],
+      ['⏱️', 'Latence calibrée', 'tape avec le clic : les jeux corrigent le retard de ton écran, clavier ou MIDI.'],
+      ['📴', 'Hors-ligne avec un compte', 'tu restes connecté sans réseau, la synchro repart toute seule.'],
+      ['📲', 'App installable', 'bouton Installer, raccourcis sur l’icône, plein écran paysage dans les jeux.'],
+    ],
+  },
   {
     version: '2.1', date: 'octobre 2026', items: [
       ['🧭', 'Visite guidée réparée sur téléphone', 'boutons plus grands, et le choix du pseudo attend la fin de la visite.'],
@@ -34,6 +45,7 @@ const TOUR = [
   { route: '#/labs', title: 'Labs', text: 'Les ateliers par familles. Les plus avancés apparaissent avec ton niveau (ou « Tout afficher » dans le Profil).' },
   { route: '#/pads', title: 'Pad Rush', text: 'Finger drumming sur tes pads (2×4 ou 4×4), au clavier ou au tactile.' },
   { route: '#/challenge', title: 'Défi de la semaine', text: 'La même contrainte pour tout le monde : publie ta version et écoute celles des autres.' },
+  { route: '#/progress', title: 'Mes progrès', text: 'Tes courbes semaine après semaine, tes objectifs découpés en étapes et tes certificats.' },
   { route: '#/profile', title: 'Profil', text: 'Compte et amis, thème clair, mode gaucher, moteur audio, sortie MIDI vers Live.' },
 ];
 
@@ -47,7 +59,7 @@ export function showWhatsNew({ force = false } = {}) {
   const close = modal(el('div',
     el('h2', `✨ Quoi de neuf (version ${last.version})`),
     items(last.items),
-    CHANGELOG.slice(1, 2).map((v) => el('details', el('summary', `Version ${v.version}`), items(v.items))),
+    CHANGELOG.slice(1, 3).map((v) => el('details', el('summary', `Version ${v.version}`), items(v.items))),
     el('div.row.gap.wrap',
       el('button.btn.primary', { onclick: () => { close(); startTour(); } }, '🧭 Visite guidée (1 min)'),
       el('button.btn.ghost', { onclick: () => close() }, 'Plus tard')),

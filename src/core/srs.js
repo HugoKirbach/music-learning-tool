@@ -1,7 +1,7 @@
-// Révisions espacées (système de Leitner) : les notions ratées reviennent après 1, 2, 4, 8, 16 jours. Module pur.
+// Révisions espacées (système de Leitner) : les notions ratées reviennent après 1, 3, 7, 14 puis 30 jours. Module pur.
 import { daysBetween } from './progress.js';
 
-export const BOX_DAYS = [1, 2, 4, 8, 16];
+export const BOX_DAYS = [1, 3, 7, 14, 30];
 
 export function addDays(day, n) {
   const d = new Date(day + 'T12:00:00');
@@ -33,3 +33,7 @@ export function dueItems(review = {}, today) {
     .sort((a, b) => a[1].box - b[1].box || a[1].due.localeCompare(b[1].due))
     .map(([key, e]) => ({ key, ...e, mode: key.split(':')[0], value: key.slice(key.indexOf(':') + 1) }));
 }
+
+/** Fiches venant des jeux (niveau de Piano Rush / Pad Rush à rejouer) ; les autres sont des notions d'oreille. */
+export const GAME_MODES = ['rush', 'pads', 'padsear'];
+export const isGameItem = (x) => GAME_MODES.includes(x.mode);

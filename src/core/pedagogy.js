@@ -200,6 +200,9 @@ export function placementDue(s, d = new Date()) {
 }
 /** Compétence à travailler cette semaine (issue du dernier test), pour orienter les sessions. */
 export function weekFocus(s, d = new Date()) {
+  // Choix explicite depuis le tableau de bord (« cibler ça »), valable 7 jours
+  const o = s.settings?.focusOverride;
+  if (o?.skill && o.until >= dayKey(d)) return o.skill;
   const t = (s.placement || {})[weekId(d)];
   return t ? DOMAINS.find((x) => x.id === t.weakest)?.skill || null : null;
 }

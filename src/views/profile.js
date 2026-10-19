@@ -12,6 +12,22 @@ import { audioCard } from './audiodiag.js';
 import { remindersCard } from './reminderscard.js';
 import { studioCard } from './studiocard.js';
 
+/** Bouton « Installer » quand le navigateur le permet, ou « déjà installée ». */
+function installState() {
+  const box = el('div');
+  const paint = () => {
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    box.replaceChildren(el('div', standalone ? el('p.small', '✅ Tu utilises l’app installée.')
+      : window.__bfInstall ? el('button.btn.primary', { style: { marginBottom: '8px' }, onclick: async () => {
+        const ev = window.__bfInstall; window.__bfInstall = null;
+        ev.prompt(); await ev.userChoice.catch(() => null); paint();
+      } }, '📲 Installer BeatForge') : null));
+  };
+  window.addEventListener('bf-installable', paint);
+  paint();
+  return box;
+}
+
 export function render(root, params = {}) {
   const s = getState();
   const lv = levelFromXp(s.xp);
@@ -63,7 +79,8 @@ export function render(root, params = {}) {
   root.append(
     header('🏆 Profil', `${titleFor(lv.level)} — niveau ${lv.level}`, null),
     el('div.profile-links',
-      el('a.btn.primary', { href: '#/bilan' }, '📈 Bilan & coach'),
+      el('a.btn.primary', { href: '#/progress' }, '📊 Mes progrès'),
+      el('a.btn', { href: '#/bilan' }, '📈 Bilan & coach'),
       el('a.btn', { href: '#/skills' }, '🌳 Compétences'),
       el('a.btn', { href: '#/placement' }, '🧪 Test de la semaine'),
       el('a.btn', { href: '#/friends' }, '👥 Amis')),
@@ -103,7 +120,9 @@ export function render(root, params = {}) {
           el('div.ctrl-row', el('label', 'Animations'), segmented([{ value: 'auto', label: 'Auto' }, { value: 'reduce', label: 'Réduites' }, { value: 'full', label: 'Complètes' }], s.settings.motion || 'auto', (v) => update((st) => { st.settings.motion = v; }))),
           el('div.ctrl-row', el('label', 'Labs'), segmented([{ value: false, label: 'Progressifs' }, { value: true, label: 'Tout afficher' }], !!s.settings.allModules, (v) => update((st) => { st.settings.allModules = v; }))),
           el('div.ctrl-row', el('label', 'Pads'), segmented([{ value: false, label: 'Droitier' }, { value: true, label: 'Gaucher' }], !!s.pads?.lefty, (v) => update((st) => { st.pads = { ...(st.pads || {}), lefty: v }; }))),
-          el('button.btn.small', { onclick: () => import('../whatsnew.js').then((m) => m.showWhatsNew({ force: true })) }, '✨ Quoi de neuf ? / visite guidée'),
+          el('div.row.gap.wrap',
+            el('button.btn.small', { onclick: () => import('../whatsnew.js').then((m) => m.showWhatsNew({ force: true })) }, '✨ Quoi de neuf ? / visite guidée'),
+            el('a.btn.small', { href: '#/latency' }, '⏱️ Calibrer la latence')),
           el('h3', { style: { marginTop: '12px' } }, '🎹 Clavier MIDI (MPC Key 37)'),
           midiLine, el('div.ctrl-row', midiBtn), tester,
           el('details', el('summary', 'Brancher le MPC Key 37 au PC'),
@@ -127,7 +146,7 @@ export function render(root, params = {}) {
           snapshotInfo() ? el('p.small.muted', { style: { marginTop: '8px' } },
             `🛟 Copie de secours locale (${snapshotInfo().reason}, ${new Date(snapshotInfo().at).toLocaleString('fr-FR')}, ${snapshotInfo().xp} XP) `,
             el('button.btn.small.ghost', { onclick: () => { if (confirm('Revenir à cette copie ? L’état actuel devient à son tour la copie de secours.')) { restoreSnapshot(); toast('Copie restaurée ✅', 'good'); location.hash = '#/home'; } } }, 'Restaurer')) : null),
-        card(el('h3', '📲 Installer l’app'),
+        card(el('h3', '📲 Installer l’app'), installState(),
           el('ul.clean.small',
             el('li', el('b', 'Android (Chrome) : '), 'menu ⋮ → « Installer l’application ».'),
             el('li', el('b', 'iPhone (Safari) : '), 'Partager → « Sur l’écran d’accueil ».'),

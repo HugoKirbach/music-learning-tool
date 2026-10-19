@@ -1,5 +1,5 @@
 import { el, card, header, finishExercise, shuffle, toast } from '../ui.js';
-import { update, level, recordReview, dueReviews } from '../store.js';
+import { update, level, recordReview, dueEarReviews } from '../store.js';
 import { INTERVALS, midiToName, slotChord, voiceLead, mod, detectChord } from '../core/theory.js';
 import { gridFromPatterns, DRUM_ROWS, VEL } from '../core/rhythm.js';
 import { ensureAudio, now, playSynth, playDrum, kitForGenre } from '../core/audio.js';
@@ -264,12 +264,12 @@ function practicePad(mode, getQ, onFound) {
   };
 }
 
-const REVIEW_NAMES = { intervals: '📏 Intervalle', chords: '🎨 Accord', progressions: '🧭 Progression', genre: '🥁 Style', sound: '🎛️ Paramètre' };
+export const REVIEW_NAMES = { intervals: '📏 Intervalle', chords: '🎨 Accord', progressions: '🧭 Progression', genre: '🥁 Style', sound: '🎛️ Paramètre' };
 
 /** Révisions espacées : uniquement les notions ratées dont la date de révision est arrivée. */
 function reviewRender(root) {
-  const items = dueReviews().slice(0, 10);
-  root.append(header('🔁 Révisions du jour', 'Les notions que tu as ratées reviennent après 1, 2, 4, 8 puis 16 jours.', '#/ear'));
+  const items = dueEarReviews().filter((x) => REVIEW_NAMES[x.mode]).slice(0, 10);
+  root.append(header('🔁 Révisions d’oreille', 'Les notions que tu as ratées reviennent après 1, 3, 7, 14 puis 30 jours.', '#/review'));
   if (!items.length) {
     root.append(card(el('p', '🎉 Rien à réviser aujourd’hui. Chaque erreur dans les quiz d’oreille crée une fiche qui reviendra au bon moment.'),
       el('a.btn.primary', { href: '#/ear' }, 'Faire un quiz')));
@@ -284,7 +284,7 @@ export function render(root, params) {
   if (!MODES[mode]) {
     root.append(header('Oreille', 'Entraînements courts. Le niveau s’adapte à ta progression.'),
       el('div.grid2',
-        el('a.tile', { href: '#/ear?mode=review' }, el('div.tile-emoji', '🔁'), el('b', `Révisions (${dueReviews().length})`), el('span', 'Tes erreurs passées, revues au bon moment')),
+        el('a.tile', { href: '#/ear?mode=review' }, el('div.tile-emoji', '🔁'), el('b', `Révisions (${dueEarReviews().filter((x) => REVIEW_NAMES[x.mode]).length})`), el('span', 'Tes erreurs passées, revues au bon moment')),
         Object.entries(MODES).map(([id, m]) => el('a.tile', { href: `#/ear?mode=${id}` }, el('div.tile-emoji', m.emoji), el('b', m.name), el('span', m.desc)))));
     return;
   }

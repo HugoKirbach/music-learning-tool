@@ -39,16 +39,60 @@
   ],
   "shortcuts": [
     {
-      "name": "Session rapide",
-      "url": "/music-learning-tool/#/home?start=1"
+      "name": "Session express",
+      "short_name": "Session",
+      "description": "3 étapes, 5 à 10 minutes",
+      "url": "/music-learning-tool/#/home?start=1",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
-      "name": "Lab Beat",
-      "url": "/music-learning-tool/#/beat"
+      "name": "Piano Rush",
+      "short_name": "Piano Rush",
+      "description": "Jouer en rythme au clavier",
+      "url": "/music-learning-tool/#/rush",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
-      "name": "Dé à idées",
-      "url": "/music-learning-tool/#/studio?dice=1"
+      "name": "Pad Rush",
+      "short_name": "Pad Rush",
+      "description": "Finger drumming sur les pads",
+      "url": "/music-learning-tool/#/pads",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mes progrès",
+      "short_name": "Progrès",
+      "description": "Courbes, objectifs et certificats",
+      "url": "/music-learning-tool/#/progress",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
   ]
 }

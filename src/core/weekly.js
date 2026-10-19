@@ -46,7 +46,7 @@ export function weakNotions(review = {}, n = 5) {
   return Object.entries(review).sort((a, b) => a[1].box - b[1].box).slice(0, n).map(([k]) => k);
 }
 
-const ROUTES = {
+export const SKILL_ROUTES = {
   rythme: [{ title: 'Recrée un beat à l’oreille', route: '#/beat?mode=ear' }, { title: 'Call & Response aux pads', route: '#/callresponse?kind=rhythm&mode=repeat' }],
   harmonie: [{ title: 'Recette d’accords', route: '#/chords?mode=recipe' }, { title: 'Labo de basse (critique + variantes)', route: '#/basslab' }],
   melodie: [{ title: 'Fredonne un hook', route: '#/hum' }, { title: 'Défi hook', route: '#/melody?mode=challenge' }],
@@ -71,7 +71,7 @@ export function coachPlan(cur, prev, { review = {}, programNext = null, untriedG
   if (cur.xp) msgs.push(`Point fort : ${SKILLS[strongest].name}. À travailler : ${SKILLS[weakest].name}.`);
   if (cur.ear.total >= 10) msgs.push(`Oreille : ${Math.round((100 * cur.ear.ok) / cur.ear.total)} % de bonnes réponses cette semaine.`);
 
-  ROUTES[weakest].forEach((r) => plan.push({ ...r, why: `${SKILLS[weakest].emoji} ${SKILLS[weakest].name} est ta compétence la moins travaillée.` }));
+  SKILL_ROUTES[weakest].forEach((r) => plan.push({ ...r, why: `${SKILLS[weakest].emoji} ${SKILLS[weakest].name} est ta compétence la moins travaillée.` }));
   const weak = weakNotions(review, 3);
   if (weak.length) plan.push({ title: `Révisions (${Object.keys(review).length} fiches)`, route: '#/ear?mode=review', why: `Notions à consolider : ${weak.map((k) => k.split(':')[1]).join(', ')}.` });
   plan.push({ title: 'Analyse de référence', route: '#/analyze', why: 'Une analyse par semaine : c’est là que tu voles des ingrédients aux meilleurs.' });

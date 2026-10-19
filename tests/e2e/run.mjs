@@ -11,6 +11,8 @@ import { createHarness } from './harness.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..');
 const require = createRequire(import.meta.url);
+// Les requêtes du service worker passent aussi par les interceptions des tests (faux Firebase servi en cache)
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1';
 const { chromium } = require(process.env.PW || 'playwright');
 const PORT = Number(process.env.E2E_PORT) || 8765;
 const base = `http://localhost:${PORT}/`;
