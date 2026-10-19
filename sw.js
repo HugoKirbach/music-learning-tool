@@ -1,5 +1,5 @@
 // Service worker : app utilisable hors-ligne (stale-while-revalidate sur les fichiers de l'app).
-const CACHE = 'beatforge-v22';
+const CACHE = 'beatforge-v23';
 const SHELL = [
   './', './index.html', './styles.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './src/main.js', './src/ui.js', './src/store.js', './src/player.js', './src/midiin.js', './src/catalog.js', './src/miniplayer.js', './src/shortcuts.js', './src/core/tiles.js', './src/data/rush.js', './src/views/rush.js', './src/cloud.js', './src/core/merge.js', './src/views/account.js', './src/core/padgame.js', './src/data/pads.js', './src/views/pads.js', './src/audiomode.js', './src/views/audiodiag.js', './src/core/schema.js', './src/social.js', './src/views/friends.js', './src/core/pedagogy.js', './src/core/critique.js', './src/stems.js', './src/core/wav.js', './src/views/skills.js', './src/views/placement.js', './src/views/project.js', './src/views/critique.js', './src/prefs.js', './src/core/sharecode.js', './src/views/listen.js', './src/share.js', './src/whatsnew.js', './src/core/challenge.js', './src/views/challenge.js', './src/core/reminder.js', './src/reminders.js', './src/views/reminderscard.js', './src/midiout.js', './src/midisync.js', './src/views/studiocard.js',
@@ -11,7 +11,7 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {

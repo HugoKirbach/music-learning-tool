@@ -2,8 +2,14 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '2.0';
+export const APP_VERSION = '2.1';
 export const CHANGELOG = [
+  {
+    version: '2.1', date: 'octobre 2026', items: [
+      ['🧭', 'Visite guidée réparée sur téléphone', 'boutons plus grands, et le choix du pseudo attend la fin de la visite.'],
+      ['🔄', 'Mises à jour plus fiables', 'l’app télécharge toujours la dernière version de chaque fichier.'],
+    ],
+  },
   {
     version: '2.0', date: 'octobre 2026', items: [
       ['🎹', 'Piano Rush et 🔲 Pad Rush', 'les notes tombent / les pads s’allument : rythmes et accords, apprentissage pas à pas, défi à l’oreille.'],
@@ -31,6 +37,8 @@ const TOUR = [
   { route: '#/profile', title: 'Profil', text: 'Compte et amis, thème clair, mode gaucher, moteur audio, sortie MIDI vers Live.' },
 ];
 
+const items = (list) => el('ul.whatsnew', list.map(([e, t, d]) => el('li', el('span', e), el('div', el('b', t), ' — ', d))));
+
 export function showWhatsNew({ force = false } = {}) {
   const s = getState();
   if (!force && (!s.settings.onboarded || s.settings.seenVersion === APP_VERSION)) return false;
@@ -38,7 +46,8 @@ export function showWhatsNew({ force = false } = {}) {
   const last = CHANGELOG[0];
   const close = modal(el('div',
     el('h2', `✨ Quoi de neuf (version ${last.version})`),
-    el('ul.whatsnew', last.items.map(([e, t, d]) => el('li', el('span', e), el('div', el('b', t), ' — ', d)))),
+    items(last.items),
+    CHANGELOG.slice(1, 2).map((v) => el('details', el('summary', `Version ${v.version}`), items(v.items))),
     el('div.row.gap.wrap',
       el('button.btn.primary', { onclick: () => { close(); startTour(); } }, '🧭 Visite guidée (1 min)'),
       el('button.btn.ghost', { onclick: () => close() }, 'Plus tard')),
@@ -56,7 +65,7 @@ export function startTour(i = 0) {
     el('div.small.muted', `Visite guidée · ${i + 1}/${TOUR.length}`),
     el('b', st.title), el('p', st.text),
     el('div.row.gap',
-      el('button.btn.small.ghost', { onclick: () => { bubble.remove(); bubble = null; } }, 'Terminer'),
-      el('button.btn.small.primary', { onclick: () => startTour(i + 1) }, i + 1 < TOUR.length ? 'Suivant →' : 'C’est parti 🎧')));
+      el('button.btn.ghost', { onclick: () => { bubble.remove(); bubble = null; } }, 'Terminer'),
+      el('button.btn.primary', { onclick: () => startTour(i + 1) }, i + 1 < TOUR.length ? 'Suivant →' : 'C’est parti 🎧')));
   document.body.append(bubble);
 }

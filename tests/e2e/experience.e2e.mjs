@@ -1,4 +1,7 @@
 // Navigation progressive, thème, accessibilité, mode gaucher, partage par lien, « Quoi de neuf » et visite guidée.
+import { fakeCloud } from './harness.mjs';
+import { signUp } from './cloud.e2e.mjs';
+
 export const tests = {
   'labs progressifs puis « tout afficher »': async (t) => {
     const page = await t.open({ device: 'mobile' });
@@ -62,5 +65,31 @@ export const tests = {
     t.assert.equal(await page.locator('.tour-bubble').count(), 0);
     await page.reload(); await page.waitForTimeout(1000);
     t.assert.equal(await page.locator('.modal-card >> text=Quoi de neuf').count(), 0, 'affiché une seule fois');
+  },
+  'visite guidée au doigt sur téléphone, compte sans pseudo': async (t) => {
+    const cloud = fakeCloud();
+    const page = await t.open({ cloud, device: 'mobile' });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await signUp(page, 'visite@test.fr');
+    if (await page.locator('text=Choisis ton pseudo').count()) await page.tap('text=Plus tard');
+    await page.go('#/profile', 600);
+    await page.locator('text=Quoi de neuf ? / visite').scrollIntoViewIfNeeded();
+    await page.tap('text=Quoi de neuf ? / visite'); await page.waitForTimeout(400);
+    t.assert.ok(await page.locator('.modal-card >> text=Version 2.0').count(), 'nouveautés précédentes repliées');
+    await page.tap('text=🧭 Visite guidée');
+    const seen = [];
+    for (let i = 0; i < 10; i++) {
+      await page.waitForTimeout(1200);
+      const btn = page.locator('.tour-bubble button.primary');
+      if (!(await btn.count())) break;
+      seen.push(new URL(page.url()).hash);
+      const hit = await btn.evaluate((b) => { const r = b.getBoundingClientRect(); return { h: r.height, ok: b.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) }; });
+      t.assert.ok(hit.ok, `bouton recouvert sur ${seen.at(-1)}`);
+      t.assert.ok(hit.h >= 44, `bouton trop petit (${hit.h}px)`);
+      t.assert.equal(await page.locator('text=Choisis ton pseudo').count(), 0, 'pseudo demandé pendant la visite');
+      await btn.tap();
+    }
+    t.assert.equal(seen.length, 7, seen.join(' '));
+    t.assert.equal(await page.locator('.tour-bubble').count(), 0);
   },
 };

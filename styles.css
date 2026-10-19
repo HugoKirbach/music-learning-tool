@@ -673,5 +673,6 @@ p.bad, .small.bad { color: #ff5d73; }
 .tour-bubble { position: fixed; z-index: 70; left: 12px; right: 12px; bottom: calc(var(--nav-h) + var(--safe-b) + 12px); max-width: 420px; margin: 0 auto; padding: 14px; border-radius: 16px; background: var(--card); border: 2px solid var(--accent); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
 .tour-bubble p { margin: 4px 0 10px; font-size: 14px; }
 .tour-bubble .row { justify-content: flex-end; }
+.tour-bubble .btn { min-height: 44px; touch-action: manipulation; }
 @media (min-width: 900px) { .tour-bubble { left: auto; right: 24px; bottom: 24px; } }
 :root[data-theme="light"] .ps-name, :root[data-theme="light"] .sn-proofs li.ok { filter: brightness(.62) saturate(1.5); }

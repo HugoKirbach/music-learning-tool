@@ -241,9 +241,9 @@ let pseudoAsked = false;
 onSocial((p) => {
   if (!p || p.pseudo || pseudoAsked || !getState().settings.onboarded) return;
   pseudoAsked = true;
-  // attend qu'aucune autre fenêtre ne soit ouverte (accueil, « Quoi de neuf »…)
+  // attend qu'aucune autre fenêtre ne soit ouverte (accueil, « Quoi de neuf »…) ni la visite guidée
   const ask = (tries = 0) => {
-    if (document.querySelector('#modal-root .modal-back') && tries < 30) { setTimeout(() => ask(tries + 1), 1000); return; }
+    if (document.querySelector('.tour-bubble') || (document.querySelector('#modal-root .modal-back') && tries < 30)) { setTimeout(() => ask(tries + 1), 1000); return; }
     import('./views/friends.js').then(({ askPseudo }) => askPseudo());
   };
   ask();
