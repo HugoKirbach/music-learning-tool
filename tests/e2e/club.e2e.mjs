@@ -21,7 +21,7 @@ export function robot(page, wrongAt = []) {
       const r = plan[i], q = r.q, wrong = wrongAt.includes(i);
       played.push(r.type);
       const opts = () => [...area.querySelectorAll('.answer')];
-      if (['pitch', 'mood', 'note', 'genre', 'tempo', 'hole'].includes(r.type)) {
+      if (['pitch', 'mood', 'note', 'genre', 'tempo', 'hole', 'swing', 'count', 'filter', 'contour'].includes(r.type)) {
         await sleep(150);
         opts()[wrong ? (q.answer + 1) % opts().length : q.answer].click();
       } else if (r.type === 'simon') {
@@ -66,15 +66,37 @@ export const tests = {
     t.assert.ok(!(await page.evaluate(() => document.body.classList.contains('rush-playing'))));
   },
 
-  'résidence à Berlin : les 9 mini-jeux en difficulté maximale, tous réussis': async (t) => {
+  'résidence à Berlin : tous les mini-jeux en difficulté maximale, tous réussis': async (t) => {
     const page = await t.open({ device: 'mobile' });
     await page.store("s.club = { best: { bar: { stars: 3 }, warehouse: { stars: 3 }, beach: { stars: 3 }, festival: { stars: 2 } }, crate: {}, nights: 4, vib: false };");
-    await page.go('#/club', 500);
-    await page.click('.club-venue >> nth=4');
+    // Une soirée qui passe par tous les mini-jeux
+    const { planNight, venueById, GAMES } = await import('../../src/core/club.js');
+    let seed = 0;
+    while (new Set(planNight(venueById('berlin'), `t${seed}`).map((r) => r.type)).size < Object.keys(GAMES).length) seed++;
+    await page.go(`#/club?venue=berlin&seed=t${seed}`, 300);
     const played = await robot(page);
     t.assert.equal(played.length, 18);
-    t.assert.ok(new Set(played).size >= 7, `mini-jeux joués : ${[...new Set(played)].join(' ')}`);
+    t.assert.equal(new Set(played).size, Object.keys(GAMES).length, `mini-jeux joués : ${[...new Set(played)].join(' ')}`);
     t.assert.match(await page.locator('.club-end').innerText(), /18\/18/);
+  },
+
+  'son : effets coupés entre les manches, rétablis pendant la question et à la sortie': async (t) => {
+    const page = await t.open({ device: 'mobile' });
+    await page.go('#/club', 400);
+    await page.click('.club-venue >> nth=0');
+    await page.waitForSelector('.club-area', { timeout: 5000 });
+    await page.waitForTimeout(300);
+    const fx = () => page.evaluate(async () => (await import('/src/core/audio.js')).audioInfo().fxReturn);
+    t.assert.ok(await fx() > 0.9, 'réverbe active pendant la question');
+    if (await page.locator('.club-area .answer').count()) await page.locator('.club-area .answer').first().click();
+    else if (await page.locator('.club-tap').count()) await page.locator('.club-tap').dispatchEvent('pointerdown');
+    await page.waitForSelector('.club-feedback', { timeout: 15000 });
+    await page.waitForTimeout(400);
+    t.assert.ok(await fx() < 0.1, 'traîne coupée après la réponse');
+    await page.waitForSelector('.club-area', { timeout: 5000 }); await page.waitForTimeout(300);
+    t.assert.ok(await fx() > 0.9, 'rétablie à la manche suivante');
+    await page.click('button[aria-label="Quitter la soirée"]'); await page.waitForTimeout(200);
+    t.assert.ok(await fx() > 0.9, 'rétablie en quittant');
   },
 
   'set du jour raté : la salle se vide après 3 erreurs, pas de vinyle': async (t) => {

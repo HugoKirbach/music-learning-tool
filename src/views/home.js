@@ -166,6 +166,7 @@ export function render(root, params) {
       el('a.qchip', { href: '#/review' }, `🔁 Révisions${due ? ` (${due})` : ''}`),
       el('a.qchip', { href: '#/skills' }, '🌳 Compétences'),
       el('a.qchip', { href: '#/bilan' }, '📈 Bilan'),
+      el('a.qchip', { href: '#/collection' }, '🏅 Collection'),
       el('a.qchip', { href: '#/friends' }, '👥 Amis')));
 
   // ---------- Priorité : Jouer sur téléphone, Studio sur PC (modifiable) ----------

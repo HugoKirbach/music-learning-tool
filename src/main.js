@@ -1,6 +1,6 @@
 // Point d'entrée : routeur à base de hash, barre de statut, navigation, onboarding.
 import { el, clear, modal, segmented, toast } from './ui.js';
-import { getState, subscribe, update, today, addPractice } from './store.js';
+import { getState, subscribe, update, today, addPractice, checkBadges } from './store.js';
 import { levelFromXp, dayKey, titleFor } from './core/progress.js';
 import { transport, ensureAudio, setVolume, playSynth, now } from './core/audio.js';
 import { autoEnableMidi, enableMidi, onMidiActivity, midiStatus, midiStatusText, onMidiStatus, onDeviceChange, setMidiFallback, midiSupported } from './midiin.js';
@@ -48,6 +48,7 @@ const ROUTES = {
   review: () => import('./views/review.js'),
   club: () => import('./views/club.js'),
   progress: () => import('./views/progress.js'),
+  collection: () => import('./views/collection.js'),
   latency: () => import('./views/latency.js'),
   profile: () => import('./views/profile.js'),
 };
@@ -57,7 +58,7 @@ const NAV = [
   { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads', 'critique'] },
   { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
-  { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends', 'progress', 'latency'] },
+  { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends', 'progress', 'latency', 'collection'] },
 ];
 
 const view = document.getElementById('view');
@@ -271,6 +272,8 @@ route();
 requestAnimationFrame(() => { const sp = document.getElementById('splash'); if (sp) { sp.classList.add('gone'); setTimeout(() => sp.remove(), 400); } });
 onboarding();
 setTimeout(() => { if (!document.querySelector('#modal-root .modal-back')) showWhatsNew(); }, 800);
+// Succès déjà remplis (nouveaux succès d'une mise à jour) et cartes de légende dues : attribués au démarrage
+setTimeout(() => { if (getState().settings.onboarded) import('./ui.js').then(({ showBadges }) => showBadges(checkBadges())); }, 2500);
 if (midiSupported()) {
   autoEnableMidi().then(() => {
     if (getState().settings.midiOut?.enabled) import('./midiout.js').then((m) => m.applyMidiOut());

@@ -2,7 +2,7 @@
 // le tempo monte… et l'oreille, le rythme et la théorie progressent en arrière-plan.
 import { el, card, header, toast, confetti, showBadges } from '../ui.js';
 import { getState, update, recordExercise } from '../store.js';
-import { ensureAudio, now, playSynth, playDrum, playClick, playRiser, outputLatency, kitForGenre } from '../core/audio.js';
+import { ensureAudio, now, playSynth, playDrum, playClick, playRiser, outputLatency, kitForGenre, muteFxTails, restoreFx } from '../core/audio.js';
 import { presetParams } from '../player.js';
 import { viewKeys } from '../shortcuts.js';
 import { inputLatency } from '../core/latency.js';
@@ -19,6 +19,11 @@ const starsTxt = (n, max = 3) => '★'.repeat(n) + '☆'.repeat(max - n);
 const HYPE = ['😴', '😐', '🙂', '😃', '🤩', '🔥'];
 const hypeFace = (h) => HYPE[Math.min(HYPE.length - 1, Math.floor(h / 20))];
 const VINYL = { black: { name: 'Vinyle noir', cls: 'black' }, color: { name: 'Édition couleur', cls: 'color' }, gold: { name: 'Disque d’or', cls: 'gold' } };
+// Sons secs (sans delay, très peu de réverbe) : chaque manche doit s'entendre sans la traîne de la précédente
+const dry = (id) => ({ ...presetParams(id), delay: 0 });
+const Q_FX = { send: 0.05 };
+// Son de victoire : niveau de sortie à 85 % de l'ancien (vélocité 0.35 → 0.217, gain = 0.35 + 0.65 × vélocité)
+const WIN_VEL = 0.217;
 const buzz = (p) => { if (clubState().vib) try { navigator.vibrate?.(p); } catch (e) { /* non pris en charge */ } };
 
 /** Joue 1 ou 2 mesures de la batterie d'un style (motifs 16 pas de l'Atlas). */
@@ -35,7 +40,7 @@ function playGenreBeat(g, t0, bars = 2, bpm = g.bpm) {
   return bars * 16 * sd;
 }
 
-export function render(root) {
+export function render(root, params = {}) {
   let stopGame = null;
 
   // ---------------- Menu ----------------
@@ -142,6 +147,7 @@ export function render(root) {
       cancelAnimationFrame(raf); clearTimeout(timer);
       roundCleanup?.(); roundCleanup = null;
       viewKeys({ space: null });
+      restoreFx();
       document.body.classList.remove('rush-playing');
     }
     stopGame = stop;
@@ -164,6 +170,7 @@ export function render(root) {
       stage.replaceChildren(el('div.club-head', el('b', `${GAMES[r.type].emoji} ${GAMES[r.type].title}`)), area);
       let answered = false;
       const t0 = now() + 0.15;
+      restoreFx(t0 - 0.02);
       const api = {
         t0,
         done(ok, why = '') {
@@ -191,6 +198,7 @@ export function render(root) {
 
     function resolve(r, ok, left, why) {
       roundCleanup?.(); roundCleanup = null;
+      muteFxTails(now());
       viewKeys({ space: null });
       results.push({ type: r.type, ok });
       hype = nextHype(hype, ok);
@@ -199,12 +207,12 @@ export function render(root) {
         combo++; score += pts;
         buzz(15);
         const t = now();
-        playSynth(presetParams('bell'), 84, t, 0.12, 0.35); playSynth(presetParams('bell'), 91, t + 0.08, 0.2, 0.35);
+        playSynth(dry('bell'), 84, t, 0.12, WIN_VEL, { send: 0 }); playSynth(dry('bell'), 91, t + 0.08, 0.2, WIN_VEL, { send: 0 });
         stage.replaceChildren(el('div.club-feedback.ok', el('b', '✓'), el('span', `+${pts}`), combo >= 3 ? el('small', `Combo ×${combo} 🔥`) : null));
       } else {
         combo = 0; lives--;
         buzz([40, 40, 60]);
-        playSynth(presetParams('sawlead'), 40, now(), 0.25, 0.4);
+        playSynth(dry('sawlead'), 40, now(), 0.25, 0.4, { send: 0 });
         stage.replaceChildren(el('div.club-feedback.bad', el('b', '✗'), el('span', why || 'Raté !'), el('small', GAMES[r.type].concept)));
       }
       idx++;
@@ -230,6 +238,7 @@ export function render(root) {
           const b = c.best[venue.id] || { stars: 0, score: 0 };
           c.best = { ...c.best, [venue.id]: { stars: Math.max(b.stars, stars), score: Math.max(b.score, score) } };
         } else {
+          if (firstDaily) c.dailyCount = (c.dailyCount || 0) + 1;
           c.daily = { day: today, score: Math.max(c.daily?.day === today ? c.daily.score : 0, score) };
         }
         c.crate = addToCrate(c.crate, vinyl);
@@ -273,8 +282,11 @@ export function render(root) {
     next();
   }
 
-  menu();
-  return () => { stopGame?.(); document.body.classList.remove('rush-playing'); };
+  // Lien direct vers une soirée précise (#/club?venue=berlin&seed=…) : même enchaînement de manches pour tous
+  const direct = params.venue && venueById(params.venue);
+  if (direct && isOpen(direct, clubState().best)) play(direct, params.seed || `${Date.now()}`);
+  else menu();
+  return () => { stopGame?.(); restoreFx(); document.body.classList.remove('rush-playing'); };
 }
 
 // ---------------- Les mini-jeux ----------------
@@ -295,15 +307,15 @@ const tapTime = (src) => now() - outputLatency() - inputLatency(getState().setti
 
 const ROUNDS = {
   pitch(area, r, api) {
-    const piano = presetParams('piano');
-    const playIt = (t) => { playSynth(piano, r.q.notes[0], t, 0.45, 0.8); playSynth(piano, r.q.notes[1], t + 0.6, 0.45, 0.8); };
+    const piano = dry('piano');
+    const playIt = (t) => { playSynth(piano, r.q.notes[0], t, 0.45, 0.8, Q_FX); playSynth(piano, r.q.notes[1], t + 0.6, 0.45, 0.8, Q_FX); };
     playIt(api.t0);
     area.append(el('p.club-hint', 'Deux notes. Laquelle est la plus aiguë ?'), answers(r.q.options, (i) => api.done(i === r.q.answer, `C’était la ${r.q.answer ? '2ᵉ' : '1ʳᵉ'}`)), replayBtn(playIt));
     return { minTime: 2.5 };
   },
   mood(area, r, api) {
-    const ep = presetParams('epiano');
-    const playIt = (t) => r.q.notes.forEach((n) => playSynth(ep, n, t, 1.1, 0.6));
+    const ep = dry('epiano');
+    const playIt = (t) => r.q.notes.forEach((n) => playSynth(ep, n, t, 1.1, 0.6, Q_FX));
     playIt(api.t0);
     area.append(el('p.club-hint', 'Cet accord sonne plutôt…'), answers(r.q.options, (i) => api.done(i === r.q.answer, `C’était un accord ${r.q.label}`)), replayBtn(playIt));
     return { minTime: 2.5 };
@@ -367,14 +379,14 @@ const ROUNDS = {
     return { minTime: Math.min(dur, 4) + 2 };
   },
   simon(area, r, api) {
-    const pl = presetParams('pluck');
+    const pl = dry('pluck');
     const colors = ['#ff5d73', '#ffb84d', '#5ce1e6', '#b388ff'];
     let pos = 0, ready = false;
     const gap = 0.42 / Math.min(1.3, r.speed);
     const pads = r.q.pads.map((n, i) => el('button.answer.club-pad', {
       type: 'button', style: { '--c': colors[i] }, 'aria-label': `Pad ${i + 1}`,
       onclick: () => {
-        playSynth(pl, n, now(), 0.3, 0.8);
+        playSynth(pl, n, now(), 0.3, 0.8, Q_FX);
         flash(i);
         if (!ready) return;
         if (i !== r.q.seq[pos]) { api.done(false, `Note ${pos + 1} : c’était le pad ${r.q.seq[pos] + 1}`); return; }
@@ -385,7 +397,7 @@ const ROUNDS = {
     }, String(i + 1)));
     const flash = (i) => { pads[i].classList.add('lit'); setTimeout(() => pads[i].classList.remove('lit'), Math.min(260, gap * 700)); };
     const timers = r.q.seq.map((p, k) => {
-      playSynth(pl, r.q.pads[p], api.t0 + k * gap, 0.3, 0.8);
+      playSynth(pl, r.q.pads[p], api.t0 + k * gap, 0.3, 0.8, Q_FX);
       return setTimeout(() => flash(p), (0.15 + k * gap) * 1000);
     });
     const status = el('p.club-hint', `Écoute et regarde les ${r.q.seq.length} notes…`);
@@ -396,7 +408,7 @@ const ROUNDS = {
   note(area, r, api) {
     const keys = [];
     for (let m = 60; m < 72; m++) keys.push(el('span.club-key' + ([1, 3, 6, 8, 10].includes(m % 12) ? '.black' : '') + (m === r.q.midi ? '.target' : ''), { 'aria-hidden': 'true' }));
-    playSynth(presetParams('piano'), r.q.midi, api.t0, 0.6, 0.7);
+    playSynth(dry('piano'), r.q.midi, api.t0, 0.6, 0.7, Q_FX);
     area.append(el('p.club-hint', 'Comment s’appelle la touche allumée ?'), el('div.club-kb', keys),
       answers(r.q.options, (i) => api.done(i === r.q.answer, `C’était ${noteNameFr(r.q.midi)} (${noteNameEn(r.q.midi)})`)));
   },
@@ -419,6 +431,48 @@ const ROUNDS = {
     area.append(el('p.club-hint', 'Deux boucles. Laquelle va le plus vite ?'), el('div.club-lamps', lamps),
       answers(r.q.options, (i) => api.done(i === r.q.answer, `${r.q.bpms[0]} BPM contre ${r.q.bpms[1]} BPM`)), replayBtn(playIt));
     return { minTime: dur + 2, cleanup: () => timers.forEach(clearTimeout) };
+  },
+  swing(area, r, api) {
+    const spb = 60 / r.q.bpm;
+    const loop = (t) => {
+      for (let b = 0; b < 8; b++) {
+        const at = t + b * spb;
+        if (b % 2 === 0) playDrum('kick', at, 0.85);
+        if (b % 4 === 1 || b % 4 === 3) playDrum('clap', at, 0.55);
+        playDrum('hat', at, 0.55);
+        playDrum('hat', at + spb / 2 + r.q.amount * spb / 6, 0.45);
+      }
+      return 8 * spb;
+    };
+    const dur = loop(api.t0);
+    area.append(el('p.club-hint', 'Écoute les hi-hats : égaux (droit) ou « long-court » (swing) ?'),
+      answers(r.q.options, (i) => api.done(i === r.q.answer, r.q.answer ? 'C’était swingué (long-court)' : 'C’était droit (croches égales)')), replayBtn(loop));
+    return { minTime: Math.min(dur, 4) + 2 };
+  },
+  count(area, r, api) {
+    const pl = dry('pluck');
+    const playIt = (t) => r.q.notes.forEach((n, i) => playSynth(pl, n, t + i * r.q.gap, 0.12, 0.8, Q_FX));
+    playIt(api.t0);
+    area.append(el('p.club-hint', 'Combien de notes viens-tu d’entendre ?'),
+      answers(r.q.options, (i) => api.done(i === r.q.answer, `Il y en avait ${r.q.notes.length}`), '.four'), replayBtn(playIt));
+    return { minTime: 2.5 };
+  },
+  filter(area, r, api) {
+    const base = presetParams('sawlead');
+    const p = { ...base, delay: 0, filter: { ...base.filter, cutoff: r.q.cutoff, envAmt: 0, q: 1 } };
+    const playIt = (t) => [0, 7, 12].forEach((iv) => playSynth(p, r.q.midi + iv, t, 1, 0.6, Q_FX));
+    playIt(api.t0);
+    area.append(el('p.club-hint', 'Ce son a-t-il le filtre ouvert (brillant) ou fermé (sourd) ?'),
+      answers(r.q.options, (i) => api.done(i === r.q.answer, r.q.answer ? 'Filtre fermé : les aigus étaient coupés' : 'Filtre ouvert : tous les aigus passaient')), replayBtn(playIt));
+    return { minTime: 2.5 };
+  },
+  contour(area, r, api) {
+    const bass = dry('pluckbass');
+    const playIt = (t) => r.q.notes.forEach((n, i) => playSynth(bass, n - 12, t + i * 0.32, 0.28, 0.85, Q_FX));
+    playIt(api.t0);
+    area.append(el('p.club-hint', 'Écoute la ligne de basse : quelle forme a-t-elle ?'),
+      answers(r.q.options, (i) => api.done(i === r.q.answer, `Elle ${r.q.options[r.q.answer].replace(/^\S+ /, '').toLowerCase().replace('ça ', '')}`)), replayBtn(playIt));
+    return { minTime: 2.5 };
   },
   drop(area, r, api) {
     const spb = 60 / r.q.bpm;

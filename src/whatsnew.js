@@ -2,8 +2,17 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '2.3';
+export const APP_VERSION = '2.4';
 export const CHANGELOG = [
+  {
+    version: '2.4', date: 'octobre 2026', items: [
+      ['🎹', 'Piano Rush : 34 niveaux', '15 nouveaux niveaux répartis dans tous les chapitres (5 doigts, Vive le vent, When the Saints, accords mineurs, arpèges, contretemps, triolets, doubles croches, Joyeux anniversaire, sus, dorien, synthwave, ragtime…) pour une progression plus douce.'],
+      ['🔲', 'Pad Rush : 32 niveaux', '14 nouveaux grooves : hat à contretemps, rock, techno, half-time, crescendo, neo soul, build-up, triolets trap, shuffle, drum & bass, arpège, hook et accords pop aux pads.'],
+      ['🏅', 'Collection', 'près de 40 nouveaux succès (bronze, argent, or) et 24 cartes « Machines de légende » à collectionner, avec une anecdote sur chaque instrument. Profil › Ma collection.'],
+      ['🪩', 'Nuit au club', '4 nouvelles salles (9 en tout) et 4 nouveaux mini-jeux : swing, compter les notes, filtre ouvert ou fermé, contour de la basse.'],
+      ['🔉', 'Son du club', 'son de victoire 15 % moins fort, et la réverbe ne déborde plus sur la question suivante.'],
+    ],
+  },
   {
     version: '2.3', date: 'octobre 2026', items: [
       ['🪩', 'Nuit au club', 'le jeu du téléphone : des mini-jeux de quelques secondes (oreille, rythme, notes, styles, drops), 5 salles à débloquer, un set du jour et des vinyles à collectionner. Tu apprends sans y penser.'],

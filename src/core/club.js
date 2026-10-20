@@ -44,6 +44,26 @@ export const GAMES = {
     lesson: 'Comparer deux tempos, c’est la base du beatmatching des DJ (caler deux morceaux ensemble). Plus l’écart est petit, plus il faut d’oreille.',
     lab: { href: '#/atlas', name: 'Atlas des styles (tempos)' },
   },
+  swing: {
+    emoji: '🌀', title: 'Droit ou swing ?', skill: 'rythme', concept: 'Le swing', time: 8,
+    lesson: 'Le swing retarde une croche sur deux : « long-court » au lieu de « égal ». C’est le groove du hip-hop, du jazz et de la deep house (Groove Pool dans Live, Swing sur le MPC).',
+    lab: { href: '#/beat', name: 'Lab Beat (swing)' },
+  },
+  count: {
+    emoji: '🔢', title: 'Combien de notes ?', skill: 'oreille', concept: 'Compter un motif rapide', time: 7,
+    lesson: 'Compter les notes d’un motif rapide, c’est la première étape pour recopier un riff entendu dans un morceau.',
+    lab: { href: '#/melody?mode=dictation', name: 'Dictée mélodique' },
+  },
+  filter: {
+    emoji: '🎛️', title: 'Filtre ouvert ou fermé ?', skill: 'sound', concept: 'Le filtre passe-bas', time: 7,
+    lesson: 'Un filtre passe-bas enlève les aigus : fermé, le son est sourd ; ouvert, il est brillant. C’est le Cutoff de Serum, qu’on ouvre petit à petit pendant un build.',
+    lab: { href: '#/synth', name: 'Lab Synthé' },
+  },
+  contour: {
+    emoji: '📈', title: 'Ça monte ou ça descend ?', skill: 'melodie', concept: 'Le contour d’une mélodie', time: 7,
+    lesson: 'La forme d’une mélodie (elle monte, descend, fait une vague) est ce qu’on retient en premier. Une ligne qui monte crée de la tension, une ligne qui descend apaise.',
+    lab: { href: '#/melody', name: 'Lab Mélodie' },
+  },
   drop: {
     emoji: '💥', title: 'Tape sur le drop', skill: 'autonomie', concept: 'Les phrases de 8 temps', time: 10,
     lesson: 'La musique électronique avance par blocs de 4, 8 ou 16 temps : le drop tombe toujours sur le « 1 » du bloc suivant. Compter, c’est savoir où placer ses transitions.',
@@ -52,11 +72,15 @@ export const GAMES = {
 };
 
 export const VENUES = [
-  { id: 'bar', emoji: '🍺', name: 'Le bar du coin', need: 0, bpm: 100, length: 10, diff: 0, games: ['pitch', 'mood', 'beat', 'note'], genres: ['house', 'lofi', 'trap'] },
-  { id: 'warehouse', emoji: '🏭', name: 'La warehouse', need: 2, bpm: 116, length: 12, diff: 0.5, games: ['pitch', 'mood', 'beat', 'hole', 'genre', 'note'], genres: ['house', 'techno', 'trap', 'lofi'] },
-  { id: 'beach', emoji: '🏖️', name: 'Le beach club', need: 5, bpm: 112, length: 14, diff: 1, games: ['pitch', 'mood', 'hole', 'genre', 'simon', 'note', 'tempo'], genres: ['deephouse', 'afrohouse', 'reggaeton', 'disco', 'house'] },
+  { id: 'bar', emoji: '🍺', name: 'Le bar du coin', need: 0, bpm: 100, length: 10, diff: 0, games: ['pitch', 'mood', 'beat', 'note', 'contour'], genres: ['house', 'lofi', 'trap'] },
+  { id: 'warehouse', emoji: '🏭', name: 'La warehouse', need: 2, bpm: 116, length: 12, diff: 0.5, games: ['pitch', 'mood', 'beat', 'hole', 'genre', 'note', 'count'], genres: ['house', 'techno', 'trap', 'lofi'] },
+  { id: 'beach', emoji: '🏖️', name: 'Le beach club', need: 5, bpm: 112, length: 14, diff: 1, games: ['pitch', 'mood', 'hole', 'genre', 'simon', 'note', 'tempo', 'contour', 'swing'], genres: ['deephouse', 'afrohouse', 'reggaeton', 'disco', 'house'] },
+  { id: 'rooftop', emoji: '🌇', name: 'Le rooftop', need: 7, bpm: 120, length: 14, diff: 1.2, games: ['mood', 'hole', 'simon', 'note', 'tempo', 'swing', 'count', 'filter', 'contour'], genres: ['deephouse', 'lofi', 'ukg', 'disco', 'funk'] },
   { id: 'festival', emoji: '🎪', name: 'Le festival', need: 8, bpm: 126, length: 16, diff: 1.5, games: Object.keys(GAMES), genres: ['house', 'techno', 'trap', 'dnb', 'dubstep', 'trance', 'ukg'] },
+  { id: 'tokyo', emoji: '🏮', name: 'Club underground à Tokyo', need: 10, bpm: 128, length: 16, diff: 1.8, games: Object.keys(GAMES), genres: ['techno', 'jersey', 'trap', 'dnb', 'synthwave', 'acid'] },
   { id: 'berlin', emoji: '🌌', name: 'Résidence à Berlin', need: 11, bpm: 132, length: 18, diff: 2.2, games: Object.keys(GAMES), genres: ['techno', 'acid', 'house', 'deephouse', 'dnb', 'jungle', 'ukg', 'afrohouse'] },
+  { id: 'ibiza', emoji: '🏝️', name: 'Closing à Ibiza', need: 14, bpm: 124, length: 18, diff: 2.5, games: Object.keys(GAMES), genres: ['house', 'deephouse', 'afrohouse', 'trance', 'disco', 'techno'] },
+  { id: 'space', emoji: '🛸', name: 'Rave orbitale', need: 18, bpm: 140, length: 20, diff: 3, games: Object.keys(GAMES), genres: ['dnb', 'jungle', 'dubstep', 'trance', 'acid', 'techno', 'trap', 'synthwave', 'ukg', 'jersey'] },
 ];
 export const venueById = (id) => VENUES.find((v) => v.id === id);
 export const MAX_STARS = VENUES.length * 3;
@@ -127,6 +151,34 @@ export const MAKERS = {
     const base = 88 + Math.floor(r() * 40);
     const bpms = r() < 0.5 ? [base, base + gap] : [base + gap, base];
     return { bpms, answer: bpms[0] > bpms[1] ? 0 : 1, options: ['1ᵉʳ', '2ᵉ'], gap };
+  },
+  swing(r, d, bpm) {
+    const swung = r() < 0.5;
+    return { bpm: Math.min(110, bpm), amount: swung ? step(d, [0.66, 0.58, 0.5, 0.45]) : 0, answer: swung ? 1 : 0, options: ['📏 Droit', '🌀 Swing'] };
+  },
+  count(r, d) {
+    const max = d >= 2 ? 6 : 5;
+    const n = 2 + Math.floor(r() * (max - 1));
+    const opts = d >= 2 ? [3, 4, 5, 6] : [2, 3, 4, 5];
+    const k = Math.max(opts[0], Math.min(opts.at(-1), n));
+    const base = 60 + Math.floor(r() * 7);
+    const notes = Array.from({ length: k }, () => base + pick(r, [0, 2, 4, 5, 7]));
+    return { notes, gap: step(d, [0.22, 0.18, 0.15, 0.12]), answer: opts.indexOf(k), options: opts.map(String) };
+  },
+  filter(r, d) {
+    const open = r() < 0.5;
+    const [lo, hi] = step(d, [[350, 7000], [600, 4500], [900, 3000], [1200, 2400]]);
+    return { midi: 45 + Math.floor(r() * 8), cutoff: open ? hi : lo, answer: open ? 0 : 1, options: ['✨ Ouvert (brillant)', '🌫️ Fermé (sourd)'] };
+  },
+  contour(r, d) {
+    const kinds = d >= 1 ? ['up', 'down', 'wave'] : ['up', 'down'];
+    const kind = pick(r, kinds);
+    const steps = shuffle(r, [2, 2, 1, 3]).slice(0, 3);
+    const start = kind === 'down' ? 67 : 57 + Math.floor(r() * 4);
+    const notes = [start];
+    steps.forEach((x, i) => notes.push(notes[i] + (kind === 'up' ? x : kind === 'down' ? -x : i < 2 ? x + 1 : -(x + 2))));
+    const labels = { up: '↗️ Ça monte', down: '↘️ Ça descend', wave: '〰️ Monte puis descend' };
+    return { notes, answer: kinds.indexOf(kind), options: kinds.map((k) => labels[k]), kind };
   },
   drop(r, d, bpm) {
     const beats = d >= 2 ? 16 : 8;

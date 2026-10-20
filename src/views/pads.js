@@ -18,7 +18,10 @@ function padsState() {
   return { best: {}, learn: {}, layout: '2x4', rolls: true, metro: true, guide: false, diff: 'normal', map: {}, ...(getState().pads || {}) };
 }
 const setPads = (fn) => update((s) => { s.pads = { ...padsState(), ...(s.pads || {}) }; fn(s.pads); });
-const isUnlocked = (i) => i === 0 || (padsState().best[PAD_LEVELS[i - 1].id]?.stars || 0) >= 1;
+// Ouvert si c'est le premier, si le précédent est réussi, ou s'il a déjà été réussi (un niveau ajouté plus tard
+// avant lui ne le reverrouille jamais).
+const cleared = (i) => (padsState().best[PAD_LEVELS[i]?.id]?.stars || 0) >= 1;
+const isUnlocked = (i) => i === 0 || cleared(i) || cleared(i - 1);
 const starsTxt = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
 const learnCount = (l) => padsState().learn?.[l.id] || 0;
 const padLabel = (p) => (p.note != null ? noteFr(p.note) : p.name);

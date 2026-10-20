@@ -20,7 +20,10 @@ function rushState() {
   return { best: {}, lang: 'both', metro: true, guide: false, diff: 'normal', ...(s.rush || {}) };
 }
 const setRush = (fn) => update((s) => { s.rush = { ...rushState(), ...(s.rush || {}) }; fn(s.rush); });
-const isUnlocked = (i) => i === 0 || (rushState().best[LEVELS[i - 1].id]?.stars || 0) >= 1;
+// Ouvert si c'est le premier, si le précédent est réussi, ou s'il a déjà été réussi (un niveau ajouté plus tard
+// avant lui ne le reverrouille jamais).
+const cleared = (i) => (rushState().best[LEVELS[i]?.id]?.stars || 0) >= 1;
+const isUnlocked = (i) => i === 0 || cleared(i) || cleared(i - 1);
 const learnCount = (l) => rushState().learn?.[l.id] || 0;
 const starsTxt = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
 

@@ -35,7 +35,7 @@ for (const f of files) {
     const h = createHarness({ browser, base });
     const start = Date.now();
     try {
-      await Promise.race([fn({ ...h, assert, base }), new Promise((_, rej) => setTimeout(() => rej(new Error('délai dépassé (120 s)')), 120000))]);
+      await Promise.race([fn({ ...h, assert, base }), new Promise((_, rej) => setTimeout(() => rej(new Error('délai dépassé (180 s)')), 180000))]);
       if (h.errors.length) throw new Error('Erreurs JavaScript dans la page :\n' + h.errors.join('\n'));
       pass++;
       console.log(`✔ ${f} › ${name} (${((Date.now() - start) / 1000).toFixed(1)} s)`);

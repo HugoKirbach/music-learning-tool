@@ -825,3 +825,24 @@ p.bad, .small.bad { color: #ff5d73; }
 .home-section .btn.small { min-height: 44px; padding: 8px 14px; }
 .home-section a.qchip { min-height: 40px; display: inline-flex; align-items: center; padding: 6px 12px; font-size: 13px; }
 .home-section .chip-tile { min-height: 44px; }
+
+/* ---------- 🏅 Collection : succès à paliers, cartes de légende ---------- */
+.badge.bronze { border-color: #b08d57; }
+.badge.silver { border-color: #a8b3c7; }
+.badge.gold { border-color: #e5b93b; box-shadow: inset 0 0 0 1px rgba(229, 185, 59, .35); }
+.badge .tier { margin-top: 4px; font-size: 10.5px; color: var(--muted); }
+.ach-cat h2, #col-cards { font-size: 17px; margin: 0; }
+.ach-cat .bar { margin: 8px 0 10px; }
+.legend-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin-top: 8px; }
+.legend-card[open] { grid-column: span 2; }
+.legend-card { border-radius: 14px; border: 2px solid var(--line); background: var(--card2); padding: 10px; }
+.legend-card summary { list-style: none; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; cursor: pointer; min-height: 44px; }
+.legend-card summary::-webkit-details-marker { display: none; }
+.legend-card .lc-emoji { font-size: 26px; }
+.legend-card b { font-size: 13px; line-height: 1.25; }
+.legend-card small { color: var(--muted); font-size: 11.5px; }
+.legend-card p { margin: 8px 0 4px; }
+.legend-card.common { border-color: #7d8597; }
+.legend-card.rare { border-color: var(--accent2); background: linear-gradient(160deg, rgba(92, 225, 230, .12), var(--card2)); }
+.legend-card.legendary { border-color: #e5b93b; background: linear-gradient(160deg, rgba(229, 185, 59, .2), var(--card2)); box-shadow: 0 0 14px rgba(229, 185, 59, .25); }
+.legend-card.locked { display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: .5; border-style: dashed; }

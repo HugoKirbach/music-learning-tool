@@ -77,6 +77,8 @@ export function mergeStates(local, remote, base = null) {
   out.days = deepMax(local.days || {}, remote.days || {});
   out.badges = { ...(newer.badges || {}), ...(older.badges || {}) }; // garde la date d'obtention la plus ancienne
   for (const [k, v] of Object.entries(newer.badges || {})) if (!out.badges[k] || v < out.badges[k]) out.badges[k] = v;
+  out.cards = { ...(newer.cards || {}), ...(older.cards || {}) };
+  for (const [k, v] of Object.entries(newer.cards || {})) if (!out.cards[k] || v < out.cards[k]) out.cards[k] = v;
   out.certs = { ...(newer.certs || {}), ...(older.certs || {}) };
   for (const [k, v] of Object.entries(newer.certs || {})) if (!out.certs[k] || v < out.certs[k]) out.certs[k] = v;
 
@@ -117,7 +119,7 @@ export function mergeStates(local, remote, base = null) {
     const crate = { ...(ca.crate || {}) };
     for (const [k, v] of Object.entries(cb.crate || {})) crate[k] = crate[k] ? { n: maxNum(crate[k].n, v.n), kind: rank[v.kind] > rank[crate[k].kind] ? v.kind : crate[k].kind } : v;
     const daily = (ca.daily?.day || '') > (cb.daily?.day || '') ? ca.daily : (cb.daily?.day || '') > (ca.daily?.day || '') ? cb.daily : (ca.daily && { ...ca.daily, score: maxNum(ca.daily.score, cb.daily?.score) });
-    out.club = { ...pick3(ca, cb, base?.club, newer === remote), best, crate, nights: maxNum(ca.nights, cb.nights), daily: daily || null };
+    out.club = { ...pick3(ca, cb, base?.club, newer === remote), best, crate, nights: maxNum(ca.nights, cb.nights), dailyCount: maxNum(ca.dailyCount, cb.dailyCount), daily: daily || null };
   }
   out.settings = { ...pick3(local.settings || {}, remote.settings || {}, base?.settings, newer === remote), onboarded: !!(local.settings?.onboarded || remote.settings?.onboarded) };
   out.updatedAt = Math.max(local.updatedAt || 0, remote.updatedAt || 0);

@@ -1,6 +1,7 @@
 import { el, card, header, segmented, slider, download, toast } from '../ui.js';
 import { getState, update, exportBackup, importBackup, resetAll, snapshotInfo, restoreSnapshot } from '../store.js';
-import { levelFromXp, titleFor, SKILLS, BADGES, dayKey } from '../core/progress.js';
+import { levelFromXp, titleFor, SKILLS, dayKey } from '../core/progress.js';
+import { ACHIEVEMENTS, CARDS } from '../core/achievements.js';
 import { GENRES } from '../data/genres.js';
 import { setVolume } from '../core/audio.js';
 import { enableMidi, midiStatus, midiStatusText, midiSupported, onMidiStatus, onMidi, drumForNote } from '../midiin.js';
@@ -83,7 +84,8 @@ export function render(root, params = {}) {
       el('a.btn', { href: '#/bilan' }, '📈 Bilan & coach'),
       el('a.btn', { href: '#/skills' }, '🌳 Compétences'),
       el('a.btn', { href: '#/placement' }, '🧪 Test de la semaine'),
-      el('a.btn', { href: '#/friends' }, '👥 Amis')),
+      el('a.btn', { href: '#/friends' }, '👥 Amis'),
+      el('a.btn', { href: '#/collection' }, '🏅 Collection')),
     el('div.cols',
       el('div',
         card(
@@ -108,8 +110,11 @@ export function render(root, params = {}) {
       ),
       el('div',
         acct.node,
-        card(el('h3', `🎖️ Badges (${Object.keys(s.badges).length}/${BADGES.length})`),
-          el('div.badges', BADGES.map((b) => el('div.badge' + (s.badges[b.id] ? '' : '.locked'), { title: b.desc }, el('span.be', b.emoji), el('b', b.name), el('div.muted', b.desc))))),
+        card(el('h3', `🏅 Ma collection`),
+          el('p.small.muted', `${Object.keys(s.badges).filter((id) => ACHIEVEMENTS.some((a) => a.id === id)).length}/${ACHIEVEMENTS.length} succès · ${Object.keys(s.cards || {}).length}/${CARDS.length} cartes de légende · ${Object.keys(s.club?.crate || {}).length} vinyle(s)`),
+          el('div.badges', ACHIEVEMENTS.filter((a) => s.badges[a.id]).sort((a, b) => (s.badges[b.id] || '').localeCompare(s.badges[a.id] || '')).slice(0, 6)
+            .map((b) => el('div.badge.' + b.tier, { title: b.desc }, el('span.be', { 'aria-hidden': 'true' }, b.emoji), el('b', b.name)))),
+          el('a.btn.primary', { href: '#/collection', style: { marginTop: '10px' } }, 'Voir toute la collection →')),
         card(el('h3', '⚙️ Réglages'),
           // Version web (hugokirbach.github.io) : lien vers le menu qui regroupe les applis.
           /\.github\.io$/.test(location.hostname) ? el('a.btn.small', { href: '/', style: { marginBottom: '12px' } }, '← Retour au menu des applis') : null,

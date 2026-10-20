@@ -11,8 +11,8 @@ export const tests = {
       const box = await page.locator(`.htile:has-text("${name}")`).boundingBox();
       t.assert.ok(box && box.y + box.height <= 844 - 64, `${name} visible sans défiler (${box?.y})`);
     }
-    t.assert.match(await page.locator('.htile:has-text("Piano Rush")').innerText(), /1\/19\u00a0niveaux · 3\u00a0★/);
-    t.assert.match(await page.locator('.htile:has-text("Nuit au club")').innerText(), /2\/15 ★/);
+    t.assert.match(await page.locator('.htile:has-text("Piano Rush")').innerText(), /1\/\d+\u00a0niveaux · 3\u00a0★/);
+    t.assert.match(await page.locator('.htile:has-text("Nuit au club")').innerText(), /2\/\d+ ★/);
     await page.click('.htile:has-text("Pad Rush")'); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/pads$/);
     await page.go('#/home', 400);

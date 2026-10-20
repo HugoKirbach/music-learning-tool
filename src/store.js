@@ -1,5 +1,6 @@
 // État persistant de l'application (localStorage) + événements.
-import { levelFromXp, updateStreak, dayKey, newBadges, SKILLS, CERT_LEVELS } from './core/progress.js';
+import { levelFromXp, updateStreak, dayKey, SKILLS, CERT_LEVELS } from './core/progress.js';
+import { newAchievements, cardsOwed } from './core/achievements.js';
 import { gridFromPatterns } from './core/rhythm.js';
 import { genreById, defaultPump } from './data/genres.js';
 import { MELODY_STEPS } from './core/arrange.js';
@@ -171,8 +172,7 @@ export function recordExercise(r) {
     }
   }
 
-  const badges = newBadges(state);
-  badges.forEach((b) => { state.badges[b.id] = d; });
+  const badges = awardAchievements(d);
   const after = levelFromXp(state.xp).level;
   // Certificat à chaque nouveau titre (niveaux 3, 5, 8, 12…)
   const certs = CERT_LEVELS.filter((L) => L > before && L <= after && !state.certs?.[L]);
@@ -181,13 +181,26 @@ export function recordExercise(r) {
   return { levelUp: after > before, level: after, badges, sessionAdvanced, sessionDone, xp, cert: certs.at(-1) || null };
 }
 
-/** Vérifie les badges hors exercice (export, notes MIDI…). */
+/**
+ * Attribue les succès remplis et une carte « Machine de légende » par succès (sans sauvegarder).
+ * Chaque succès renvoyé porte la carte gagnée avec lui (b.card) pour l'annonce.
+ */
+function awardAchievements(d = dayKey()) {
+  const badges = newAchievements(state).map((b) => ({ ...b }));
+  badges.forEach((b) => { state.badges[b.id] = d; });
+  const cards = cardsOwed(state);
+  if (cards.length) state.cards = { ...(state.cards || {}), ...Object.fromEntries(cards.map((c) => [c.id, d])) };
+  cards.forEach((c, i) => { if (badges[i]) badges[i].card = c; });
+  // Cartes de rattrapage (succès obtenus avant l'arrivée des cartes) : annoncées sur le dernier succès ou à part
+  if (cards.length > badges.length) badges.extraCards = cards.slice(badges.length);
+  return badges;
+}
+
+/** Vérifie les succès hors exercice (export, notes MIDI, démarrage de l'app…). */
 export function checkBadges() {
-  const badges = newBadges(state);
-  if (badges.length) {
-    badges.forEach((b) => { state.badges[b.id] = dayKey(); });
-    save();
-  }
+  const before = Object.keys(state.cards || {}).length;
+  const badges = awardAchievements();
+  if (badges.length || Object.keys(state.cards || {}).length !== before) save();
   return badges;
 }
 
@@ -197,9 +210,10 @@ export function recordReview(key, ok, inReview = false) {
   const day = state.days[d] || { xp: 0, sessions: 0, exercises: 0 };
   day.ear = { ok: ((day.ear || {}).ok || 0) + (ok ? 1 : 0), total: ((day.ear || {}).total || 0) + 1 };
   state.days[d] = day;
-  const next = reviewUpdate(state.review[key], ok, d, inReview);
+  const prev = state.review[key];
+  const next = reviewUpdate(prev, ok, d, inReview);
   if (next) state.review[key] = next;
-  else delete state.review[key];
+  else { delete state.review[key]; if (prev) state.stats.mastered = (state.stats.mastered || 0) + 1; }
   save();
 }
 
@@ -220,7 +234,7 @@ export function recordGameReview(key, ok) {
   const d = dayKey();
   const next = reviewUpdate(e, ok, d, !!e && e.due <= d);
   if (next) state.review[key] = next;
-  else delete state.review[key];
+  else { delete state.review[key]; if (e) state.stats.mastered = (state.stats.mastered || 0) + 1; }
   save();
 }
 

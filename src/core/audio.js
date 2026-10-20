@@ -7,7 +7,7 @@ import { midiToFreq } from './theory.js';
 
 let ctx = null;
 let master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain;
-let reverbSend, delaySend, chorusSend, delayL, delayR;
+let reverbSend, delaySend, chorusSend, delayL, delayR, fxReturn;
 let noiseBuf = null;
 let openHat = null;
 let volume = 0.8;
@@ -47,7 +47,7 @@ export async function renderOffline(seconds, schedule, { sampleRate = 44100 } = 
   const off = new OAC(2, Math.ceil(seconds * sampleRate), sampleRate);
   const savedSink = midiSink;
   midiSink = null; // le rendu audio n'envoie rien en MIDI
-  const saved = { ctx, master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain, reverbSend, delaySend, chorusSend, delayL, delayR, noiseBuf, openHat, pump, tempo, volume };
+  const saved = { ctx, master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain, reverbSend, delaySend, chorusSend, delayL, delayR, fxReturn, noiseBuf, openHat, pump, tempo, volume };
   const savedShared = new Map(shared), savedVoices = [...voiceList], savedQ = [...cleanupQ];
   shared.clear(); voiceList.length = 0;
   try {
@@ -56,7 +56,7 @@ export async function renderOffline(seconds, schedule, { sampleRate = 44100 } = 
     build(off);
     schedule(0.05);
   } finally {
-    ({ ctx, master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain, reverbSend, delaySend, chorusSend, delayL, delayR, noiseBuf, openHat, pump, tempo, volume } = saved);
+    ({ ctx, master, limiter, glue, saturator, masterFilter, drumBus, synthBus, pumpGain, reverbSend, delaySend, chorusSend, delayL, delayR, fxReturn, noiseBuf, openHat, pump, tempo, volume } = saved);
     shared.clear(); savedShared.forEach((v, k) => shared.set(k, v));
     voiceList.length = 0; voiceList.push(...savedVoices);
     cleanupQ.length = 0; cleanupQ.push(...savedQ);
@@ -73,6 +73,7 @@ export function audioInfo() {
     mode: mode.stable ? 'stable' : 'performance', state: ctx?.state || 'off', sampleRate: ctx?.sampleRate || 0,
     baseLatency: Math.round((ctx?.baseLatency || 0) * 1000), outputLatency: Math.round((ctx?.outputLatency || 0) * 1000),
     ...audioStats, voices: ctx ? voiceList.filter((v) => v.end > ctx.currentTime).length : 0, maxVoices: MAX_VOICES(),
+    fxReturn: fxReturn ? Math.round(fxReturn.gain.value * 100) / 100 : 1,
   };
 }
 
@@ -149,7 +150,10 @@ function build(existing = null) {
   const conv = ctx.createConvolver(); conv.buffer = makeImpulse(mode.stable ? 1.3 : 2.8);
   const rvHp = ctx.createBiquadFilter(); rvHp.type = 'highpass'; rvHp.frequency.value = 220;
   const rvLp = ctx.createBiquadFilter(); rvLp.type = 'lowpass'; rvLp.frequency.value = 7500;
-  reverbSend.connect(pre).connect(conv).connect(rvHp).connect(rvLp).connect(pumpGain);
+  // Retour commun réverbe + delay : permet de couper les queues d'effets entre deux exercices (jeux)
+  fxReturn = ctx.createGain(); fxReturn.gain.value = 1;
+  fxReturn.connect(pumpGain);
+  reverbSend.connect(pre).connect(conv).connect(rvHp).connect(rvLp).connect(fxReturn);
 
   // ----- Delay ping-pong synchronisé (croche pointée), filtré dans la boucle
   delaySend = ctx.createGain(); delaySend.gain.value = 0.5;
@@ -163,7 +167,7 @@ function build(existing = null) {
   delayR.connect(fb).connect(delayL);
   delayL.connect(merger, 0, 0);
   delayR.connect(merger, 0, 1);
-  merger.connect(pumpGain);
+  merger.connect(fxReturn);
   setTempo(tempo);
 
   // ----- Chorus stéréo (2 lignes modulées en opposition)
@@ -305,6 +309,25 @@ function sendTo(node, bus, amount) {
   if (!g) { g = ctx.createGain(); g.gain.value = a; g.connect(bus); m.set(a, g); }
   node.connect(g);
   if (bag) bag.push(node);
+}
+
+/**
+ * Coupe les queues de réverbe et de delay : fondu rapide du retour d'effets à `time`, puis retour à la normale à `until`.
+ * Sert entre deux manches d'un jeu, pour que la réverbe d'une question ne déborde pas sur la suivante.
+ */
+export function muteFxTails(time = now(), until = null) {
+  if (!ctx || !fxReturn) return;
+  const g = fxReturn.gain;
+  g.cancelScheduledValues(time);
+  g.setTargetAtTime(0, time, 0.04);
+  if (until != null) g.setTargetAtTime(1, Math.max(until, time + 0.15), 0.01);
+}
+/** Rétablit le retour d'effets à `time` (par défaut tout de suite : sortie d'un jeu). */
+export function restoreFx(time = null) {
+  if (!ctx || !fxReturn) return;
+  const t = Math.max(ctx.currentTime, time ?? ctx.currentTime);
+  fxReturn.gain.cancelScheduledValues(ctx.currentTime);
+  fxReturn.gain.setTargetAtTime(1, t, 0.01);
 }
 
 /** Automatisation du filtre master : valeur fixe (to seul) ou balayage exponentiel de from à to. */

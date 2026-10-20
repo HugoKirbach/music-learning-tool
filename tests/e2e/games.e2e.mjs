@@ -60,4 +60,19 @@ export const tests = {
     await page.click('text=Enregistrer'); await page.waitForTimeout(200);
     t.assert.equal(Object.keys((await page.state()).pads.map).length, 8);
   },
+  'nouveaux niveaux : chaque partition se lance et s’affiche sans erreur': async (t) => {
+    const page = await t.open({ device: 'mobile' });
+    const NEW_RUSH = ['marche', 'cloches', 'saints', 'galop', 'mineurs', 'arpeges', 'contretemps', 'anticipation', 'triolets', 'doubles', 'anniversaire', 'sus', 'dorien', 'synthwave', 'ragtime'];
+    const NEW_PADS = ['offhat', 'rock', 'techno', 'halftime', 'crescendo', 'offaccent', 'neosoul', 'buildup', 'triplethats', 'shuffle', 'dnb', 'arpege', 'hookpads', 'poppads'];
+    for (const [route, ids] of [['rush', NEW_RUSH], ['pads', NEW_PADS]]) {
+      for (const id of ids) {
+        await page.go(`#/${route}?level=${id}`, 250);
+        t.assert.ok(await page.locator('text=▶ Jouer').count(), `${route}/${id} : intro`);
+        await page.click('text=▶ Jouer'); await page.waitForTimeout(700);
+        t.assert.ok(await page.evaluate(() => document.body.classList.contains('rush-playing')), `${route}/${id} : partie lancée`);
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+        t.assert.ok(overflow <= 2, `${route}/${id} : débordement ${overflow}px`);
+      }
+    }
+  },
 };

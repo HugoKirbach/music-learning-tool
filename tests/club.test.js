@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { GAMES, VENUES, MAKERS, planNight, judgeTaps, roundPoints, nextHype, starsFor, totalStars, isOpen, nightXp, pressVinyl, addToCrate, nightConcepts, dailyVenue, roundTime, venueById, noteNameFr } from '../src/core/club.js';
+import { GAMES, VENUES, MAKERS, planNight, judgeTaps, roundPoints, nextHype, starsFor, totalStars, isOpen, nightXp, pressVinyl, addToCrate, nightConcepts, dailyVenue, roundTime, venueById, noteNameFr, MAX_STARS } from '../src/core/club.js';
 import { GENRES } from '../src/data/genres.js';
 import { SKILLS } from '../src/core/progress.js';
 
@@ -15,6 +15,10 @@ test('salles et mini-jeux cohérents', () => {
     assert.ok(MAKERS[id] && g.lesson && g.lab.href.startsWith('#/'), id);
   }
   assert.deepEqual(VENUES.map((v) => v.need), [...VENUES.map((v) => v.need)].sort((a, b) => a - b));
+  // Les salles déjà ouvertes avant la mise à jour restent ouvertes (mêmes seuils)
+  assert.deepEqual(['bar', 'warehouse', 'beach', 'festival', 'berlin'].map((id) => venueById(id).need), [0, 2, 5, 8, 11]);
+  assert.equal(VENUES.length, 9);
+  assert.ok(VENUES.at(-1).need <= MAX_STARS - 6, 'la dernière salle reste atteignable');
   dailyVenue('2026-10-19').genres.forEach((g) => assert.ok(ids.includes(g), g));
 });
 
@@ -41,6 +45,15 @@ test('générateurs : réponses valides sur beaucoup de tirages', () => {
       if (r.type === 'note') { assert.equal(q.options.length, 3); assert.ok(q.options[q.answer].startsWith(noteNameFr(q.midi) + ' '), q.options[q.answer]); }
       if (r.type === 'tempo') assert.equal(q.bpms[q.answer] > q.bpms[1 - q.answer], true);
       if (r.type === 'simon') assert.ok(q.seq.length >= 3 && q.seq.every((p) => p >= 0 && p < 4));
+      if (r.type === 'swing') assert.equal(q.amount > 0, q.answer === 1);
+      if (r.type === 'count') assert.equal(String(q.notes.length), q.options[q.answer]);
+      if (r.type === 'filter') assert.equal(q.cutoff >= 2400, q.answer === 0);
+      if (r.type === 'contour') {
+        const dir = q.notes.slice(1).map((n, i) => Math.sign(n - q.notes[i]));
+        const want = { up: [1, 1, 1], down: [-1, -1, -1], wave: [1, 1, -1] }[q.kind];
+        assert.deepEqual(dir, want, q.kind);
+        assert.match(q.options[q.answer], { up: /monte$/, down: /descend$/, wave: /Monte puis/ }[q.kind]);
+      }
     }
   }
   const n = MAKERS.note(() => 0.01, 0);

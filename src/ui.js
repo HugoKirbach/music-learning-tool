@@ -139,8 +139,20 @@ export function hintBox(text, onUse) {
   return box;
 }
 
-export function showBadges(badges) {
-  badges.forEach((b, i) => setTimeout(() => toast(`${b.emoji} Badge débloqué : ${b.name}`, 'badge', 3500), i * 600));
+const RARE = { common: 'commune', rare: 'rare ✨', legendary: 'légendaire 🌟' };
+export function showBadges(badges = []) {
+  const msgs = [];
+  if (badges.length > 3) {
+    const cards = badges.filter((b) => b.card).length + (badges.extraCards?.length || 0);
+    toast(`🏅 ${badges.length} nouveaux succès${cards ? ` et 🃏 ${cards} carte(s) de légende` : ''} — Profil › Ma collection`, 'badge', 5000);
+    return;
+  }
+  badges.forEach((b) => {
+    msgs.push(`${b.emoji} Succès débloqué : ${b.name}`);
+    if (b.card) msgs.push(`🃏 Nouvelle carte ${RARE[b.card.rarity] || ''} : ${b.card.name} — Profil › Ma collection`);
+  });
+  if (badges.extraCards?.length) msgs.push(`🃏 ${badges.extraCards.length} carte(s) de légende reçue(s) pour tes succès — Profil › Ma collection`);
+  msgs.forEach((m, i) => setTimeout(() => toast(m, 'badge', 3500), i * 700));
 }
 
 /**
