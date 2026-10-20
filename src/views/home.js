@@ -12,6 +12,10 @@ import { genreById } from '../data/genres.js';
 import { screenById, SCREENS } from '../catalog.js';
 import { placementDue, weekFocus, weekId, projectProgress, PROJECT_STEPS, weekday } from '../core/pedagogy.js';
 import { streakAtRisk } from '../core/reminder.js';
+import { topError, describeError } from './mistakescard.js';
+import { itemMidi, openItem, markDone } from './notebook.js';
+import { cloudStatus } from '../cloud.js';
+import { PATHS, pathProgress } from '../data/paths.js';
 
 const HABITS = [
   'Termine avant de perfectionner : une boucle finie vaut 10 idées en cours.',
@@ -96,6 +100,8 @@ export function render(root, params) {
   const dow = new Date().getDay();
   const items = [];
   if (streakAtRisk(s)) items.push({ emoji: '🔥', title: `Ta série de ${s.streak.count} jours s’arrête ce soir`, text: '5 minutes suffisent : lance une session express et elle continue.', action: el('button.btn.small.primary', { onclick: () => { const ns = newSession(); location.hash = ns.steps[0].route; } }, '⚡ Session'), chip: '🔥 Série', href: '#/home?start=1' });
+  const err = topError(s);
+  if (err) { const de = describeError(err); items.push({ emoji: '🎯', title: de.title, text: de.text, action: el('a.btn.small.primary', { href: de.href }, de.cta), chip: '🎯 Erreur récurrente', href: de.href }); }
   if (placementDue(s)) items.push({ emoji: '🧪', title: 'Test de la semaine', text: '5 minutes pour mesurer tes progrès et choisir le focus de tes sessions.', action: el('a.btn.small.primary', { href: '#/placement' }, 'Passer le test'), chip: '🧪 Test de la semaine', href: '#/placement' });
   const wp = (s.weekProjects || {})[weekId()];
   if (!wp) items.push({ emoji: '🏁', title: 'Projet de la semaine', text: 'Un morceau construit un peu chaque jour, exporté vers Live dimanche.', action: el('a.btn.small.primary', { href: '#/project' }, 'Démarrer'), chip: '🏁 Projet', href: '#/project' });
@@ -128,13 +134,35 @@ export function render(root, params) {
   const quick = pick(rng(d + Date.now()), WARMUPS);
   const tile = (href, emoji, name, desc, extra = '') => el('a.htile' + extra, { href },
     el('span.htile-emoji', { 'aria-hidden': 'true' }, emoji), el('span.htile-text', el('b', name), el('span', desc)));
+  // Boîte à idées : ce qui est noté sur le téléphone se finit sur le PC
+  const inbox = (s.notebook || []).filter((n) => n.inbox);
+  const captureCard = el('div.home-capture',
+    el('b', '💡 Une idée qui passe ? Garde-la, finis-la sur ton PC'),
+    el('div.row.gap.wrap',
+      el('a.btn.small', { href: '#/hum' }, '🎤 Fredonner'),
+      el('a.btn.small', { href: '#/beat' }, '🥁 Un beat'),
+      el('a.btn.small', { href: '#/chords' }, '🎼 Des accords'),
+      el('a.btn.small', { href: '#/notebook?new=1' }, '📝 Une note')),
+    el('p.small.muted', inbox.length ? `📲 ${inbox.length} idée(s) en attente pour ton PC.` : 'Tout ce que tu sauves au Carnet depuis le téléphone t’attendra sur le PC.',
+      cloudStatus().user ? '' : ' Connecte-toi (Profil) pour les retrouver sur l’autre appareil.'));
+  const inboxCard = inbox.length ? el('div.home-inbox',
+    el('div.row.between', el('b', `📲 Idées du téléphone à finir (${inbox.length})`), el('a.btn.small', { href: '#/notebook' }, 'Tout voir')),
+    inbox.slice(0, 3).map((it) => {
+      const midi = itemMidi(it);
+      return el('div.inbox-item',
+        el('div', el('b', it.title), el('div.small.muted', new Date(it.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) + (it.genre ? ` · ${genreById(it.genre).name}` : ''))),
+        it.type !== 'note' ? el('button.btn.small', { onclick: () => openItem(it) }, '↗ Ouvrir') : null,
+        midi ? el('button.btn.small', { onclick: midi }, '⬇ MIDI') : null,
+        el('button.btn.small.ghost', { onclick: () => { markDone(it.id); root.replaceChildren(); render(root, {}); } }, '✓ Fait'));
+    })) : null;
   const playSection = section('play', '🎮 Jouer', 'Des jeux courts qui entraînent l’oreille et le rythme sans en avoir l’air.',
     el('div.home-tiles',
       tile('#/club', '🪩', 'Nuit au club', `${dailyDone ? `Set du jour fait (${club.daily.score} pts)` : 'Set du jour à jouer · XP ×2'} · ${clubStars}/${MAX_STARS} ★ · ${Object.keys(club.crate || {}).length} vinyle(s)`, '.feature'),
       tile('#/rush', '🎹', 'Piano Rush', nb(`${rp.done}/${rp.total} niveaux`) + ' · ' + nb(`${rp.stars} ★`)),
       tile('#/pads', '🔲', 'Pad Rush', nb(`${pp.done}/${pp.total} niveaux`) + ' · ' + nb(`${pp.stars} ★`)),
       tile(earDue ? '#/ear?mode=review' : '#/ear', '👂', 'Quiz d’oreille', earDue ? `${earDue} révision(s) à faire` : 'Intervalles, accords, styles'),
-      tile(quick.route, '⏱️', 'Défi 2 min', quick.title)));
+      tile(quick.route, '⏱️', 'Défi 2 min', quick.title)),
+    captureCard);
 
   // ---------- Studio : créer et préparer le travail dans Ableton (priorité sur PC) ----------
   const p = s.project;
@@ -144,12 +172,17 @@ export function render(root, params) {
   const midiOut = s.settings.midiOut?.enabled;
   const habit = HABITS[Math.floor(Date.now() / 86400000) % HABITS.length];
   const studioSection = section('studio', '🎛️ Studio', 'Créer, puis continuer dans Ableton Live, Serum ou sur le MPC.',
+    inboxCard,
     el('div.home-tiles',
       tile('#/melody', '💡', 'Mon idée', `${genreById(p.genre).name} · ${p.bpm} BPM`, '.feature'),
       tile('#/project', '🏁', 'Projet de la semaine', wpStatus),
       tile('#/studio', '🎛️', 'Missions studio', later.length ? `${later.length} en attente` : 'Live, MPC, Serum'),
       tile('#/challenge', '🏆', 'Défi de la semaine', 'Une contrainte pour tous'),
       tile('#/studio?dice=1', '🎲', 'Dé à idées', 'Une contrainte au hasard'),
+      ...Object.keys(PATHS).filter((id) => s.paths?.[id] || (s.settings.favGenres || []).includes(id)).map((id) => {
+        const pr = pathProgress(s, id);
+        return tile(`#/path?g=${id}`, '🎓', `Parcours ${PATHS[id].name}`, pr.started ? `${pr.count}/${pr.total} étapes${pr.next ? ` · ${pr.next.title}` : ' · terminé ✓'}` : `${pr.total} étapes, du beat à Live`);
+      }),
       tile('#/hum', '🎤', 'Fredonne', 'Une idée à la voix → MIDI'),
       tile('#/labs', '🧪', 'Tous les Labs', `${SCREENS.filter((x) => x.fam).length} ateliers`)),
     recent.length ? el('div.recent-row', { 'aria-label': 'Reprendre' }, el('span.small.muted', '⏱️ Reprendre :'), recent.map((x) => el('a.chip-tile', { href: x.href }, el('span', { 'aria-hidden': 'true' }, x.emoji), x.name))) : null,

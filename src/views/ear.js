@@ -1,5 +1,7 @@
 import { el, card, header, finishExercise, shuffle, toast } from '../ui.js';
-import { update, level, recordReview, dueEarReviews } from '../store.js';
+import { getState, update, level, recordReview, dueEarReviews } from '../store.js';
+import { recurringErrors, drillPlan } from '../core/mistakes.js';
+import { dayKey } from '../core/progress.js';
 import { INTERVALS, midiToName, slotChord, voiceLead, mod, detectChord } from '../core/theory.js';
 import { gridFromPatterns, DRUM_ROWS, VEL } from '../core/rhythm.js';
 import { ensureAudio, now, playSynth, playDrum, kitForGenre } from '../core/audio.js';
@@ -278,9 +280,43 @@ function reviewRender(root) {
   return runQuiz(root, { mode: 'review', n: items.length, M: { name: 'Révisions', emoji: '🔁', skill: 'oreille', desc: '' }, nextQuestion: (idx, lv) => makeQuestion(items[idx].mode, lv, idx, items[idx].value), inReview: true, label: (q) => REVIEW_NAMES[q.mode] });
 }
 
+/** Nom lisible d'une notion d'oreille (ex. 'intervals', '4' → « Tierce majeure »). */
+export function notionLabel(mode, value) {
+  if (mode === 'intervals') return INTERVALS.find((x) => x.st === +value)?.name || value;
+  if (mode === 'chords') return CHORD_SETS.find((x) => x.id === value)?.label || value;
+  if (mode === 'genre') { const g = GENRES.find((x) => x.id === value); return g ? `${g.emoji} ${g.name}` : value; }
+  if (mode === 'sound') return SOUND_Q[value] || value;
+  return value;
+}
+
+/** Exercice ciblé : la notion souvent ratée, en alternance avec celle qu'on confond avec elle. */
+function drillRender(root, key) {
+  const err = recurringErrors(getState(), dayKey(), { min: 1, days: 365 }).find((e) => e.key === key);
+  if (!err || !MODES[err.mode]) { location.hash = '#/ear'; return; }
+  const plan = drillPlan(err, 6);
+  const name = notionLabel(err.mode, err.value);
+  const M = { name: 'Exercice ciblé', emoji: '🎯', skill: MODES[err.mode].skill, desc: err.confused ? `${name} ou ${notionLabel(err.mode, err.confused)} ? On les fait écouter l’un après l’autre jusqu’à ce que la différence saute aux oreilles.` : `${name}, plusieurs fois de suite pour l’ancrer.` };
+  return runQuiz(root, {
+    mode: err.mode, n: plan.length, M, inReview: false, drill: true,
+    nextQuestion: (idx, lv) => {
+      const q = makeQuestion(err.mode, lv, idx, plan[idx]);
+      // Les deux notions confondues sont toujours proposées
+      const other = plan[idx] === err.value ? err.confused : err.value;
+      if (other != null && !q.options.some((o) => String(o.value) === String(other))) {
+        const val = err.mode === 'intervals' ? +other : other;
+        const i = q.options.findIndex((o) => o.value !== q.answer);
+        if (i >= 0) q.options[i] = { value: val, label: notionLabel(err.mode, other) };
+      }
+      return q;
+    },
+    onDone: (score) => { if (score >= 80) update((s) => { if (s.errors?.[key]) s.errors[key].cleared = dayKey(); }); },
+  });
+}
+
 export function render(root, params) {
   const mode = params.mode;
   if (mode === 'review') return reviewRender(root);
+  if (mode === 'drill') return drillRender(root, params.k);
   if (!MODES[mode]) {
     root.append(header('Oreille', 'Entraînements courts. Le niveau s’adapte à ta progression.'),
       el('div.grid2',
@@ -293,7 +329,7 @@ export function render(root, params) {
   return runQuiz(root, { mode, n, M, nextQuestion: (idx, lv) => makeQuestion(mode, lv, idx), inReview: false });
 }
 
-function runQuiz(root, { mode, n, M, nextQuestion, inReview, label }) {
+function runQuiz(root, { mode, n, M, nextQuestion, inReview, label, drill = false, onDone = null }) {
   const lv = level();
   let idx = 0, correct = 0;
   const results = [];
@@ -331,7 +367,7 @@ function runQuiz(root, { mode, n, M, nextQuestion, inReview, label }) {
             if (ok) correct++;
             b.classList.add(ok ? 'right' : 'wrong');
             if (!ok) body.querySelectorAll('.answer').forEach((x) => { if (x.dataset.v === String(q.answer)) x.classList.add('right'); });
-            recordReview(q.reviewKey, ok, inReview);
+            recordReview(q.reviewKey, ok, inReview, ok ? null : o.value);
             update((s) => { s.stats.earTotal++; if (ok) s.stats.earCorrect++; if (q.genre && ok) s.genres[q.genre] = (s.genres[q.genre] || 0) + 1; });
             fb.replaceChildren(
               el('div.lesson', el('div.lesson-title', ok ? '✅ Bien joué' : '❌ Pas tout à fait'), el('p', q.explain),
@@ -353,8 +389,9 @@ function runQuiz(root, { mode, n, M, nextQuestion, inReview, label }) {
 
   const done = () => {
     const score = Math.round((100 * correct) / n);
+    onDone?.(score);
     finishExercise({
-      key: `ear:${mode}`, title: `${M.name} : ${correct}/${n}`, score, xp: 8 + correct * 4, skill: M.skill, success: score >= 70,
+      key: drill ? 'ear:drill' : `ear:${mode}`, title: `${M.name} : ${correct}/${n}`, score, xp: 8 + correct * 4, skill: M.skill, success: score >= 70,
       lesson: {
         intervals: 'Associe chaque intervalle à un morceau que tu connais : c’est la méthode la plus rapide pour les retenir.',
         chords: 'Chaque couleur d’accord est une émotion. En composition, choisis l’accord pour ce qu’il fait ressentir, pas pour son nom.',
@@ -371,10 +408,11 @@ function runQuiz(root, { mode, n, M, nextQuestion, inReview, label }) {
         sound: 'Dans Serum 2, ouvre un preset, change un seul paramètre, écoute, remets-le. Recommence avec un autre.',
         review: 'Pour chaque notion révisée, trouve-la dans un morceau que tu connais ou joue-la au MPC Key 37.',
       }[mode],
-      onRetry: inReview ? null : () => { location.hash = `#/ear?mode=${mode}&n=${n}&r=${Date.now()}`; },
+      onRetry: inReview || drill ? null : () => { location.hash = `#/ear?mode=${mode}&n=${n}&r=${Date.now()}`; },
     });
     if (pad) pad.node.remove();
-    body.replaceChildren(el('div.row.gap.center', el('a.btn', { href: '#/ear' }, '← Autres entraînements'), el('a.btn.primary', { href: `#/ear?mode=${mode}&n=${n}&r=${Date.now()}` }, '↻ Encore')));
+    body.replaceChildren(el('div.row.gap.center', el('a.btn', { href: drill ? '#/progress' : '#/ear' }, drill ? '← Mes progrès' : '← Autres entraînements'),
+      drill ? null : el('a.btn.primary', { href: `#/ear?mode=${mode}&n=${n}&r=${Date.now()}` }, '↻ Encore')));
   };
 
   root.append(header(`${M.emoji} ${M.name}`, M.desc, '#/ear'), card(progress, body, pad?.node));

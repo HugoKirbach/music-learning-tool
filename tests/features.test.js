@@ -124,3 +124,20 @@ test('Styles préférés : top 3 propre, style du jour qui les favorise', async 
   const share = days.filter((d) => favs.includes(genreOfDay(d, favs).id)).length / days.length;
   assert.ok(share > 0.25 && share < 0.5, `part des favoris : ${share}`);
 });
+
+test('Erreurs récurrentes : fréquence, confusion, oubli après 30 jours, exercice réussi', async () => {
+  const { recurringErrors, drillPlan } = await import('../src/core/mistakes.js');
+  const s = { errors: {
+    'intervals:4': { n: 4, last: '2026-10-18', given: { 5: 3, 3: 1 } },
+    'chords:maj7': { n: 1, last: '2026-10-18', given: { 7: 1 } },
+    'genre:house': { n: 3, last: '2026-08-01', given: { techno: 3 } },
+    'rush:pulse': { n: 2, last: '2026-10-10', given: {} },
+    'sound:cutoff': { n: 2, last: '2026-10-12', cleared: '2026-10-15', given: {} },
+  } };
+  const r = recurringErrors(s, '2026-10-20');
+  assert.deepEqual(r.map((x) => x.key), ['intervals:4', 'rush:pulse']);
+  assert.equal(r[0].confused, '5');
+  assert.equal(r[1].game, true);
+  assert.deepEqual(drillPlan(r[0], 4), ['4', '5', '4', '5']);
+  assert.deepEqual(drillPlan(r[1], 2), ['pulse', 'pulse']);
+});

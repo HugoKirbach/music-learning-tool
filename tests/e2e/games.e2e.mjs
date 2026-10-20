@@ -80,7 +80,7 @@ export const tests = {
   'nouveaux niveaux : chaque partition se lance et s’affiche sans erreur': async (t) => {
     const page = await t.open({ device: 'mobile' });
     const NEW_RUSH = ['marche', 'cloches', 'saints', 'galop', 'mineurs', 'arpeges', 'contretemps', 'anticipation', 'triolets', 'doubles', 'anniversaire', 'sus', 'dorien', 'synthwave', 'ragtime'];
-    const NEW_PADS = ['offhat', 'rock', 'techno', 'halftime', 'crescendo', 'offaccent', 'neosoul', 'buildup', 'triplethats', 'shuffle', 'dnb', 'arpege', 'hookpads', 'poppads'];
+    const NEW_PADS = ['htgroove', 'hhdonk', 'offhat', 'rock', 'techno', 'halftime', 'crescendo', 'offaccent', 'neosoul', 'buildup', 'triplethats', 'shuffle', 'dnb', 'arpege', 'hookpads', 'poppads'];
     for (const [route, ids] of [['rush', NEW_RUSH], ['pads', NEW_PADS]]) {
       for (const id of ids) {
         await page.go(`#/${route}?level=${id}`, 250);

@@ -1,5 +1,6 @@
 import { el, card, header, playButton, toast } from '../ui.js';
 import { cleanFavs } from '../core/daily.js';
+import { PATHS } from '../data/paths.js';
 import { getState, update, projectFromGenre } from '../store.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { SCALES, NOTE_NAMES, slotChord } from '../core/theory.js';
@@ -46,7 +47,7 @@ function detail(root, g) {
   const chords = g.prog.map((slot) => slotChord(g.rootPc, g.scale, slot, 3));
   root.append(
     header(`${g.emoji} ${g.name}`, `${g.family} · ${g.bpm} BPM${g.swing ? ` · swing ${Math.round(g.swing * 100)}%` : ''}`, '#/atlas'),
-    card(el('p', g.desc), el('div.row.gap.wrap', play, favButton(g)),
+    card(el('p', g.desc), el('div.row.gap.wrap', play, favButton(g), PATHS[g.id] ? el('a.btn.primary', { href: `#/path?g=${g.id}` }, `🎓 Parcours ${g.name} (${PATHS[g.id].steps.length} étapes)`) : null),
       el('p.small.muted', `Démo : ${NOTE_NAMES[g.rootPc]} ${SCALES[g.scale].name} — ${chords.map((c) => `${c.roman} (${c.symbol})`).join(' – ')}`)),
     card(el('h3', '🧪 Ingrédients signature'), el('ul.clean', g.signature.map((x) => el('li', x))),
       el('h3', '🎧 Références à écouter'), el('p', g.refs.join(' · ')),

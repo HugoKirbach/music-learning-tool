@@ -60,7 +60,7 @@ export function render(root, params = {}) {
               b.classList.add(ok ? 'right' : 'wrong');
               const good = q.options.find((x) => x.value === q.answer);
               answers.push({ domain: it.domain, ok, prompt: q.prompt, given: o.label, correct: good?.label, explain: q.explain });
-              if (q.reviewKey) recordReview(q.reviewKey, ok); // une erreur revient en révision
+              if (q.reviewKey) recordReview(q.reviewKey, ok, false, ok ? null : o.value); // une erreur revient en révision
               if (ok) { setTimeout(() => { i++; step(); }, 450); return; }
               // Erreur : on montre la bonne réponse et l'explication, on passe à la suite quand on veut
               [...box.querySelectorAll('.answer')].forEach((x) => { if (x.textContent === good?.label) x.classList.add('right'); });

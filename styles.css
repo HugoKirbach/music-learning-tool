@@ -855,3 +855,15 @@ p.bad, .small.bad { color: #ff5d73; }
 .ft-fav { display: block; letter-spacing: 2px; }
 .debrief-item { padding: 10px 0; border-bottom: 1px dashed var(--line); }
 .debrief-item p { margin: 6px 0 0; }
+.inbox-tag { margin-left: 8px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(92, 225, 230, .15); color: var(--accent2); white-space: nowrap; }
+.inbox-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
+.inbox-item > div { flex: 1; min-width: 160px; }
+.home-capture, .home-inbox { margin-top: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--card); border: 1px dashed var(--accent2); }
+.home-inbox { margin: 0 0 12px; border-style: solid; }
+.home-capture .row { margin: 8px 0 4px; }
+.path-steps { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 10px; }
+.path-step { padding: 12px 14px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.path-step p { margin: 6px 0; }
+.path-step.current { border: 2px solid var(--accent); }
+.path-step.done { opacity: .75; border-color: var(--good); }
+.path-step .row { gap: 10px; flex-wrap: wrap; }

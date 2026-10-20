@@ -100,8 +100,27 @@ export function save({ touch = true } = {}) {
 }
 
 export function update(fn) {
+  const firstId = state.notebook[0]?.id;
   fn(state);
+  markPhoneIdeas(firstId);
   save();
+}
+
+/** Sur téléphone, les idées ajoutées au Carnet partent dans la boîte « à finir sur PC ». */
+const onPhone = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches && innerWidth < 1024;
+function markPhoneIdeas(firstId) {
+  if (!state.notebook.length || state.notebook[0].id === firstId || !onPhone()) return;
+  for (const it of state.notebook) {
+    if (it.id === firstId) break;
+    if (it.inbox == null) { it.inbox = true; it.phone = true; }
+  }
+}
+
+/** Erreur sur une notion : compteur, date et réponse donnée (pour repérer les confusions récurrentes). */
+function countError(key, given) {
+  const e = state.errors?.[key] || { n: 0, given: {} };
+  const g = given == null ? e.given : { ...e.given, [given]: (e.given?.[given] || 0) + 1 };
+  state.errors = { ...(state.errors || {}), [key]: { n: e.n + 1, last: dayKey(), given: g } };
 }
 
 export function subscribe(fn) {
@@ -205,8 +224,9 @@ export function checkBadges() {
 }
 
 /** Enregistre une réponse d'oreille pour les révisions espacées (clé du type 'intervals:7'). */
-export function recordReview(key, ok, inReview = false) {
+export function recordReview(key, ok, inReview = false, given = null) {
   const d = dayKey();
+  if (!ok) countError(key, given);
   const day = state.days[d] || { xp: 0, sessions: 0, exercises: 0 };
   day.ear = { ok: ((day.ear || {}).ok || 0) + (ok ? 1 : 0), total: ((day.ear || {}).total || 0) + 1 };
   state.days[d] = day;
@@ -229,6 +249,7 @@ export function addPractice(sec) {
 
 /** Résultat d'un niveau de jeu pour les révisions : raté → revient demain ; réussi à une date prévue → intervalle suivant. */
 export function recordGameReview(key, ok) {
+  if (!ok) countError(key, null);
   const e = state.review[key];
   if (!e && ok) return;
   const d = dayKey();

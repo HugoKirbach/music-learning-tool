@@ -5,6 +5,7 @@ import { SKILLS, dayKey, levelFromXp, xpForLevel, titleFor, CERT_LEVELS } from '
 import { weeklySeries, stagnating, bestTempo, trend } from '../core/stats.js';
 import { SKILL_ROUTES } from '../core/weekly.js';
 import { addDays } from '../core/srs.js';
+import { mistakesCard } from './mistakescard.js';
 import { GOAL_KINDS, makeGoal, goalPlan } from '../core/goals.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -100,6 +101,8 @@ export function render(root) {
           el('a.btn.small.primary', { href: SKILL_ROUTES[x.skill][0].route }, SKILL_ROUTES[x.skill][0].title))),
         el('button.btn.small', { onclick: () => { update((st) => { st.settings.focusOverride = { skill: stag[0].skill, until: addDays(today, 6) }; }); toast(`Tes prochaines sessions cibleront ${SKILLS[stag[0].skill].name} 🎯`, 'good'); } }, '🎯 Cibler ça dans mes sessions (7 jours)'))
       : el('p.small.muted', 'Aucune compétence délaissée ces 2 dernières semaines 👍')));
+
+  root.append(mistakesCard(s));
 
   // ---------- Objectifs ----------
   const goalsBox = el('div');

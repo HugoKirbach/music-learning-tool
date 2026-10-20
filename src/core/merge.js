@@ -77,6 +77,12 @@ export function mergeStates(local, remote, base = null) {
   out.days = deepMax(local.days || {}, remote.days || {});
   out.badges = { ...(newer.badges || {}), ...(older.badges || {}) }; // garde la date d'obtention la plus ancienne
   for (const [k, v] of Object.entries(newer.badges || {})) if (!out.badges[k] || v < out.badges[k]) out.badges[k] = v;
+  // Erreurs récurrentes : on garde le plus grand compteur par notion
+  out.errors = { ...(older.errors || {}) };
+  for (const [k, v] of Object.entries(newer.errors || {})) { const o = out.errors[k]; out.errors[k] = !o || (v.n || 0) >= (o.n || 0) ? v : o; }
+  // Parcours de style : étapes faites des deux côtés
+  out.paths = { ...(older.paths || {}) };
+  for (const [g, p] of Object.entries(newer.paths || {})) { const o = out.paths[g] || {}; out.paths[g] = { ...o, ...p, start: [o.start, p.start].filter(Boolean).sort()[0], done: { ...(o.done || {}), ...(p.done || {}) } }; }
   out.cards = { ...(newer.cards || {}), ...(older.cards || {}) };
   for (const [k, v] of Object.entries(newer.cards || {})) if (!out.cards[k] || v < out.cards[k]) out.cards[k] = v;
   out.certs = { ...(newer.certs || {}), ...(older.certs || {}) };

@@ -18,7 +18,8 @@ function beatSong(it) {
   return { bpm: it.bpm, tracks: [{ name: 'Drums', channel: 9, notes }] };
 }
 
-function open(it) {
+/** Ouvre une idée du Carnet dans le Lab qui va avec. */
+export function openItem(it) {
   update((s) => {
     if (it.type === 'idea') s.project = JSON.parse(JSON.stringify(it.project));
     if (it.type === 'idea' && it.arrangement) s.arrangement = JSON.parse(JSON.stringify(it.arrangement));
@@ -28,7 +29,20 @@ function open(it) {
   location.hash = { idea: it.arrangement ? '#/arrange' : '#/melody', beat: '#/beat', chords: '#/chords', sound: `#/synth?load=${it.id}` }[it.type] || '#/notebook';
 }
 
-export function render(root) {
+/** Export MIDI d'une idée (null si l'élément n'a pas de notes : son, note texte). */
+export function itemMidi(it) {
+  if (it.type === 'idea' && it.project) return () => downloadMidi(`idee-${it.genre}`, projectToSong(it.project));
+  if (it.type === 'beat') return () => downloadMidi(`beat-${it.genre}`, beatSong(it));
+  if (it.type === 'chords') return () => downloadMidi('accords', projectToSong({ ...getState().project, chords: it.chords, rootPc: it.rootPc, scale: it.scale, ext: it.ext }, { chords: true, bass: true }));
+  return null;
+}
+
+/** Retire une idée de la boîte « à finir sur PC ». */
+export function markDone(id) {
+  update((s) => { const n = s.notebook.find((x) => x.id === id); if (n) n.inbox = false; });
+}
+
+export function render(root, params = {}) {
   let filter = 'all';
   const list = el('div');
   const draw = () => {
@@ -40,15 +54,16 @@ export function render(root) {
     list.replaceChildren(...items.map((it) => card(el('div.note-item',
       el('span.ne', TYPES[it.type]?.emoji || '•'),
       el('div.nbody',
-        el('b', it.title),
+        el('b', it.title, it.inbox ? el('span.inbox-tag', '📲 à finir sur PC') : null),
         el('div.small.muted', new Date(it.date).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) + (it.genre ? ` · ${genreById(it.genre).name}` : '') + (it.bpm ? ` · ${it.bpm} BPM` : '')),
         it.note ? el('p', it.note) : null,
         el('div.row.gap.wrap',
-          it.type !== 'note' ? el('button.btn.small', { onclick: () => open(it) }, '↗ Ouvrir') : null,
+          it.type !== 'note' ? el('button.btn.small', { onclick: () => openItem(it) }, '↗ Ouvrir') : null,
           it.type === 'idea' ? el('button.btn.small', { onclick: () => downloadMidi(`idee-${it.genre}`, projectToSong(it.project)) }, '⬇ MIDI') : null,
           it.type === 'idea' && it.project ? el('button.btn.small', { title: 'Partager par lien', onclick: () => import('../share.js').then(({ shareIdea }) => shareIdea(it.project, it.title)) }, '🔗') : null,
           it.type === 'beat' ? el('button.btn.small', { onclick: () => downloadMidi(`beat-${it.genre}`, beatSong(it)) }, '⬇ MIDI') : null,
           it.type === 'chords' ? el('button.btn.small', { onclick: () => downloadMidi('accords', projectToSong({ ...getState().project, chords: it.chords, rootPc: it.rootPc, scale: it.scale, ext: it.ext }, { chords: true, bass: true })) }, '⬇ MIDI') : null,
+          it.inbox ? el('button.btn.small', { onclick: () => { markDone(it.id); draw(); } }, '✓ Fait dans Live') : null,
           el('button.btn.small', { onclick: () => editNote(it, draw) }, '✏️'),
           el('button.btn.small.ghost', {
             onclick: () => {
@@ -69,6 +84,7 @@ export function render(root) {
     list,
   );
   draw();
+  if (params.new) editNote(null, draw);
 }
 
 function editNote(it, after) {
