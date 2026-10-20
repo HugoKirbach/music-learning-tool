@@ -29,7 +29,7 @@ export function publicStats(s = getState(), today = new Date()) {
   let weekXp = 0;
   for (let d = new Date(monday); d <= today; d.setDate(d.getDate() + 1)) weekXp += s.days[dayKey(d)]?.xp || 0;
   const alive = s.streak?.last && (s.streak.last === dayKey(today) || s.streak.last === dayKey(new Date(today.getTime() - 86400000)));
-  return { level: lv.level, title: titleFor(lv.level), xp: s.xp, weekXp, streak: alive ? s.streak.count || 0 : 0, best: s.streak?.best || 0 };
+  return { level: lv.level, title: titleFor(lv.level), xp: s.xp, weekXp, streak: alive ? s.streak.count || 0 : 0, best: s.streak?.best || 0, fav: (s.settings?.favGenres || []).slice(0, 3) };
 }
 
 const profRef = (c, uid) => c.F.doc(c.db, 'profiles', uid);

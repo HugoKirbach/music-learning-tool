@@ -122,7 +122,7 @@ export const tests = {
     await page.go('#/club', 500);
     await page.click('text=/Ma caisse de vinyles \\(1\\//');
     t.assert.equal(await page.locator('.vinyl.color').count(), 1);
-    t.assert.equal(await page.locator('.vinyl.empty').count(), 19);
+    t.assert.equal(await page.locator('.vinyl.empty').count(), 21);
     await page.click('.vinyl.color'); await page.waitForTimeout(200);
     t.assert.match(await page.locator('.toast').last().innerText(), /House · 124 BPM/);
     await page.click('button[aria-label="Retour"]'); await page.waitForTimeout(200);

@@ -2,8 +2,8 @@
 export const ROUTES = ['home', 'labs', 'beat', 'beat?mode=ear&genre=dnb', 'beat?mode=constraint&genre=trap', 'chords', 'chords?mode=recipe&genre=lofi',
   'melody?genre=house&load=1', 'melody?mode=challenge&genre=ukg', 'melody?mode=dictation&genre=trance', 'synth', 'synth?mode=match',
   'ear', 'ear?mode=intervals', 'ear?mode=chords', 'ear?mode=progressions', 'ear?mode=genre', 'ear?mode=sound', 'ear?mode=review',
-  'atlas', 'atlas?g=afrohouse', 'studio', 'studio?mission=m-euclid', 'studio?dice=1', 'notebook', 'profile', 'callresponse',
-  'arrange', 'arrange?challenge=contrast', 'analyze', 'program', 'program?project=2', 'hum', 'hum?mode=response', 'basslab',
+  'atlas', 'atlas?g=afrohouse', 'atlas?g=hardtrance', 'atlas?g=hardhouse', 'studio', 'studio?mission=m-euclid', 'studio?dice=1', 'notebook', 'profile', 'callresponse',
+  'arrange', 'arrange?challenge=contrast', 'program', 'program?project=2', 'hum', 'hum?mode=response', 'basslab',
   'mixdown', 'remix', 'bilan', 'rush', 'rush?level=house', 'rush?level=synthwave', 'pads', 'pads?level=trap', 'pads?level=triplethats', 'friends',
   'skills', 'placement', 'project', 'critique', 'listen?i=zcassé', 'review', 'progress', 'latency', 'club', 'collection'];
 

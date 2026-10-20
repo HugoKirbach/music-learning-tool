@@ -2,7 +2,8 @@ import { el, card, header, segmented, slider, download, toast } from '../ui.js';
 import { getState, update, exportBackup, importBackup, resetAll, snapshotInfo, restoreSnapshot } from '../store.js';
 import { levelFromXp, titleFor, SKILLS, dayKey } from '../core/progress.js';
 import { ACHIEVEMENTS, CARDS } from '../core/achievements.js';
-import { GENRES } from '../data/genres.js';
+import { GENRES, genreById } from '../data/genres.js';
+import { cleanFavs } from '../core/daily.js';
 import { setVolume } from '../core/audio.js';
 import { enableMidi, midiStatus, midiStatusText, midiSupported, onMidiStatus, onMidi, drumForNote } from '../midiin.js';
 import { midiToName } from '../core/theory.js';
@@ -25,6 +26,33 @@ function installState() {
       } }, '📲 Installer BeatForge') : null));
   };
   window.addEventListener('bf-installable', paint);
+  paint();
+  return box;
+}
+
+/** Top 3 des styles préférés : trois listes (1er, 2e, 3e), chaque style une seule fois. */
+function favCard() {
+  const box = card();
+  const paint = () => {
+    const favs = cleanFavs(getState().settings.favGenres || []);
+    const set = (i, id) => update((st) => {
+      const f = [...cleanFavs(st.settings.favGenres || [])];
+      if (id) f[i] = id; else f.splice(i, 1);
+      st.settings.favGenres = cleanFavs(f.filter(Boolean));
+    });
+    const slot = (i) => {
+      const cur = favs[i] || '';
+      const sel = el('select', { 'aria-label': `Style préféré n°${i + 1}`, disabled: i > favs.length, onchange: (e) => { set(i, e.target.value); paint(); } },
+        el('option', { value: '' }, i > favs.length ? '—' : '— aucun —'),
+        GENRES.filter((g) => g.id === cur || !favs.includes(g.id)).map((g) => el('option', { value: g.id, selected: g.id === cur }, `${g.emoji} ${g.name} · ${g.bpm} BPM`)));
+      return el('label.fav-slot', el('span', ['🥇', '🥈', '🥉'][i]), sel);
+    };
+    box.replaceChildren(
+      el('h3', '❤️ Mes 3 styles préférés'),
+      el('p.small.muted', 'Ils reviennent plus souvent en style du jour, apparaissent en tête de l’Atlas et sont visibles par tes amis.'),
+      el('div.fav-slots', [0, 1, 2].map(slot)),
+      favs.length ? el('div.row.gap.wrap', { style: { marginTop: '8px' } }, favs.map((id) => el('a.chip-tile', { href: `#/atlas?g=${id}` }, `${genreById(id).emoji} ${genreById(id).name}`))) : null);
+  };
   paint();
   return box;
 }
@@ -110,6 +138,7 @@ export function render(root, params = {}) {
       ),
       el('div',
         acct.node,
+        favCard(),
         card(el('h3', `🏅 Ma collection`),
           el('p.small.muted', `${Object.keys(s.badges).filter((id) => ACHIEVEMENTS.some((a) => a.id === id)).length}/${ACHIEVEMENTS.length} succès · ${Object.keys(s.cards || {}).length}/${CARDS.length} cartes de légende · ${Object.keys(s.club?.crate || {}).length} vinyle(s)`),
           el('div.badges', ACHIEVEMENTS.filter((a) => s.badges[a.id]).sort((a, b) => (s.badges[b.id] || '').localeCompare(s.badges[a.id] || '')).slice(0, 6)

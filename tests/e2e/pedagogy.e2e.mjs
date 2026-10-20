@@ -29,10 +29,19 @@ export const tests = {
     t.assert.ok(await page.locator('text=Test de la semaine').count(), 'proposé sur l’accueil');
     await page.go('#/placement');
     await page.click('text=▶ Commencer le test');
+    let corrections = 0;
     for (let i = 0; i < 15; i++) {
       await page.waitForSelector('button.answer', { timeout: 5000 });
       await page.locator('button.answer').first().click();
-      await page.waitForTimeout(950);
+      await page.waitForTimeout(500);
+      const next = page.locator('button:has-text("Question suivante"), button:has-text("Continuer →")');
+      if (await next.count()) {
+        corrections++;
+        t.assert.match(await page.locator('.lesson-title').innerText(), /La bonne réponse/);
+        t.assert.equal(await page.locator('.answer.right').count(), 1, 'bonne réponse surlignée');
+        await next.first().click();
+      }
+      await page.waitForTimeout(450);
     }
     await page.waitForSelector('.tap-pad');
     const pad = page.locator('.tap-pad');
@@ -43,6 +52,10 @@ export const tests = {
     const week = Object.keys(s.placement)[0];
     t.assert.ok(s.placement[week].scores.rythme >= 0 && s.placement[week].global >= 0);
     t.assert.ok(await page.locator('text=Focus de la semaine').count());
+    const mistakes = s.placement[week].mistakes.length;
+    t.assert.equal(mistakes, corrections, 'chaque erreur corrigée pendant le test est dans le débrief');
+    t.assert.ok(await page.locator(mistakes ? `text=Débrief : ${mistakes} erreur` : 'text=Aucune erreur').count());
+    if (mistakes) t.assert.equal(await page.locator('.debrief-item').count(), mistakes);
     await page.go('#/home');
     t.assert.equal(await page.locator('.card >> text=Passer le test').count(), 0, 'plus proposé cette semaine');
   },

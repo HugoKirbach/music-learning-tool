@@ -2,8 +2,15 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '2.4';
+export const APP_VERSION = '2.5';
 export const CHANGELOG = [
+  {
+    version: '2.5', date: 'octobre 2026', items: [
+      ['⚡', 'Hard Trance et 🔨 Hard House', 'deux nouveaux styles dans l’Atlas (155 et 145 BPM), avec démo, ingrédients et astuces Live / MPC / Serum.'],
+      ['❤️', 'Mes 3 styles préférés', 'à choisir dans le Profil ou depuis une fiche de l’Atlas : ils reviennent plus souvent en style du jour et tes amis les voient.'],
+      ['🎧', 'Analyse de référence', 'mise en pause le temps de trouver une meilleure solution.'],
+    ],
+  },
   {
     version: '2.4', date: 'octobre 2026', items: [
       ['🎹', 'Piano Rush : 34 niveaux', '15 nouveaux niveaux répartis dans tous les chapitres (5 doigts, Vive le vent, When the Saints, accords mineurs, arpèges, contretemps, triolets, doubles croches, Joyeux anniversaire, sus, dorien, synthwave, ragtime…) pour une progression plus douce.'],

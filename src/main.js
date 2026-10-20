@@ -27,7 +27,7 @@ const ROUTES = {
   atlas: () => import('./views/atlas.js'),
   callresponse: () => import('./views/callresponse.js'),
   arrange: () => import('./views/arrange.js'),
-  analyze: () => import('./views/analyze.js'),
+  // analyze (Analyse de référence) : désactivée pour l'instant, en attendant une meilleure version
   program: () => import('./views/program.js'),
   hum: () => import('./views/hum.js'),
   basslab: () => import('./views/basslab.js'),
@@ -56,7 +56,7 @@ const ROUTES = {
 const NAV = [
   { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills', 'challenge', 'review', 'club'] },
   { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads', 'critique'] },
-  { id: 'studio', icon: '🎛️', label: 'Studio', also: ['analyze'] },
+  { id: 'studio', icon: '🎛️', label: 'Studio' },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
   { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends', 'progress', 'latency', 'collection'] },
 ];

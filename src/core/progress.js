@@ -1,4 +1,5 @@
 // Règles de progression (XP, niveaux, séries, badges). Module pur, testable.
+import { GENRES } from '../data/genres.js';
 
 export const SKILLS = {
   rythme: { name: 'Rythme', emoji: '🥁', color: '#ff5d73' },
@@ -71,7 +72,7 @@ export const BADGES = [
   { id: 'streak30', name: 'Inarrêtable', emoji: '🚀', desc: '30 jours d’affilée', test: (s) => (s.streak.best || 0) >= 30 },
   { id: 'genres5', name: 'Touriste', emoji: '🧳', desc: 'Explore 5 styles', test: (s) => Object.keys(s.genres).length >= 5 },
   { id: 'genres12', name: 'Globe-trotter', emoji: '🌍', desc: 'Explore 12 styles', test: (s) => Object.keys(s.genres).length >= 12 },
-  { id: 'genresAll', name: 'Encyclopédie', emoji: '📚', desc: 'Explore les 20 styles', test: (s) => Object.keys(s.genres).length >= 20 },
+  { id: 'genresAll', name: 'Encyclopédie', emoji: '📚', desc: `Explore les ${GENRES.length} styles`, test: (s) => GENRES.every((g) => s.genres[g.id]) },
   { id: 'ear20', name: 'Oreille fine', emoji: '👂', desc: '20 bonnes réponses à l’oreille', test: (s) => s.stats.earCorrect >= 20 },
   { id: 'ear200', name: 'Oreille absolue ?', emoji: '🦻', desc: '200 bonnes réponses à l’oreille', test: (s) => s.stats.earCorrect >= 200 },
   { id: 'beatPerfect', name: 'Transcripteur', emoji: '🎯', desc: 'Recrée un beat à 100 % à l’oreille', test: (s) => s.stats.beatPerfect >= 1 },

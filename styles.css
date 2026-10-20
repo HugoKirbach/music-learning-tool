@@ -846,3 +846,12 @@ p.bad, .small.bad { color: #ff5d73; }
 .legend-card.rare { border-color: var(--accent2); background: linear-gradient(160deg, rgba(92, 225, 230, .12), var(--card2)); }
 .legend-card.legendary { border-color: #e5b93b; background: linear-gradient(160deg, rgba(229, 185, 59, .2), var(--card2)); box-shadow: 0 0 14px rgba(229, 185, 59, .25); }
 .legend-card.locked { display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: .5; border-style: dashed; }
+
+/* Styles préférés */
+.fav-slots { display: grid; gap: 8px; }
+.fav-slot { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 8px; }
+.fav-slot span { font-size: 20px; }
+.fav-slot select { min-height: 44px; width: 100%; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg2); color: var(--text); font: inherit; }
+.ft-fav { display: block; letter-spacing: 2px; }
+.debrief-item { padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.debrief-item p { margin: 6px 0 0; }

@@ -74,7 +74,7 @@ export function coachPlan(cur, prev, { review = {}, programNext = null, untriedG
   SKILL_ROUTES[weakest].forEach((r) => plan.push({ ...r, why: `${SKILLS[weakest].emoji} ${SKILLS[weakest].name} est ta compétence la moins travaillée.` }));
   const weak = weakNotions(review, 3);
   if (weak.length) plan.push({ title: `Révisions (${Object.keys(review).length} fiches)`, route: '#/ear?mode=review', why: `Notions à consolider : ${weak.map((k) => k.split(':')[1]).join(', ')}.` });
-  plan.push({ title: 'Analyse de référence', route: '#/analyze', why: 'Une analyse par semaine : c’est là que tu voles des ingrédients aux meilleurs.' });
+  plan.push({ title: 'Quiz des styles', route: '#/ear?mode=genre', why: 'Reconnaître un style à l’oreille, c’est savoir quels ingrédients lui voler.' });
   if (cur.ideas.length) plan.push({ title: 'Développe une idée de la semaine', route: '#/remix', why: `Tu as ${cur.ideas.length} idée(s) au Carnet : transforme-en une plutôt que d’en commencer une nouvelle.` });
   if (untriedGenre) plan.push({ title: `Découvre : ${untriedGenre.name}`, route: `#/atlas?g=${untriedGenre.id}`, why: 'Un style jamais exploré = de nouveaux réflexes.' });
   if (programNext) plan.push({ title: programNext.title, route: '#/program', why: 'Continue le programme 4 semaines.' });

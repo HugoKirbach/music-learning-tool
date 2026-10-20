@@ -46,9 +46,17 @@ const CAT_FOR_SKILL = {
 };
 
 /** Style du jour : identique pour toute la journée. */
-export function genreOfDay(day) {
+/** Style du jour. Avec des styles favoris, environ 1 jour sur 3 tombe sur l'un d'eux. */
+export function genreOfDay(day, favs = []) {
   const r = rng('genre' + day);
+  const fav = favs.map((id) => GENRES.find((g) => g.id === id)).filter(Boolean);
+  if (fav.length && r() < 0.35) return pick(r, fav);
   return pick(r, GENRES);
+}
+
+/** Top 3 des styles favoris (ordre conservé, sans doublon ni style inconnu). */
+export function cleanFavs(list = []) {
+  return [...new Set(list)].filter((id) => GENRES.some((g) => g.id === id)).slice(0, 3);
 }
 
 /**

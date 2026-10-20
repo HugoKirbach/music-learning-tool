@@ -99,7 +99,7 @@ export const SKILL_TREE = [
   { id: 'dictation', branch: 'melodie', name: 'Relevé à l’oreille', emoji: '👂', desc: 'Retrouver une mélodie ou un rythme entendu.', requires: ['intervals'], proofs: [
     P('2 dictées mélodiques (70 %+)', (s) => logCount(s, 'melody:dictation', 70) >= 2, '#/melody?mode=dictation'),
     P('Pad Rush : un défi à l’oreille réussi', (s) => Object.keys(s.pads?.best || {}).some((k) => k.endsWith('@ear') && s.pads.best[k].stars >= 1), '#/pads'),
-    P('Une analyse de référence', (s) => logCount(s, 'analyze') >= 1, '#/analyze'),
+    P('Quiz des styles réussi (70 %+)', (s) => logCount(s, 'ear:genre', 70) >= 1 || logCount(s, 'analyze') >= 1, '#/ear?mode=genre'),
   ] },
   // Son & production
   { id: 'synthesis', branch: 'son', name: 'Synthèse soustractive', emoji: '🔊', desc: 'Oscillateurs, filtre, enveloppes, LFO.', requires: [], proofs: [
@@ -109,7 +109,7 @@ export const SKILL_TREE = [
   ] },
   { id: 'serum', branch: 'son', name: 'Sound design Serum', emoji: '🌊', desc: 'Reproduire un son, l’adapter au morceau.', requires: ['synthesis'], proofs: [
     P('2 sons mystère reproduits', (s) => logCount(s, 'synth:match', 60) >= 2, '#/synth?mode=match'),
-    P('Un élément recréé depuis un morceau', (s) => logCount(s, 'recreate') >= 1, '#/analyze'),
+    P('Critique d’une de tes prods', (s) => logCount(s, 'critique') >= 1 || logCount(s, 'recreate') >= 1, '#/critique'),
     P('Test de la semaine : son ≥ 70', (s) => placed(s, 'son', 70), '#/placement'),
   ] },
   { id: 'mixing', branch: 'son', name: 'Mixage', emoji: '🎚️', desc: 'Volumes, EQ, panoramique, sidechain.', requires: ['synthesis'], proofs: [

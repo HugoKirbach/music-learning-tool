@@ -469,7 +469,7 @@ export function kitForGenre(id) {
   if (['trap', 'reggaeton', 'afrobeats', 'jersey', 'synthwave'].includes(id)) return 'k808';
   if (['lofi', 'jungle'].includes(id)) return 'lofi';
   if (['funk', 'bossa'].includes(id)) return 'acoustic';
-  if (['techno', 'acid', 'dubstep'].includes(id)) return 'hard';
+  if (['techno', 'acid', 'dubstep', 'hardtrance', 'hardhouse'].includes(id)) return 'hard';
   if (['ambient', 'afrohouse', 'deephouse'].includes(id)) return 'minimal';
   return 'club';
 }

@@ -1,5 +1,6 @@
 // Amis : comparer niveau, XP de la semaine et séries. Choix du pseudo.
 import { el, header, card, modal, toast } from '../ui.js';
+import { genreById } from '../data/genres.js';
 import { cloudStatus } from '../cloud.js';
 import {
   getMyProfile, loadProfile, setPseudo, validPseudo, addFriend, incomingRequests, acceptRequest, refuseRequest,
@@ -88,7 +89,7 @@ export function render(root) {
           el('div.ft-row.ft-head', el('span', '#'), el('span', 'Pseudo'), el('span', 'Niveau'), el('span', 'XP sem.'), el('span', '🔥 Série')),
           ranked.map((p, i) => el('div.ft-row' + (p.me ? '.me' : ''),
             el('span', i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)),
-            el('span.ft-name', p.pseudo, p.me ? el('small', ' (toi)') : null),
+            el('span.ft-name', p.pseudo, p.me ? el('small', ' (toi)') : null, (p.fav || []).length ? el('small.ft-fav', { title: `Styles préférés : ${p.fav.map((id) => genreById(id).name).join(', ')}` }, p.fav.map((id) => genreById(id).emoji).join(' ')) : null),
             el('span', `Niv. ${p.level || 1}`, el('small', p.title || '')),
             el('b', String(p.weekXp || 0)),
             el('span', `${p.streak || 0} j`, el('small', `record ${p.best || 0} j`))))),

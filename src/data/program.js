@@ -20,7 +20,8 @@ const cr = (kind, mode, genre) => ({
   route: `#/callresponse?kind=${kind}&mode=${mode}&genre=${genre}&auto=1`, skill: kind === 'rhythm' ? 'rythme' : kind === 'bass' ? 'oreille' : 'melodie', min: 3,
 });
 const arr = (challenge) => ({ key: 'arr:challenge', title: 'Défi arrangement', desc: 'Transforme ta boucle en morceau', route: `#/arrange?challenge=${challenge}`, skill: 'autonomie', min: 6 });
-const analyze = () => ({ key: 'analyze', title: 'Analyse de référence', desc: 'Dissèque un morceau que tu aimes', route: '#/analyze', skill: 'oreille', min: 8 });
+// L'analyse de référence est désactivée : ce jour-là, on entraîne la reconnaissance des styles à la place
+const analyze = () => ({ key: 'ear:genre', title: 'Reconnaître les styles', desc: 'Quiz : à quel style appartient ce beat ?', route: '#/ear?mode=genre', skill: 'oreille', min: 5 });
 const mis = (id) => { const m = missionById(id); return { key: 'mission', title: m.title, desc: m.goal, route: `#/studio?mission=${id}`, skill: 'autonomie', min: m.min, missionId: id }; };
 
 export const PROGRAM = [
@@ -116,7 +117,7 @@ export const PROGRAM = [
         'Un son resamplé et un riser maison.',
         'Automation de filtre sur au moins un build.',
         'Exporte en WAV et écoute-le sur 3 systèmes (casque, enceintes, téléphone).',
-        'Compare avec ta référence de l’Analyse : qu’est-ce qui manque encore ?',
+        'Compare avec un morceau de référence du même style : qu’est-ce qui manque encore ?',
       ],
     },
   },

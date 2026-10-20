@@ -32,7 +32,7 @@ test('tous les styles sont valides', () => {
     assert.ok(BASS_RHYTHMS[g.bassStyle], `${g.id} bassStyle`);
     assert.equal(g.prog.length, 4);
   }
-  assert.equal(GENRES.length, 20);
+  assert.equal(GENRES.length, 22);
 });
 
 test('MIDI : aller-retour', () => {

@@ -76,11 +76,11 @@ export const VENUES = [
   { id: 'warehouse', emoji: '🏭', name: 'La warehouse', need: 2, bpm: 116, length: 12, diff: 0.5, games: ['pitch', 'mood', 'beat', 'hole', 'genre', 'note', 'count'], genres: ['house', 'techno', 'trap', 'lofi'] },
   { id: 'beach', emoji: '🏖️', name: 'Le beach club', need: 5, bpm: 112, length: 14, diff: 1, games: ['pitch', 'mood', 'hole', 'genre', 'simon', 'note', 'tempo', 'contour', 'swing'], genres: ['deephouse', 'afrohouse', 'reggaeton', 'disco', 'house'] },
   { id: 'rooftop', emoji: '🌇', name: 'Le rooftop', need: 7, bpm: 120, length: 14, diff: 1.2, games: ['mood', 'hole', 'simon', 'note', 'tempo', 'swing', 'count', 'filter', 'contour'], genres: ['deephouse', 'lofi', 'ukg', 'disco', 'funk'] },
-  { id: 'festival', emoji: '🎪', name: 'Le festival', need: 8, bpm: 126, length: 16, diff: 1.5, games: Object.keys(GAMES), genres: ['house', 'techno', 'trap', 'dnb', 'dubstep', 'trance', 'ukg'] },
+  { id: 'festival', emoji: '🎪', name: 'Le festival', need: 8, bpm: 126, length: 16, diff: 1.5, games: Object.keys(GAMES), genres: ['house', 'techno', 'trap', 'dnb', 'dubstep', 'trance', 'ukg', 'hardtrance', 'hardhouse'] },
   { id: 'tokyo', emoji: '🏮', name: 'Club underground à Tokyo', need: 10, bpm: 128, length: 16, diff: 1.8, games: Object.keys(GAMES), genres: ['techno', 'jersey', 'trap', 'dnb', 'synthwave', 'acid'] },
-  { id: 'berlin', emoji: '🌌', name: 'Résidence à Berlin', need: 11, bpm: 132, length: 18, diff: 2.2, games: Object.keys(GAMES), genres: ['techno', 'acid', 'house', 'deephouse', 'dnb', 'jungle', 'ukg', 'afrohouse'] },
+  { id: 'berlin', emoji: '🌌', name: 'Résidence à Berlin', need: 11, bpm: 132, length: 18, diff: 2.2, games: Object.keys(GAMES), genres: ['techno', 'acid', 'house', 'deephouse', 'dnb', 'jungle', 'ukg', 'afrohouse', 'hardhouse'] },
   { id: 'ibiza', emoji: '🏝️', name: 'Closing à Ibiza', need: 14, bpm: 124, length: 18, diff: 2.5, games: Object.keys(GAMES), genres: ['house', 'deephouse', 'afrohouse', 'trance', 'disco', 'techno'] },
-  { id: 'space', emoji: '🛸', name: 'Rave orbitale', need: 18, bpm: 140, length: 20, diff: 3, games: Object.keys(GAMES), genres: ['dnb', 'jungle', 'dubstep', 'trance', 'acid', 'techno', 'trap', 'synthwave', 'ukg', 'jersey'] },
+  { id: 'space', emoji: '🛸', name: 'Rave orbitale', need: 18, bpm: 140, length: 20, diff: 3, games: Object.keys(GAMES), genres: ['dnb', 'jungle', 'dubstep', 'trance', 'acid', 'techno', 'trap', 'synthwave', 'ukg', 'jersey', 'hardtrance', 'hardhouse'] },
 ];
 export const venueById = (id) => VENUES.find((v) => v.id === id);
 export const MAX_STARS = VENUES.length * 3;
@@ -88,7 +88,7 @@ export const MAX_STARS = VENUES.length * 3;
 /** Set du jour : le même pour tout le monde, tous les mini-jeux, difficulté moyenne. */
 export function dailyVenue(day) {
   const r = rng('club-day' + day);
-  const genres = ['house', 'techno', 'trap', 'dnb', 'lofi', 'deephouse', 'afrohouse', 'reggaeton', 'disco', 'ukg', 'trance', 'dubstep'];
+  const genres = ['house', 'techno', 'trap', 'dnb', 'lofi', 'deephouse', 'afrohouse', 'reggaeton', 'disco', 'ukg', 'trance', 'dubstep', 'hardtrance', 'hardhouse'];
   const pool = [...genres].sort(() => r() - 0.5).slice(0, 5);
   return { id: 'daily', emoji: '📅', name: 'Le set du jour', need: 0, bpm: 110 + Math.floor(r() * 4) * 5, length: 12, diff: 1, games: Object.keys(GAMES), genres: pool, seed: day };
 }

@@ -5,6 +5,7 @@ import { LEVELS, CHAPTERS } from '../data/rush.js';
 import { PAD_LEVELS, PAD_CHAPTERS } from '../data/pads.js';
 import { VENUES, totalStars, MAX_STARS } from './club.js';
 import { rng } from './daily.js';
+import { GENRES } from '../data/genres.js';
 
 export const CATEGORIES = [
   { id: 'start', name: 'Premiers pas', emoji: '👣' },
@@ -56,7 +57,7 @@ const EXTRA = [
   A('club50', 'club', 'gold', '🦉', 'Résident·e', '50 soirées au club', (s) => (s.club?.nights || 0) >= 50),
   A('clubGold', 'club', 'silver', '📀', 'Disque d’or', 'Gagne un disque d’or (soirée à 3 étoiles)', (s) => Object.values(s.club?.crate || {}).some((v) => v.kind === 'gold')),
   A('crate10', 'club', 'silver', '🎚️', 'Digger', '10 styles dans ta caisse de vinyles', (s) => Object.keys(s.club?.crate || {}).length >= 10),
-  A('crateAll', 'club', 'gold', '🗄️', 'Collection complète', 'Les 20 styles dans ta caisse de vinyles', (s) => Object.keys(s.club?.crate || {}).length >= 20),
+  A('crateAll', 'club', 'gold', '🗄️', 'Collection complète', `Les ${GENRES.length} styles dans ta caisse de vinyles`, (s) => GENRES.every((g) => s.club?.crate?.[g.id])),
   A('venuesAll', 'club', 'gold', '🛸', 'Tournée mondiale', `Ouvre les ${VENUES.length} salles`, (s) => totalStars(s.club?.best) >= VENUES.at(-1).need),
   A('clubStars', 'club', 'gold', '🌟', 'Tête d’affiche', `${MAX_STARS} étoiles au club`, (s) => totalStars(s.club?.best) >= MAX_STARS),
   A('daily7', 'club', 'silver', '📅', 'Fidèle du set', '7 sets du jour joués', (s) => (s.club?.dailyCount || 0) >= 7),

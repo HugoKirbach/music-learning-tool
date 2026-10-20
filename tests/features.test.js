@@ -113,3 +113,14 @@ test('BPM : groove house avec hats à contretemps et pad tenu (piège des tempos
   const r = detectBpm(s, sr);
   assert.ok(Math.abs(r.bpm - 124) < 0.6, `obtenu ${r.bpm}`);
 });
+
+test('Styles préférés : top 3 propre, style du jour qui les favorise', async () => {
+  const { genreOfDay, cleanFavs } = await import('../src/core/daily.js');
+  assert.deepEqual(cleanFavs(['hardtrance', 'hardtrance', 'inconnu', 'house', 'techno', 'trap']), ['hardtrance', 'house', 'techno']);
+  const days = Array.from({ length: 300 }, (_, i) => `d${i}`);
+  const noFav = days.map((d) => genreOfDay(d).id);
+  assert.deepEqual(days.map((d) => genreOfDay(d, []).id), noFav, 'sans favoris : inchangé');
+  const favs = ['hardtrance', 'hardhouse'];
+  const share = days.filter((d) => favs.includes(genreOfDay(d, favs).id)).length / days.length;
+  assert.ok(share > 0.25 && share < 0.5, `part des favoris : ${share}`);
+});

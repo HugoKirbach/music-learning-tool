@@ -138,7 +138,7 @@ export function render(root, params) {
 
   // ---------- Studio : créer et préparer le travail dans Ableton (priorité sur PC) ----------
   const p = s.project;
-  const g = genreOfDay(d);
+  const g = genreOfDay(d, s.settings.favGenres || []);
   const recent = (s.recent || []).map(screenById).filter((x) => x && !['rush', 'pads', 'club'].includes(x.id)).slice(0, 3);
   const wpStatus = wp ? (wp.finished ? `${wp.title} · terminé ✓` : `${wp.title} · ${projectProgress(s, wp).count}/${projectProgress(s, wp).total} étapes`) : 'Un morceau en 7 étapes, export vers Live';
   const midiOut = s.settings.midiOut?.enabled;
