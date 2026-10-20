@@ -531,13 +531,13 @@ export function render(root, params = {}) {
       ended = true;
       stop();
       if (demo) intro(l, ctx);
-      else outro(l, ctx, game.results(), { ear, chart, userHits, dyn: { ok: dynOk, total: dynTotal }, midiOn });
+      else outro(l, ctx, game.results(), { ear, chart, played: game.notes, userHits, dyn: { ok: dynOk, total: dynTotal }, midiOn });
     }
     stopGame = stop;
   }
 
   // ---------- Conclusion ----------
-  function outro(l, ctx, r, { ear, chart, userHits, dyn, midiOn }) {
+  function outro(l, ctx, r, { ear, chart, played = chart.notes, userHits, dyn, midiOn }) {
     const st = padsState();
     const idx = PAD_LEVELS.findIndex((x) => x.id === l.id);
     const wasOpen = idx >= 0 && isUnlocked(idx + 1);
@@ -546,10 +546,14 @@ export function render(root, params = {}) {
     const dynPct = dyn.total ? Math.round((dyn.ok / dyn.total) * 100) : null;
     const acc = l.dyn && dynPct != null ? Math.round(r.acc * 0.75 + dynPct * 0.25) : r.acc;
     const stars = acc >= 93 ? 3 : acc >= 80 ? 2 : acc >= 60 ? 1 : 0;
-    const firstClear = !ear && stars >= 1 && !(prev?.stars >= 1);
+    const firstClear = stars >= 1 && !(prev?.stars >= 1);
     const keep = (old) => (!old || acc > old.acc ? { stars: Math.max(stars, old?.stars || 0), acc } : { ...old, stars: Math.max(stars, old.stars) });
     setPads((x) => {
-      if (ear) x.best[`${l.id}@ear`] = keep(x.best[`${l.id}@ear`]);
+      if (ear) {
+        x.best[`${l.id}@ear`] = keep(x.best[`${l.id}@ear`]);
+        // Réussir le défi à l'oreille valide aussi le niveau dans le parcours
+        if (stars >= 1) x.best[l.id] = keep(x.best[l.id]);
+      }
       else { x.best[l.id] = keep(x.best[l.id]); x.best[`${l.id}@${ctx.diff}`] = keep(x.best[`${l.id}@${ctx.diff}`]); }
     });
     const res = recordExercise({
@@ -557,7 +561,7 @@ export function render(root, params = {}) {
       xp: Math.round((6 + acc * 0.22) * (ear ? 1.3 : ctx.diff === 'expert' ? 1.4 : ctx.diff === 'difficile' ? 1.2 : ctx.diff === 'facile' ? 0.8 : 1) + (firstClear ? 10 : 0)),
     });
     if (!l.random) recordGameReview(`${ear ? 'padsear' : 'pads'}:${l.id}`, acc >= 80);
-    const nowOpen = !ear && idx >= 0 && idx + 1 < PAD_LEVELS.length && isUnlocked(idx + 1);
+    const nowOpen = idx >= 0 && idx + 1 < PAD_LEVELS.length && isUnlocked(idx + 1);
     const next = idx >= 0 ? PAD_LEVELS[idx + 1] : null;
     if (stars === 3) confetti();
     showBadges(res.badges);
@@ -576,7 +580,8 @@ export function render(root, params = {}) {
       const steps = Math.round(chart.baseBeats * chart.res);
       const marks = {};
       const stepOf = (t) => Math.round((t / chart.spb) * chart.res);
-      const second = chart.notes.filter((n) => n.beat >= chart.baseBeats - 1e-9);
+      // Notes jouées (avec leur état : réussie / ratée), pas la partition brute
+      const second = played.filter((n) => n.beat >= chart.baseBeats - 1e-9);
       for (const n of second) marks[`${n.midi}:${Math.round((n.beat - chart.baseBeats) * chart.res)}`] = n.state === 'done' ? 'hit' : 'missed';
       for (const h of userHits) {
         const s = stepOf(h.t) - steps;

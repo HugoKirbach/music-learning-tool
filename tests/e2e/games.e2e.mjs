@@ -60,6 +60,23 @@ export const tests = {
     await page.click('text=Enregistrer'); await page.waitForTimeout(200);
     t.assert.equal(Object.keys((await page.state()).pads.map).length, 8);
   },
+  'pad rush : défi à l’oreille réussi → solution en vert et niveau validé dans le parcours': async (t) => {
+    const page = await t.open({ midi: true });
+    await page.go('#/pads?level=otf');
+    await page.evaluate(() => {
+      const spb = 0.6, base = 4 * spb, t0 = performance.now() + (0.2 + 2 * base + 4 * spb) * 1000;
+      [...document.querySelectorAll('button')].find((x) => x.textContent.includes('Défi à l’oreille')).click();
+      for (let b = 0; b < 8; b++) setTimeout(() => { window.__midi(0x90, 36, 100); setTimeout(() => window.__midi(0x80, 36, 0), 50); }, t0 + b * spb * 1000 - performance.now());
+    });
+    await page.waitForSelector('.rush-result', { timeout: 25000 });
+    const acc = Number((await page.locator('.rush-result .big').innerText()).replace(/\D/g, ''));
+    t.assert.ok(acc >= 80, `précision ${acc} %`);
+    t.assert.ok(await page.locator('.ps-cells i.hit').count() >= 4, 'coups trouvés en vert');
+    t.assert.equal(await page.locator('.ps-cells i.missed').count(), 0, 'aucun coup marqué manqué');
+    const best = (await page.state()).pads.best;
+    t.assert.ok(best.otf?.stars >= 1, 'niveau validé dans le parcours');
+    t.assert.ok(best['otf@ear']?.stars >= 1);
+  },
   'nouveaux niveaux : chaque partition se lance et s’affiche sans erreur': async (t) => {
     const page = await t.open({ device: 'mobile' });
     const NEW_RUSH = ['marche', 'cloches', 'saints', 'galop', 'mineurs', 'arpeges', 'contretemps', 'anticipation', 'triolets', 'doubles', 'anniversaire', 'sus', 'dorien', 'synthwave', 'ragtime'];
