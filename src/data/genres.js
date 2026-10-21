@@ -159,7 +159,7 @@ export const GENRES = [
   {
     id: 'hardtrance', name: 'Hard Trance', emoji: '⚡', family: 'Électro', bpm: 155, swing: 0,
     rootPc: 5, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 2 }, { deg: 6 }],
-    chordStyle: 'pulse', bassStyle: 'rolling', sounds: { chords: 'supersaw', bass: 'reese', lead: 'supersaw' },
+    chordStyle: 'pulse', bassStyle: 'rolling', sounds: { chords: 'supersaw', bass: 'trancebass', lead: 'trancelead' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'xxoxxxoxxxoxxxox', ohat: '..x...x...x...x.', perc: '...x.......x..x.' },
     desc: 'La trance accélérée et durcie (150-160 BPM) : kick saturé, basse roulante sur les doubles croches, supersaws euphoriques et breaks épiques. Revenue en force dans les clubs et sur les réseaux.',
     signature: ['Kick saturé et court, presque « hardstyle »', 'Basse roulante entre les kicks (3 doubles croches sur 4)', 'Leads supersaw en mineur, mélodie très chantante', 'Break mélodique → montée → drop à pleine énergie'],
@@ -173,7 +173,7 @@ export const GENRES = [
   {
     id: 'hardhouse', name: 'Hard House', emoji: '🔨', family: 'Électro', bpm: 145, swing: 0,
     rootPc: 7, scale: 'minor', prog: [{ deg: 0 }, { deg: 0 }, { deg: 5 }, { deg: 6 }],
-    chordStyle: 'stab', bassStyle: 'offbeat', sounds: { chords: 'hoover', bass: 'acid', lead: 'stab' },
+    chordStyle: 'stab', bassStyle: 'offbeat', sounds: { chords: 'stab', bass: 'donk', lead: 'hoover' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'o.x.o.x.o.x.o.x.', ohat: '..x...x...x...x.', perc: '..x..x....x..x..' },
     desc: 'House rapide et rave (140-150 BPM) : basse « donk » sur les contretemps, stabs hoover, percussions bondissantes et énergie de warehouse. Le revival actuel mélange l’esprit UK des années 90 et la house de club moderne.',
     signature: ['Basse offbeat courte et percutante (« donk »)', 'Stabs hoover / rave en mineur', 'Percussions et claps qui rebondissent', 'Builds courts, drops directs'],

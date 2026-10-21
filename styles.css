@@ -867,3 +867,11 @@ p.bad, .small.bad { color: #ff5d73; }
 .path-step.current { border: 2px solid var(--accent); }
 .path-step.done { opacity: .75; border-color: var(--good); }
 .path-step .row { gap: 10px; flex-wrap: wrap; }
+
+/* Mini-maquettes de l'Atlas */
+.demo-timeline { list-style: none; display: flex; gap: 4px; padding: 0; margin: 12px 0 6px; overflow-x: auto; }
+.demo-sec { flex: 1 1 0; min-width: 64px; display: flex; flex-direction: column; gap: 2px; padding: 8px 6px; border-radius: 10px; background: var(--card2); border: 1px solid var(--line); font-size: 12px; cursor: pointer; text-align: center; }
+.demo-sec small { color: var(--muted); }
+.demo-sec.past { opacity: .55; }
+.demo-sec.on { border-color: var(--accent); background: rgba(179, 136, 255, .18); }
+.demo-desc { min-height: 3em; }

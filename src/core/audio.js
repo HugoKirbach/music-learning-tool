@@ -251,9 +251,9 @@ function softClip(amount) {
   return c;
 }
 function makeSoftClip(amount) {
-  const n = 2048, curve = new Float32Array(n), k = 1 + amount * 4;
+  const n = 2049, curve = new Float32Array(n), k = 1 + amount * 4;
   for (let i = 0; i < n; i++) {
-    const x = (i * 2) / n - 1;
+    const x = (i * 2) / (n - 1) - 1;
     curve[i] = Math.tanh(k * x) / Math.tanh(k);
   }
   return curve;
@@ -456,6 +456,13 @@ export const KITS = {
     hat: { metal: 0.3, decay: 0.055, odecay: 0.3, tone: 6000 },
     clap: { decay: 0.2, freq: 900 }, perc: 'conga', dusty: true,
   },
+  harddance: {
+    name: 'Hard dance',
+    kick: { pitch: 330, end: 50, bend: 0.022, decay: 0.38, click: 0.95, drive: 0.95 },
+    snare: { tones: [190, 340], toneDecay: 0.07, noiseFreq: 3200, noiseDecay: 0.14, mix: 0.82 },
+    hat: { metal: 0.55, decay: 0.032, odecay: 0.24, tone: 10500 },
+    clap: { decay: 0.26, freq: 1350 }, perc: 'rim',
+  },
   minimal: {
     name: 'Minimal',
     kick: { pitch: 180, end: 52, bend: 0.025, decay: 0.28, click: 0.35, drive: 0.2 },
@@ -469,7 +476,8 @@ export function kitForGenre(id) {
   if (['trap', 'reggaeton', 'afrobeats', 'jersey', 'synthwave'].includes(id)) return 'k808';
   if (['lofi', 'jungle'].includes(id)) return 'lofi';
   if (['funk', 'bossa'].includes(id)) return 'acoustic';
-  if (['techno', 'acid', 'dubstep', 'hardtrance', 'hardhouse'].includes(id)) return 'hard';
+  if (['hardtrance', 'hardhouse'].includes(id)) return 'harddance';
+  if (['techno', 'acid', 'dubstep'].includes(id)) return 'hard';
   if (['ambient', 'afrohouse', 'deephouse'].includes(id)) return 'minimal';
   return 'club';
 }
@@ -668,9 +676,10 @@ const shaperCache = new Map();
 function driveCurve(amount) {
   const k = Math.round(amount * 100);
   if (shaperCache.has(k)) return shaperCache.get(k);
-  const n = 1024, curve = new Float32Array(n), a = 1 + amount * 20;
+  // Courbe symétrique (−1 → 1) : un silence en entrée donne exactement 0 en sortie (pas de courant continu)
+  const n = 1025, curve = new Float32Array(n), a = 1 + amount * 20;
   for (let i = 0; i < n; i++) {
-    const x = (i * 2) / n - 1;
+    const x = (i * 2) / (n - 1) - 1;
     curve[i] = Math.tanh(a * x) / Math.tanh(a);
   }
   shaperCache.set(k, curve);
@@ -707,6 +716,7 @@ export function playSynth(p, midi, time, dur = 0.3, vel = 0.8, opts = {}) {
   reserveVoice(time);
   const nodes = [];
   const vg = ctx.createGain();
+  vg.gain.value = 0; // muet jusqu'au début de la note (rien ne doit passer avant)
   const slope = p.filter.slope === 24 ? 2 : 1;
   const filters = Array.from({ length: slope }, () => {
     const f = ctx.createBiquadFilter();

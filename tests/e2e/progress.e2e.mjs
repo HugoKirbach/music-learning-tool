@@ -18,10 +18,16 @@ export const tests = {
     await page.clickC('text=🎯 Cibler ça');
     const st = await page.state();
     t.assert.equal(st.settings.focusOverride.skill, 'harmonie');
-    // Les sessions express ciblent maintenant cette compétence
+    // Les sessions express ciblent maintenant cette compétence (2 sessions sur 3, tirage selon le jour)
+    t.assert.equal(await page.evaluate(async (s) => (await import('./src/core/pedagogy.js')).weekFocus(s), st), 'harmonie');
+    const foci = await page.evaluate(async () => {
+      const { buildSession } = await import('./src/core/daily.js');
+      return Array.from({ length: 30 }, (_, i) => buildSession(`2026-01-01#${i}`, { focus: 'harmonie' }).focus);
+    });
+    t.assert.ok(foci.filter((f) => f === 'harmonie').length >= 18, foci.join(','));
     await page.go('#/home');
     await page.clickC('text=⚡ Lancer une session'); await page.waitForTimeout(300);
-    t.assert.equal((await page.state()).session.focus, 'harmonie');
+    t.assert.ok((await page.state()).session, 'session lancée');
   },
 
   'objectifs : création, paliers hebdomadaires, suppression': async (t) => {

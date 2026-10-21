@@ -147,7 +147,7 @@ export const PAD_LEVELS = [
     studio: 'Dans le Lab Beat, choisis le style Reggaeton et compare avec ton jeu. Sur le MPC, joue la snare avec un rim pour un son plus « perreo ».',
   },
   {
-    id: 'htgroove', ch: 2, emoji: '⚡', title: 'Hard trance', bpm: 155, repeat: 4, kit: 'hard', pads: D('kick', 'clap', 'ohat', 'hat'),
+    id: 'htgroove', ch: 2, emoji: '⚡', title: 'Hard trance', bpm: 155, repeat: 4, kit: 'harddance', pads: D('kick', 'clap', 'ohat', 'hat'),
     concept: 'Kick implacable + hats entre les temps, à 155 BPM',
     intro: 'La hard trance tient un kick dur sur chaque temps, un clap sur 2 et 4, un hat ouvert à contretemps et des hats fermés sur les doubles croches « e » et « a ». À 155 BPM, tout va vite : garde le poignet détendu et laisse le kick te porter.',
     points: ['Kick sur les 4 temps, clap sur 2 et 4.', 'Hat ouvert sur les « et », hats fermés juste avant et juste après.', 'Commence en Facile (Mode libre) si 155 BPM, c’est trop rapide.'],
@@ -156,7 +156,7 @@ export const PAD_LEVELS = [
     studio: 'Dans Live à 155 BPM : kick 909 + Saturator, clap doublé, hats sur un Drum Rack avec un léger delay 1/16. Garde la place entre les kicks pour la basse roulante.',
   },
   {
-    id: 'hhdonk', ch: 2, emoji: '🔨', title: 'Hard house : le donk', bpm: 145, repeat: 4, kit: 'hard', pads: [...D('kick', 'clap'), { id: 'tom', name: 'Donk', sound: { drum: 'tom' } }, ...D('rim')],
+    id: 'hhdonk', ch: 2, emoji: '🔨', title: 'Hard house : le donk', bpm: 145, repeat: 4, kit: 'harddance', pads: [...D('kick', 'clap'), { id: 'tom', name: 'Donk', sound: { drum: 'tom' } }, ...D('rim')],
     concept: 'La basse « donk » sur chaque contretemps',
     intro: 'La hard house pose un « donk » (une basse courte et percutante) sur chaque contretemps, entre les kicks. Ici, un pad joue ce donk ; un rim bondissant ajoute le côté rave. Kick et donk alternent : boum-donk-boum-donk.',
     points: ['Donk sur chaque « et », jamais avec le kick.', 'Clap sur 2 et 4 avec le kick.', 'Rim : petites touches qui rebondissent, frappe-les légèrement.'],

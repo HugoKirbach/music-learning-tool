@@ -1,10 +1,13 @@
-import { el, card, header, playButton, toast } from '../ui.js';
+import { el, card, header, playButton, toast, downloadMidi } from '../ui.js';
 import { cleanFavs } from '../core/daily.js';
 import { PATHS } from '../data/paths.js';
 import { getState, update, projectFromGenre } from '../store.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { SCALES, NOTE_NAMES, slotChord } from '../core/theory.js';
 import { playProject, stopAll } from '../player.js';
+import { DEMOS } from '../data/demos.js';
+import { demoToSong, sectionAt } from '../core/demosong.js';
+import { playDemo } from '../demoplayer.js';
 
 export function render(root, params) {
   if (params.g) return detail(root, genreById(params.g));
@@ -40,15 +43,44 @@ function favButton(g) {
   return b;
 }
 
+/** Mini-maquette arrangée : lecture, frise des sections qui suit la lecture, export MIDI multipiste. */
+function demoCard(g, d) {
+  const song = d.song;
+  const chips = song.sections.map((sec) => el('li.demo-sec', { style: { flexGrow: sec.bars } },
+    el('b', `${sec.emoji} ${sec.name}`), el('small', `${sec.bars} mes.`)));
+  const desc = el('p.small.demo-desc', song.sections[0].desc);
+  const showSection = (i) => {
+    chips.forEach((c, k) => { c.classList.toggle('on', k === i); c.classList.toggle('past', k < i); });
+    if (song.sections[i]) desc.replaceChildren(el('b', `${song.sections[i].emoji} ${song.sections[i].name} — `), song.sections[i].desc);
+  };
+  let stop = null;
+  const play = playButton(() => {
+    stop = playDemo(song, { onStep: (s) => showSection(sectionAt(song, s)), onEnd: () => { play.reset(); showSection(-1); } });
+  }, () => { stop?.(); showSection(-1); }, `Écouter la maquette (${Math.round(song.seconds)} s)`);
+  chips.forEach((c, i) => c.addEventListener('click', () => showSection(i)));
+  return card(
+    el('h3', `🎧 Mini-maquette : ${song.title.replace(/ \(.*\)$/, '')}`),
+    el('p.small.muted', `${song.bpm} BPM · ${song.bars} mesures · morceau original écrit dans les codes du style : écoute comment il est construit, section par section.`),
+    el('div.row.gap.wrap', play,
+      el('button.btn', { onclick: () => downloadMidi(`maquette-${g.id}-${song.bpm}bpm`, demoToSong(song)) }, '⬇ MIDI multipiste (Live)')),
+    el('ol.demo-timeline', { 'aria-label': 'Sections de la maquette' }, chips),
+    desc,
+    el('h3', '🎧 Morceaux de référence'),
+    el('ul.clean', d.refs.map((r) => el('li', r))),
+    el('p.small.muted', d.listen));
+}
+
 function detail(root, g) {
   // Lecture de l'idée complète du style sans écraser le projet de l'utilisateur
   const demo = projectFromGenre(g.id);
-  const play = playButton(() => playProject(() => demo), () => stopAll(), 'Écouter la démo');
+  const maquette = DEMOS[g.id];
+  const play = maquette ? null : playButton(() => playProject(() => demo), () => stopAll(), 'Écouter la démo');
   const chords = g.prog.map((slot) => slotChord(g.rootPc, g.scale, slot, 3));
   root.append(
     header(`${g.emoji} ${g.name}`, `${g.family} · ${g.bpm} BPM${g.swing ? ` · swing ${Math.round(g.swing * 100)}%` : ''}`, '#/atlas'),
     card(el('p', g.desc), el('div.row.gap.wrap', play, favButton(g), PATHS[g.id] ? el('a.btn.primary', { href: `#/path?g=${g.id}` }, `🎓 Parcours ${g.name} (${PATHS[g.id].steps.length} étapes)`) : null),
-      el('p.small.muted', `Démo : ${NOTE_NAMES[g.rootPc]} ${SCALES[g.scale].name} — ${chords.map((c) => `${c.roman} (${c.symbol})`).join(' – ')}`)),
+      el('p.small.muted', `${maquette ? 'Tonalité type' : 'Démo'} : ${NOTE_NAMES[g.rootPc]} ${SCALES[g.scale].name} — ${chords.map((c) => `${c.roman} (${c.symbol})`).join(' – ')}`)),
+    maquette ? demoCard(g, maquette) : null,
     card(el('h3', '🧪 Ingrédients signature'), el('ul.clean', g.signature.map((x) => el('li', x))),
       el('h3', '🎧 Références à écouter'), el('p', g.refs.join(' · ')),
       el('p.small.muted', 'Méthode : écoute 1 morceau de chaque référence en te demandant « où est le kick ? où est la snare ? qu’est-ce qui bouge ? »')),

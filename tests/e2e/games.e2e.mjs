@@ -63,10 +63,17 @@ export const tests = {
   'pad rush : défi à l’oreille réussi → solution en vert et niveau validé dans le parcours': async (t) => {
     const page = await t.open({ midi: true });
     await page.go('#/pads?level=otf');
-    await page.evaluate(() => {
-      const spb = 0.6, base = 4 * spb, t0 = performance.now() + (0.2 + 2 * base + 4 * spb) * 1000;
+    // Frappes calées sur l'horloge audio du jeu (et non sur performance.now, qui dérive par rapport à elle)
+    await page.evaluate(async () => {
+      const { now, outputLatency } = await import('./src/core/audio.js');
+      const spb = 0.6, base = 4 * spb, t0 = now() + 0.2 + 2 * base + 4 * spb;
       [...document.querySelectorAll('button')].find((x) => x.textContent.includes('Défi à l’oreille')).click();
-      for (let b = 0; b < 8; b++) setTimeout(() => { window.__midi(0x90, 36, 100); setTimeout(() => window.__midi(0x80, 36, 0), 50); }, t0 + b * spb * 1000 - performance.now());
+      let b = 0;
+      const id = setInterval(() => {
+        if (now() - outputLatency() < t0 + b * spb) return;
+        window.__midi(0x90, 36, 100); setTimeout(() => window.__midi(0x80, 36, 0), 50);
+        if (++b >= 8) clearInterval(id);
+      }, 2);
     });
     await page.waitForSelector('.rush-result', { timeout: 25000 });
     const acc = Number((await page.locator('.rush-result .big').innerText()).replace(/\D/g, ''));

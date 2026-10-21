@@ -310,6 +310,22 @@ export const PRESETS = {
       'ENV 1 : Decay 450 ms, Sustain 0. Une octave plus bas = log drum amapiano.',
     ],
   },
+  trancelead: {
+    name: 'Lead hard trance', role: 'lead', cat: 'leads',
+    params: makePreset({
+      osc: [{ wave: 'sawtooth', semi: 0, voices: 7, detune: 26, level: 0.75 }, { wave: 'sawtooth', semi: 12, voices: 5, detune: 22, level: 0.45 }],
+      filter: { cutoff: 6500, q: 0.7, envAmt: 0.4 },
+      fenv: { a: 0.002, d: 0.25, s: 0.7, r: 0.2 },
+      amp: { a: 0.003, d: 0.2, s: 0.85, r: 0.18 },
+      chorus: 0.15, reverb: 0.3, delay: 0.18, width: 1, drive: 0.15, gain: 0.32,
+    }),
+    serum: [
+      'Osc A : Saw, Unison 7, Detune 0.25. Osc B : Saw +12 (une octave au-dessus), Unison 5 : c’est l’octave qui fait « briller » le lead.',
+      'Filtre : Low 12 assez ouvert (~6,5 kHz), ENV 2 léger sur le Cutoff pour l’attaque.',
+      'FX : Hyper/Dimension, OTT (Depth 30-40 %), Delay 1/8 pointé, Reverb 30 %.',
+      'Dans Live : sidechain léger (2-4 dB) sur le kick, et le lead doublé une octave en dessous dans le break.',
+    ],
+  },
   hoover: {
     name: 'Hoover rave', role: 'lead', cat: 'leads',
     params: makePreset({
@@ -328,6 +344,39 @@ export const PRESETS = {
   },
 
   // ---------------- BASSES ----------------
+  trancebass: {
+    name: 'Basse roulante (hard trance)', role: 'bass', cat: 'basses',
+    params: makePreset({
+      osc: [{ wave: 'sawtooth', semi: 0, voices: 2, detune: 8, level: 0.7 }, { wave: 'square', semi: -12, voices: 1, detune: 0, level: 0.35 }],
+      filter: { cutoff: 700, q: 1.6, envAmt: 2.2, slope: 24 },
+      fenv: { a: 0.001, d: 0.11, s: 0.1, r: 0.05 },
+      amp: { a: 0.002, d: 0.13, s: 0.25, r: 0.04 },
+      drive: 0.35, reverb: 0, width: 0.2, gain: 0.6,
+    }),
+    serum: [
+      'Osc A : Saw, Unison 2 léger. Sub : Square −1 octave, assez bas.',
+      'Filtre : Low 24, Cutoff ~700 Hz, Res 25 %, ENV 2 → Cutoff (Decay 110 ms, Sustain 10 %) : le « tic » de chaque note.',
+      'ENV 1 : Decay 130 ms, Sustain bas : des notes courtes qui laissent la place au kick.',
+      'Rythme : les 3 doubles croches après chaque kick (la note sur le temps est laissée au kick). Saturator léger, sidechain court.',
+    ],
+  },
+  donk: {
+    name: 'Donk (hard house)', role: 'bass', cat: 'basses',
+    params: makePreset({
+      osc: [{ wave: 'sine', semi: -12, voices: 1, detune: 0, level: 1 }],
+      fm: { ratio: 2, index: 3.2, decay: 0.12, sustain: 0.05 },
+      pitchEnv: { amt: 7, decay: 0.03 },
+      filter: { cutoff: 2600, q: 0.7 },
+      amp: { a: 0.001, d: 0.22, s: 0, r: 0.05 },
+      drive: 0.4, reverb: 0.03, width: 0, gain: 0.62,
+    }),
+    serum: [
+      'Synthèse FM : une sinusoïde une octave en dessous (Coarse 0,5) modulée par un 2e oscillateur (triangle) au rapport 2:1. Dans Live : Operator, Op A sinus Coarse 0,5, Op B triangle Coarse 1.',
+      'Enveloppes courtes (Decay ~200-500 ms, Sustain 0) sur les deux : plus le modulateur est fort, plus le son est « creux ».',
+      'Petite enveloppe de pitch rapide à l’attaque pour le « d » de « donk ».',
+      'Rythme : sur chaque contretemps, souvent avec des sauts d’octave. Saturator, puis Utility en mono sous 120 Hz.',
+    ],
+  },
   sub: {
     name: 'Sub bass', role: 'bass', cat: 'basses',
     params: makePreset({
