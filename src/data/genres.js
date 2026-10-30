@@ -3,7 +3,7 @@
 
 export const GENRES = [
   {
-    id: 'house', name: 'House', emoji: '🏠', family: 'Électro', bpm: 124, swing: 0.08,
+    id: 'house', name: 'House', emoji: '🏠', family: 'House & disco', bpm: 124, swing: 0.08,
     rootPc: 9, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 2 }, { deg: 6 }],
     chordStyle: 'stab', bassStyle: 'offbeat', sounds: { chords: 'organ', bass: 'moogbass', lead: 'pluck' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: '.o.o.o.o.o.o.o.o', ohat: '..x...x...x...x.', perc: '......x.....o..x' },
@@ -17,7 +17,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'deephouse', name: 'Deep House', emoji: '🌊', family: 'Électro', bpm: 120, swing: 0.16,
+    id: 'deephouse', name: 'Deep House', emoji: '🌊', family: 'House & disco', bpm: 120, swing: 0.16,
     rootPc: 2, scale: 'dorian', prog: [{ deg: 0 }, { deg: 3 }, { deg: 0 }, { deg: 6 }],
     chordStyle: 'stab', bassStyle: 'syncop', sounds: { chords: 'epiano', bass: 'fmbass', lead: 'bell' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'o.o.o.o.o.o.o.oo', ohat: '..x...x...x...x.', perc: 'x..o..x...o..x..' },
@@ -31,7 +31,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'techno', name: 'Techno', emoji: '⚙️', family: 'Électro', bpm: 130, swing: 0,
+    id: 'techno', name: 'Techno', emoji: '⚙️', family: 'Techno & trance', bpm: 130, swing: 0,
     rootPc: 4, scale: 'phrygian', prog: [{ deg: 0 }, { deg: 0 }, { deg: 1 }, { deg: 0 }],
     chordStyle: 'oneshot', bassStyle: 'rolling', sounds: { chords: 'stab', bass: 'reese', lead: 'sawlead' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'oo.ooo.ooo.ooo.o', ohat: '..x...x...x...x.', perc: '...x......x..x..' },
@@ -45,7 +45,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'acid', name: 'Acid', emoji: '🧪', family: 'Électro', bpm: 128, swing: 0.05,
+    id: 'acid', name: 'Acid', emoji: '🧪', family: 'Techno & trance', bpm: 128, swing: 0.05,
     rootPc: 9, scale: 'minor', prog: [{ deg: 0 }, { deg: 0 }, { deg: 0 }, { deg: 6 }],
     chordStyle: 'none', bassStyle: 'acid', sounds: { chords: 'stab', bass: 'acid', lead: 'squarelead' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', ohat: '..x...x...x...x.', perc: '' },
@@ -59,7 +59,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'ukg', name: 'UK Garage', emoji: '🇬🇧', family: 'Électro', bpm: 132, swing: 0.3,
+    id: 'ukg', name: 'UK Garage', emoji: '🇬🇧', family: 'Breakbeat & bass', bpm: 132, swing: 0.3,
     rootPc: 5, scale: 'minor', prog: [{ deg: 0 }, { deg: 3 }, { deg: 5 }, { deg: 4 }],
     chordStyle: 'stab', bassStyle: 'syncop', sounds: { chords: 'organ', bass: 'fmbass', lead: 'pluck' },
     drums: { kick: 'x.........x.....', clap: '....x.......x...', hat: '..x.o.x...x.o.x.', ohat: '......x.......x.', perc: 'o..x...o..x..o..' },
@@ -73,7 +73,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'dnb', name: 'Drum & Bass', emoji: '⚡', family: 'Électro', bpm: 174, swing: 0,
+    id: 'dnb', name: 'Drum & Bass', emoji: '🏎️', family: 'Breakbeat & bass', bpm: 174, swing: 0,
     rootPc: 7, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 3 }, { deg: 4 }],
     chordStyle: 'pad', bassStyle: 'reese', sounds: { chords: 'pad', bass: 'reese', lead: 'pluck' },
     drums: { kick: 'x.........x.....', snare: '....x..o.o..x..o', hat: 'x.x.x.x.x.x.x.x.', ohat: '..............x.', perc: '' },
@@ -87,7 +87,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'jungle', name: 'Jungle', emoji: '🌴', family: 'Électro', bpm: 170, swing: 0,
+    id: 'jungle', name: 'Jungle', emoji: '🌴', family: 'Breakbeat & bass', bpm: 170, swing: 0,
     rootPc: 0, scale: 'minor', prog: [{ deg: 0 }, { deg: 0 }, { deg: 5 }, { deg: 6 }],
     chordStyle: 'pad', bassStyle: 'long', sounds: { chords: 'stringpad', bass: 'sub', lead: 'hoover' },
     drums: { kick: 'x.x.......xx....', snare: '....x..x.x..x..x', hat: 'x.x.x.x.x.x.x.x.', ohat: '', perc: '..o.....o.....o.' },
@@ -101,7 +101,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'dubstep', name: 'Dubstep', emoji: '🔊', family: 'Électro', bpm: 140, swing: 0,
+    id: 'dubstep', name: 'Dubstep', emoji: '🔊', family: 'Breakbeat & bass', bpm: 140, swing: 0,
     rootPc: 5, scale: 'phrygian', prog: [{ deg: 0 }, { deg: 0 }, { deg: 1 }, { deg: 0 }],
     chordStyle: 'pad', bassStyle: 'halftime', sounds: { chords: 'pad', bass: 'wobble', lead: 'squarelead' },
     drums: { kick: 'x..........x....', snare: '........x.......', hat: 'x.o.x.o.x.o.x.o.', ohat: '', perc: '...o......o..o..' },
@@ -115,7 +115,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'trap', name: 'Trap', emoji: '💎', family: 'Électro / Hip-hop', bpm: 140, swing: 0,
+    id: 'trap', name: 'Trap', emoji: '💎', family: 'Hip-hop & urbain', bpm: 140, swing: 0,
     rootPc: 1, scale: 'harmonicMinor', prog: [{ deg: 0 }, { deg: 0 }, { deg: 5 }, { deg: 4 }],
     chordStyle: 'pad', bassStyle: '808', sounds: { chords: 'bell', bass: 'bass808', lead: 'bell' },
     drums: { kick: 'x......x..x.....', clap: '........x.......', hat: 'x.x.x.x.x.xxx.xx', ohat: '', perc: '.......o.....o..' },
@@ -129,7 +129,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'synthwave', name: 'Synthwave', emoji: '🌆', family: 'Électro', bpm: 100, swing: 0,
+    id: 'synthwave', name: 'Synthwave', emoji: '🌆', family: 'Rétro, groove & chill', bpm: 100, swing: 0,
     rootPc: 9, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 2 }, { deg: 6 }],
     chordStyle: 'pulse', bassStyle: 'eighths', sounds: { chords: 'brass', bass: 'pluckbass', lead: 'squarelead' },
     drums: { kick: 'x.......x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', ohat: '', perc: '' },
@@ -143,7 +143,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'trance', name: 'Trance', emoji: '🌀', family: 'Électro', bpm: 138, swing: 0,
+    id: 'trance', name: 'Trance', emoji: '🌀', family: 'Techno & trance', bpm: 138, swing: 0,
     rootPc: 9, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 2 }, { deg: 6 }],
     chordStyle: 'pulse', bassStyle: 'offbeat', sounds: { chords: 'supersaw', bass: 'pluckbass', lead: 'supersaw' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'oxoooxoooxoooxoo', ohat: '..x...x...x...x.', perc: '' },
@@ -157,7 +157,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'hardtrance', name: 'Hard Trance', emoji: '⚡', family: 'Électro', bpm: 155, swing: 0,
+    id: 'hardtrance', name: 'Hard Trance', emoji: '⚡', family: 'Techno & trance', bpm: 155, swing: 0,
     rootPc: 5, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 2 }, { deg: 6 }],
     chordStyle: 'pulse', bassStyle: 'rolling', sounds: { chords: 'supersaw', bass: 'trancebass', lead: 'trancelead' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'xxoxxxoxxxoxxxox', ohat: '..x...x...x...x.', perc: '...x.......x..x.' },
@@ -171,7 +171,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'hardhouse', name: 'Hard House', emoji: '🔨', family: 'Électro', bpm: 145, swing: 0,
+    id: 'hardhouse', name: 'Hard House', emoji: '🔨', family: 'House & disco', bpm: 145, swing: 0,
     rootPc: 7, scale: 'minor', prog: [{ deg: 0 }, { deg: 0 }, { deg: 5 }, { deg: 6 }],
     chordStyle: 'stab', bassStyle: 'offbeat', sounds: { chords: 'stab', bass: 'donk', lead: 'hoover' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'o.x.o.x.o.x.o.x.', ohat: '..x...x...x...x.', perc: '..x..x....x..x..' },
@@ -185,7 +185,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'afrohouse', name: 'Afro House', emoji: '🥁', family: 'Électro', bpm: 122, swing: 0.1,
+    id: 'afrohouse', name: 'Afro House', emoji: '🥁', family: 'House & disco', bpm: 122, swing: 0.1,
     rootPc: 7, scale: 'minor', prog: [{ deg: 0 }, { deg: 6 }, { deg: 5 }, { deg: 6 }],
     chordStyle: 'stab', bassStyle: 'tresillo', sounds: { chords: 'bell', bass: 'sub', lead: 'marimba' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'o.xo.o.xo.o.xo.o', ohat: '..x.......x.....', perc: 'x..x..x...x..x..' },
@@ -199,7 +199,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'reggaeton', name: 'Reggaeton', emoji: '🔥', family: 'Hors électro', bpm: 95, swing: 0,
+    id: 'reggaeton', name: 'Reggaeton', emoji: '🔥', family: 'Hip-hop & urbain', bpm: 95, swing: 0,
     rootPc: 2, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 2 }, { deg: 6 }],
     chordStyle: 'dembow', bassStyle: 'tresillo', sounds: { chords: 'pluck', bass: 'bass808', lead: 'pluck' },
     drums: { kick: 'x...x...x...x...', snare: '...x..x....x..x.', hat: 'x.x.x.x.x.x.x.x.', ohat: '', perc: '' },
@@ -213,7 +213,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'lofi', name: 'Lo-fi Hip-hop', emoji: '📼', family: 'Hors électro', bpm: 82, swing: 0.45,
+    id: 'lofi', name: 'Lo-fi Hip-hop', emoji: '📼', family: 'Hip-hop & urbain', bpm: 82, swing: 0.45,
     rootPc: 5, scale: 'major', prog: [{ deg: 1 }, { deg: 4 }, { deg: 0 }, { deg: 5 }],
     chordStyle: 'piano', bassStyle: 'long', sounds: { chords: 'epiano', bass: 'sub', lead: 'bell' },
     drums: { kick: 'x.......x.x.....', snare: '....x.......x...', hat: 'x.o.x.o.x.oox.o.', ohat: '', perc: '.......o......o.' },
@@ -227,7 +227,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'disco', name: 'Nu-Disco', emoji: '🪩', family: 'Électro', bpm: 118, swing: 0.05,
+    id: 'disco', name: 'Nu-Disco', emoji: '🪩', family: 'House & disco', bpm: 118, swing: 0.05,
     rootPc: 7, scale: 'major', prog: [{ deg: 0 }, { deg: 5 }, { deg: 1 }, { deg: 4 }],
     chordStyle: 'stab', bassStyle: 'octave', sounds: { chords: 'stringpad', bass: 'pluckbass', lead: 'squarelead' },
     drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx', ohat: '..x...x...x...x.', perc: '' },
@@ -241,7 +241,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'jersey', name: 'Jersey Club', emoji: '🛏️', family: 'Électro', bpm: 140, swing: 0,
+    id: 'jersey', name: 'Jersey Club', emoji: '🛏️', family: 'Breakbeat & bass', bpm: 140, swing: 0,
     rootPc: 11, scale: 'minor', prog: [{ deg: 0 }, { deg: 5 }, { deg: 6 }, { deg: 4 }],
     chordStyle: 'pad', bassStyle: 'halftime', sounds: { chords: 'supersaw', bass: 'bass808', lead: 'pluck' },
     drums: { kick: 'x...x...x.x.x...', clap: '....x.......x...', hat: '', ohat: '', perc: '..x....x..x...x.' },
@@ -255,7 +255,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'ambient', name: 'Ambient', emoji: '☁️', family: 'Électro', bpm: 80, swing: 0,
+    id: 'ambient', name: 'Ambient', emoji: '☁️', family: 'Rétro, groove & chill', bpm: 80, swing: 0,
     rootPc: 0, scale: 'lydian', prog: [{ deg: 0 }, { deg: 1 }, { deg: 4 }, { deg: 5 }],
     chordStyle: 'pad', bassStyle: 'long', sounds: { chords: 'warmpad', bass: 'sub', lead: 'bell' },
     drums: { kick: 'x.........x.....', snare: '', hat: '', ohat: '', perc: '......o.......o.' },
@@ -269,7 +269,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'funk', name: 'Funk', emoji: '🕺', family: 'Hors électro', bpm: 104, swing: 0.1,
+    id: 'funk', name: 'Funk', emoji: '🕺', family: 'Rétro, groove & chill', bpm: 104, swing: 0.1,
     rootPc: 4, scale: 'mixolydian', prog: [{ deg: 0 }, { deg: 3 }, { deg: 0 }, { deg: 6 }],
     chordStyle: 'funk', bassStyle: 'syncop', sounds: { chords: 'epiano', bass: 'moogbass', lead: 'squarelead' },
     drums: { kick: 'x.x.......x..x..', snare: '....x..o.o..x..o', hat: 'xoxoxoxoxoxoxoxo', ohat: '', perc: '' },
@@ -283,7 +283,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'bossa', name: 'Bossa Nova', emoji: '🌴', family: 'Hors électro', bpm: 128, swing: 0,
+    id: 'bossa', name: 'Bossa Nova', emoji: '🏖️', family: 'Rétro, groove & chill', bpm: 128, swing: 0,
     rootPc: 2, scale: 'major', prog: [{ deg: 1 }, { deg: 4 }, { deg: 0 }, { deg: 5 }],
     chordStyle: 'bossa', bassStyle: 'bossa', sounds: { chords: 'epiano', bass: 'sub', lead: 'bell' },
     drums: { kick: 'x..xx..xx..xx..x', snare: '', hat: 'x.x.x.x.x.x.x.x.', ohat: '', perc: 'x..x..x...x..x..' },
@@ -297,7 +297,7 @@ export const GENRES = [
     },
   },
   {
-    id: 'afrobeats', name: 'Afrobeats', emoji: '🌍', family: 'Hors électro', bpm: 106, swing: 0.12,
+    id: 'afrobeats', name: 'Afrobeats', emoji: '🌍', family: 'Hip-hop & urbain', bpm: 106, swing: 0.12,
     rootPc: 1, scale: 'major', prog: [{ deg: 0 }, { deg: 4 }, { deg: 5 }, { deg: 3 }],
     chordStyle: 'stab', bassStyle: 'tresillo', sounds: { chords: 'epiano', bass: 'bass808', lead: 'marimba' },
     drums: { kick: 'x..x..x.x..x..x.', clap: '....x.......x...', hat: 'xoxxxoxxxoxxxoxx', ohat: '', perc: '...x..x...x...x.' },

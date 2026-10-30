@@ -1,5 +1,6 @@
 import { el, card, header, segmented, select, hintBox, finishExercise, downloadMidi, playButton, toast, shuffle } from '../ui.js';
-import { getState, update, projectFromGenre } from '../store.js';
+import { getState, update, projectFromGenre, level } from '../store.js';
+import { screenById, isOpen } from '../catalog.js';
 import { SCALES, HEPTATONIC, NOTE_NAMES, slotChord, borrowOptions, detectChord, romanFor, mod } from '../core/theory.js';
 import { CHORD_RHYTHMS, BASS_RHYTHMS, projectToSong, voiceProgression } from '../core/arrange.js';
 import { playProject, previewChord, stopAll, presetParams, onPlayhead } from '../player.js';
@@ -11,6 +12,9 @@ import { onMidi } from '../midiin.js';
 import { viewKeys } from '../shortcuts.js';
 
 const FN = ['T', 'S', 'T', 'S', 'D', 'T', 'D'];
+
+/** Ligne libellé + contrôle d'une grille de réglages (le libellé sert aussi aux lecteurs d'écran). */
+const field = (label, control) => { if (control.tagName === 'SELECT') control.setAttribute('aria-label', label); return [el('span', label), control]; };
 const FN_LABEL = { T: 'Tonique (repos)', S: 'Sous-dominante (départ)', D: 'Dominante (tension)' };
 
 export const FAMOUS = [
@@ -54,7 +58,7 @@ export function render(root, params) {
   let rating = 2;
   let layers = { drums: true, bass: true, melody: false, chords: true };
 
-  root.append(header('Lab Accords', recipe ? 'Recette : construis une progression qui respecte la règle' : 'Construis des progressions par degrés'));
+  root.append(header('🎼 Lab Accords', recipe ? 'Recette : construis une progression qui respecte la règle' : 'Construis des progressions par degrés'));
   root.append(el('div.row.gap.wrap', { style: { marginBottom: '10px' } },
     segmented([{ value: 'free', label: '🎨 Libre' }, { value: 'recipe', label: '🧩 Recette' }], mode, (v) => { location.hash = `#/chords?mode=${v}&genre=${P().genre}`; }),
     el('a.btn.small.ghost', { href: '#/ear?mode=progressions&n=5' }, '👂 Quiz progressions')));
@@ -100,9 +104,11 @@ export function render(root, params) {
 
   const rootSel = select(NOTE_NAMES.map((n, i) => ({ value: i, label: n })), P().rootPc, (v) => { update((s) => { s.project.rootPc = +v; }); renderAll(); });
   const scaleSel = select(HEPTATONIC.map((k) => ({ value: k, label: SCALES[k].name })), P().scale, (v) => { update((s) => { s.project.scale = v; }); borrowMode = null; renderBorrow(); renderAll(); });
+  rootSel.setAttribute('aria-label', 'Tonique');
+  scaleSel.setAttribute('aria-label', 'Gamme');
   const borrowWrap = el('div');
   const renderBorrow = () => {
-    borrowWrap.replaceChildren(segmented([{ value: '', label: 'Diatonique' }, ...borrowOptions(P().scale).map((m) => ({ value: m, label: `Emprunt : ${SCALES[m].name.split(' ')[0]}` }))], borrowMode || '', (v) => { borrowMode = v || null; renderPalette(); }));
+    borrowWrap.replaceChildren(segmented([{ value: '', label: 'Diatonique' }, ...borrowOptions(P().scale).map((m) => ({ value: m, label: `Emprunt : ${SCALES[m].name.split(' ')[0]}` }))], borrowMode || '', (v) => { borrowMode = v || null; renderPalette(); }, 'lab-wrap'));
   };
   renderBorrow();
 
@@ -165,63 +171,59 @@ export function render(root, params) {
         : el('p.small.muted', 'Cet accord n’est pas dans la gamme (ni dans les emprunts proposés) : change la tonalité ou essaie une autre fondamentale.')));
   }
 
-  const pumpSl = slider({ label: 'Pompe (sidechain)', min: 0, max: 1, step: 0.01, value: P().pump ?? 0, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => update((s) => { s.project.pump = v; }) });
-  const tools = card(
-    el('div.ctrl-row', play, rootSel, scaleSel),
-    el('div.ctrl-row',
-      el('label', 'Notes'), segmented([{ value: 3, label: 'Triades' }, { value: 4, label: '7e' }, { value: 5, label: '9e' }], P().ext, (v) => { update((s) => { s.project.ext = v; }); renderAll(); }),
+  const pumpSl = slider({ label: 'Pompe (sidechain)', min: 0, max: 1, step: 0.01, value: P().pump ?? 0, format: (v) => `${Math.round(v * 100)}\u00a0%`, onInput: (v) => update((s) => { s.project.pump = v; }) });
+  const tools = card(el('h3', '🎛️ Habillage de la boucle'),
+    el('div.ctrl-grid.lab-grid.pairs',
+      field('Notes', segmented([{ value: 3, label: 'Triades' }, { value: 4, label: '7e' }, { value: 5, label: '9e' }], P().ext, (v) => { update((s) => { s.project.ext = v; }); renderAll(); })),
+      field('Voicing', segmented([{ value: 'lead', label: 'Fluide (voice leading)', title: 'Garde les notes communes et bouge les autres au plus près' }, { value: 'close', label: 'Serré' }, { value: 'spread', label: 'Écarté' }], P().voicing, (v) => { update((s) => { s.project.voicing = v; }); renderAll(); })),
+      field('Rythme', select(Object.entries(CHORD_RHYTHMS).map(([k, r]) => ({ value: k, label: r.name })), P().chordStyle, (v) => update((s) => { s.project.chordStyle = v; }))),
+      field('Son accords', select(presetOptions((p) => p.role !== 'bass'), P().sounds.chords, (v) => update((s) => { s.project.sounds.chords = v; }))),
+      field('Basse', select(Object.entries(BASS_RHYTHMS).map(([k, r]) => ({ value: k, label: r.name })), P().bassStyle, (v) => update((s) => { s.project.bassStyle = v; }))),
+      field('Son basse', select(presetOptions((p) => p.role === 'bass'), P().sounds.bass, (v) => update((s) => { s.project.sounds.bass = v; }))),
+      field('Écoute', segmented([{ value: 'all', label: 'Tout' }, { value: 'chords', label: 'Accords seuls' }], 'all', (v) => { layers = v === 'all' ? { drums: true, bass: true, melody: false, chords: true } : { drums: false, bass: false, melody: false, chords: true }; })),
     ),
-    el('div.ctrl-row',
-      el('label', 'Voicing'), segmented([{ value: 'lead', label: 'Voice leading' }, { value: 'close', label: 'Serré' }, { value: 'spread', label: 'Écarté' }], P().voicing, (v) => { update((s) => { s.project.voicing = v; }); renderAll(); }),
-    ),
-    el('div.ctrl-row',
-      el('label', 'Rythme'), select(Object.entries(CHORD_RHYTHMS).map(([k, r]) => ({ value: k, label: r.name })), P().chordStyle, (v) => update((s) => { s.project.chordStyle = v; })),
-      el('label', 'Son'), select(presetOptions((p) => p.role !== 'bass'), P().sounds.chords, (v) => update((s) => { s.project.sounds.chords = v; })),
-    ),
-    el('div.ctrl-row',
-      el('label', 'Basse'), select(Object.entries(BASS_RHYTHMS).map(([k, r]) => ({ value: k, label: r.name })), P().bassStyle, (v) => update((s) => { s.project.bassStyle = v; })),
-      select(presetOptions((p) => p.role === 'bass'), P().sounds.bass, (v) => update((s) => { s.project.sounds.bass = v; })),
-      el('label', 'Pistes'), segmented([{ value: 'all', label: 'Tout' }, { value: 'chords', label: 'Accords seuls' }], 'all', (v) => { layers = v === 'all' ? { drums: true, bass: true, melody: false, chords: true } : { drums: false, bass: false, melody: false, chords: true }; }),
-    ),
+    pumpSl,
+    el('p.small.muted', 'Pompe : les accords et la basse « respirent » sur chaque kick, comme un compresseur en sidechain dans Live.'),
   );
 
-  tools.append(pumpSl, el('p.small.muted', 'Pompe : les accords et la basse « respirent » sur chaque kick, comme un compresseur en sidechain dans Live.'));
+  const saveBtn = el('button.btn.small', {
+    onclick: () => {
+      const v = voiced();
+      update((s) => { s.notebook.unshift({ id: Date.now(), type: 'chords', title: v.map((c) => c?.symbol || '–').join(' · '), note: v.map((c) => c?.roman || '–').join(' – '), date: Date.now(), genre: s.project.genre, rootPc: s.project.rootPc, scale: s.project.scale, chords: JSON.parse(JSON.stringify(s.project.chords)), ext: s.project.ext }); });
+      toast('Progression rangée dans le Carnet 📓', 'good');
+    },
+  }, '📓 Au Carnet');
+  const validate = recipe ? [
+    el('div.field', el('span', 'Ressenti'), segmented([{ value: 1, label: '😐 Bof' }, { value: 2, label: '🙂 Pas mal' }, { value: 3, label: '🔥 Frissons' }], rating, (v) => { rating = v; })),
+    el('button.btn.small.primary', {
+      onclick: () => {
+        const p = P();
+        if (p.chords.some((c) => !c)) return toast('Remplis les 4 accords', 'bad');
+        if (!recipe.check(p)) return toast('La recette n’est pas respectée 🧐', 'bad');
+        stopAll();
+        finishExercise({
+          key: 'chords:recipe', title: 'Recette réussie', xp: 30 + rating * 5, skill: 'harmonie', genre: p.genre, hintUsed, success: true,
+          lesson: recipe.lesson,
+          transfer: 'Sur le MPC Key 37 : Pad Perform > Chords, enregistre cette progression et joue-la avec un autre rythme. Dans Live : exporte le MIDI et ouvre-le avec Serum 2.',
+          onRetry: () => { location.hash = `#/chords?mode=recipe&genre=${shuffle(GENRES)[0].id}&r=${Date.now()}`; },
+        });
+      },
+    }, '✓ Valider la recette')] : [];
+
   root.append(
     recipe ? card(el('div.lesson', el('div.lesson-title', '🧩 Recette'), el('p', el('b', recipe.text)))) : null,
-    card(slotsEl, el('h3', { style: { marginTop: '12px' } }, 'Palette'), borrowWrap, el('div', { style: { height: '8px' } }), palette, info, midiInfo,
-      el('div.row.gap.wrap', { style: { marginTop: '8px' } },
+    card(el('div.ctrl-row', play, el('div.field', el('span', 'Tonalité'), rootSel, scaleSel)),
+      slotsEl, el('h3', { style: { marginTop: '12px' } }, 'Palette'), borrowWrap, el('div', { style: { height: '8px' } }), palette, info, midiInfo,
+      el('div.action-bar',
         recipe ? null : famousSel,
         el('button.btn.small', { onclick: () => { update((s) => { s.project.chords = shuffle([0, 1, 2, 3, 4, 5, 6]).slice(0, 4).map((deg) => ({ deg })); }); renderAll(); } }, '🎲 Aléatoire'),
-        el('button.btn.small', { onclick: () => downloadMidi(`accords-${NOTE_NAMES[P().rootPc]}-${P().scale}`, projectToSong(P(), { chords: true, bass: true })) }, '⬇ MIDI accords + basse'),
-        el('button.btn.small', {
-          onclick: () => {
-            const v = voiced();
-            update((s) => { s.notebook.unshift({ id: Date.now(), type: 'chords', title: v.map((c) => c?.symbol || '–').join(' · '), note: v.map((c) => c?.roman || '–').join(' – '), date: Date.now(), genre: s.project.genre, rootPc: s.project.rootPc, scale: s.project.scale, chords: JSON.parse(JSON.stringify(s.project.chords)), ext: s.project.ext }); });
-            toast('Progression sauvée 📓', 'good');
-          },
-        }, '📓 Sauver'),
-      )),
+        el('button.btn.small', { title: 'Accords + basse, 4 mesures', onclick: () => downloadMidi(`accords-${NOTE_NAMES[P().rootPc]}-${P().scale}`, projectToSong(P(), { chords: true, bass: true })) }, '⬇ MIDI'),
+        saveBtn, ...validate)),
     tools,
     hintBox(el('div',
       el('p', 'Une progression = un voyage : repos (T) → départ (S) → tension (D) → retour. Mais en électro, on reste souvent en suspens pour que la boucle tourne.'),
-      el('p', '« Voice leading » garde les notes communes et bouge les autres au plus près : c’est le secret d’accords qui « coulent ». Dans Live 12, active Scale sur le clip et empile une note sur deux.')), () => { hintUsed = true; }),
-    recipe ? card(
-      el('p', 'Ton ressenti :'),
-      segmented([{ value: 1, label: '😐 Bof' }, { value: 2, label: '🙂 Pas mal' }, { value: 3, label: '🔥 Frissons' }], rating, (v) => { rating = v; }),
-      el('button.btn.primary.wide', {
-        onclick: () => {
-          const p = P();
-          if (p.chords.some((c) => !c)) return toast('Remplis les 4 accords', 'bad');
-          if (!recipe.check(p)) return toast('La recette n’est pas respectée 🧐', 'bad');
-          stopAll();
-          finishExercise({
-            key: 'chords:recipe', title: 'Recette réussie', xp: 30 + rating * 5, skill: 'harmonie', genre: p.genre, hintUsed, success: true,
-            lesson: recipe.lesson,
-            transfer: 'Sur le MPC Key 37 : Pad Perform > Chords, enregistre cette progression et joue-la avec un autre rythme. Dans Live : exporte le MIDI et ouvre-le avec Serum 2.',
-            onRetry: () => { location.hash = `#/chords?mode=recipe&genre=${shuffle(GENRES)[0].id}&r=${Date.now()}`; },
-          });
-        },
-      }, '✓ Valider la recette')) : el('a.btn.wide', { href: '#/melody' }, '→ Écrire une mélodie par-dessus'),
+      el('p', '« Fluide » (voice leading) garde les notes communes et bouge les autres au plus près : c’est le secret d’accords qui « coulent ». Dans Live 12, active Scale sur le clip et empile une note sur deux.')), () => { hintUsed = true; }),
+    recipe ? null : el('div.lab-next', el('a.btn.small.ghost', { href: '#/melody' }, '🎵 Écrire une mélodie par-dessus →'), isOpen(screenById('basslab'), level(), getState().settings.allModules) ? el('a.btn.small.ghost', { href: '#/basslab' }, '🎸 Travailler la basse →') : null),
   );
   renderAll();
   const pick = (d) => { sel = (sel + d + 4) % 4; renderSlots(); const ch = voiced()[sel]; if (ch) previewChord(ch.notes, P().sounds.chords); };

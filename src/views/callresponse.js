@@ -31,10 +31,13 @@ export function render(root, params) {
 
   const setup = () => {
     cleanup?.(); cleanup = null;
+    const styleSel = select(GENRES.map((g) => ({ value: g.id, label: `${g.emoji} ${g.name}` })), st.genre, (v) => { st.genre = v; });
+    styleSel.setAttribute('aria-label', 'Style');
     host.replaceChildren(card(
-      el('div.ctrl-row', el('label', 'Quoi'), segmented(Object.entries(KINDS).map(([k, v]) => ({ value: k, label: `${v.emoji} ${v.name}` })), st.kind, (v) => { st.kind = v; })),
-      el('div.ctrl-row', el('label', 'Mode'), segmented([{ value: 'repeat', label: '🪞 Répète' }, { value: 'improv', label: '💬 Improvise' }], st.mode, (v) => { st.mode = v; })),
-      el('div.ctrl-row', el('label', 'Style'), select(GENRES.map((g) => ({ value: g.id, label: `${g.emoji} ${g.name}` })), st.genre, (v) => { st.genre = v; })),
+      el('div.ctrl-grid.lab-grid.stack-sm',
+        el('span', 'Instrument'), segmented(Object.entries(KINDS).map(([k, v]) => ({ value: k, label: `${v.emoji} ${v.name}` })), st.kind, (v) => { st.kind = v; }),
+        el('span', 'Mode'), segmented([{ value: 'repeat', label: '🪞 Répète', title: 'Rejoue l’appel à l’identique' }, { value: 'improv', label: '💬 Improvise', title: 'Invente une réponse musicale' }], st.mode, (v) => { st.mode = v; }),
+        el('span', 'Style'), styleSel),
       el('div.lesson', el('div.lesson-title', 'Comment ça marche'),
         el('p', `1 mesure de décompte, puis ${ROUNDS} manches : mesure 1 = l’appel (écoute), mesure 2 = ta réponse (joue !).`),
         el('p.small.muted', midiStatus().state === 'connected'

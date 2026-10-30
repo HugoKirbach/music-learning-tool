@@ -12,7 +12,7 @@ const BPM = 90, COUNT_IN = 4, CLICKS = 16;
 export function render(root) {
   let stopRun = null;
   const body = el('div');
-  root.append(header('⏱️ Calibrer la latence', 'Chaque appareil a un petit retard (écran tactile, Bluetooth, MIDI). On le mesure une fois, les jeux le corrigent.', '#/profile'), body);
+  root.append(header('⏱️ Calibrer la latence', 'Chaque appareil a un petit retard (écran tactile, Bluetooth, MIDI). On le mesure une fois, les jeux le corrigent.', '#/settings?sec=general'), body);
 
   const lat = () => getState().settings.latency || {};
   const fmt = (v) => (v == null ? 'non calibré' : `${v > 0 ? '+' : ''}${v} ms`);

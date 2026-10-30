@@ -31,6 +31,21 @@ test('succès des jeux : niveaux, chapitres, étoiles, club', () => {
   assert.ok(newAchievements(s).some((a) => a.id === 'rushAll'));
 });
 
+test('succès du mode sans le son : mode avion, lecture à vue, architecte', () => {
+  const s = fresh();
+  s.club = { nights: 1, nightsSilent: 1, best: { bar: { stars: 3 }, 'bar@silent': { stars: 2 } }, crate: {} };
+  let got = newAchievements(s).map((a) => a.id);
+  assert.ok(got.includes('silent1'));
+  assert.ok(!got.includes('silent3'), '3 étoiles avec le son ne comptent pas');
+  assert.ok(!got.includes('silent20'));
+  s.club.best['beach@silent'] = { stars: 3 };
+  s.club.nightsSilent = 20;
+  got = newAchievements(s).map((a) => a.id);
+  for (const id of ['silent1', 'silent3', 'silent20']) assert.ok(got.includes(id), id);
+  assert.ok(!got.includes('venuesAll') && !got.includes('club10'), 'les étoiles muettes n’ouvrent pas les salles avec le son');
+  assert.deepEqual(ACHIEVEMENTS.filter((a) => a.id.startsWith('silent')).map((a) => a.cat), ['club', 'club', 'club']);
+});
+
 test('cartes : tirage reproductible, sans doublon, une par succès', () => {
   assert.equal(CARDS.length, 24);
   assert.equal(new Set(CARDS.map((c) => c.id)).size, 24);

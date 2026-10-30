@@ -1,34 +1,13 @@
-import { el, card, header, segmented, slider, download, toast } from '../ui.js';
-import { getState, update, exportBackup, importBackup, resetAll, snapshotInfo, restoreSnapshot } from '../store.js';
+// Profil : niveau, activité, styles préférés, passeport, collection et accès au suivi (progrès, compétences, amis…).
+import { el, card, header, plural } from '../ui.js';
+import { getState, update } from '../store.js';
 import { levelFromXp, titleFor, SKILLS, dayKey } from '../core/progress.js';
 import { ACHIEVEMENTS, CARDS } from '../core/achievements.js';
 import { GENRES, genreById } from '../data/genres.js';
 import { cleanFavs } from '../core/daily.js';
-import { setVolume } from '../core/audio.js';
-import { enableMidi, midiStatus, midiStatusText, midiSupported, onMidiStatus, onMidi, drumForNote } from '../midiin.js';
-import { midiToName } from '../core/theory.js';
-import { playSynth, ensureAudio, now } from '../core/audio.js';
-import { presetParams } from '../player.js';
-import { accountCard } from './account.js';
-import { audioCard } from './audiodiag.js';
-import { remindersCard } from './reminderscard.js';
-import { studioCard } from './studiocard.js';
-
-/** Bouton « Installer » quand le navigateur le permet, ou « déjà installée ». */
-function installState() {
-  const box = el('div');
-  const paint = () => {
-    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    box.replaceChildren(el('div', standalone ? el('p.small', '✅ Tu utilises l’app installée.')
-      : window.__bfInstall ? el('button.btn.primary', { style: { marginBottom: '8px' }, onclick: async () => {
-        const ev = window.__bfInstall; window.__bfInstall = null;
-        ev.prompt(); await ev.userChoice.catch(() => null); paint();
-      } }, '📲 Installer BeatForge') : null));
-  };
-  window.addEventListener('bf-installable', paint);
-  paint();
-  return box;
-}
+import { cloudStatus } from '../cloud.js';
+import { getMyProfile } from '../social.js';
+import { placementDue } from '../core/pedagogy.js';
 
 /** Top 3 des styles préférés : trois listes (1er, 2e, 3e), chaque style une seule fois. */
 function favCard() {
@@ -58,6 +37,8 @@ function favCard() {
 }
 
 export function render(root, params = {}) {
+  // Ancienne adresse du compte (Profil › Compte) : désormais dans les Réglages
+  if (params.account) { location.replace('#/settings?sec=account'); return; }
   const s = getState();
   const lv = levelFromXp(s.xp);
   const maxSkill = Math.max(100, ...Object.values(s.skills));
@@ -72,48 +53,26 @@ export function render(root, params = {}) {
     heat.appendChild(el('div', { title: `${dayKey(d)} : ${xp} XP`, style: { background: xp ? `rgba(179,136,255,${0.25 + a * 0.75})` : '' } }));
   }
 
-  const midiLine = el('p.small');
-  const midiBtn = el('button.btn.small', { onclick: async () => { ensureAudio(); await enableMidi(); } }, '🔌 Activer le clavier MIDI');
-  const paintMidi = (st) => {
-    midiLine.replaceChildren(el('b', st.state === 'connected' ? '🟢 ' : st.state === 'nodevice' ? '🟡 ' : '⚪ '), `MIDI : ${midiStatusText(st)}`);
-    midiBtn.hidden = st.state === 'connected' || st.state === 'unsupported';
-  };
-  paintMidi(midiStatus());
-  const offStatus = onMidiStatus(paintMidi);
-  const tester = el('p.small.muted', 'Testeur : joue une touche, un pad ou tourne un potard.');
-  const voices = new Map();
-  const offTest = onMidi({
-    noteOn: (n, v, _h, ch) => {
-      ensureAudio();
-      voices.set(n, playSynth(presetParams('piano'), n, now(), null, v, { send: 0.2 }));
-      const d = drumForNote(n);
-      tester.replaceChildren('🎹 ', el('b', midiToName(n)), ` — note ${n}, vélocité ${Math.round(v * 127)}, canal ${ch + 1}${d ? ` · pad → ${d}` : ''}`);
-    },
-    noteOff: (n) => { voices.get(n)?.release(); voices.delete(n); },
-    cc: (c, v, ch) => { tester.replaceChildren('🎛️ ', el('b', `CC ${c}`), ` = ${Math.round(v * 127)} (canal ${ch + 1}) — assignable dans le Lab Synthé`); },
-  });
-
-  const acct = accountCard();
-  const audio = audioCard();
-  const studio = studioCard();
-  const fileIn = el('input', {
-    type: 'file', accept: 'application/json,.json', style: { display: 'none' },
-    onchange: async (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      try { importBackup(await f.text()); toast('Sauvegarde restaurée ✅', 'good'); location.hash = '#/home'; } catch (err) { toast(err.message, 'bad'); }
-    },
-  });
+  const cs = cloudStatus();
+  const who = getMyProfile()?.pseudo || cs.user?.name || cs.known?.name || null;
+  const link = (href, emoji, name, sub) => el('a.profile-link', { href }, el('span.pl-emoji', { 'aria-hidden': 'true' }, emoji), el('span.pl-text', el('b', name), sub ? el('small', sub) : null));
+  const nbBadges = Object.keys(s.badges).filter((id) => ACHIEVEMENTS.some((a) => a.id === id)).length;
 
   root.append(
-    header('🏆 Profil', `${titleFor(lv.level)} — niveau ${lv.level}`, null),
-    el('div.profile-links',
-      el('a.btn.primary', { href: '#/progress' }, '📊 Mes progrès'),
-      el('a.btn', { href: '#/bilan' }, '📈 Bilan & coach'),
-      el('a.btn', { href: '#/skills' }, '🌳 Compétences'),
-      el('a.btn', { href: '#/placement' }, '🧪 Test de la semaine'),
-      el('a.btn', { href: '#/friends' }, '👥 Amis'),
-      el('a.btn', { href: '#/collection' }, '🏅 Collection')),
+    el('div.hub-head', header('👤 Profil', `${who ? `${who} · ` : ''}${titleFor(lv.level)} — niveau ${lv.level}`, null),
+      el('a.btn.hub-search', { href: '#/settings', 'aria-label': 'Réglages' }, '⚙️')),
+    cs.user || cs.known ? null : el('a.profile-sync', { href: '#/settings?sec=account' },
+      el('span', { 'aria-hidden': 'true' }, '☁️'),
+      el('span', el('b', 'Synchronise ton téléphone et ton PC'), el('small', 'Un compte gratuit garde ta progression et ton carnet sur tous tes appareils.')),
+      el('span.sec-more', 'Se connecter →')),
+    el('nav.profile-grid', { 'aria-label': 'Mon suivi' },
+      link('#/progress', '📊', 'Mes progrès', 'Courbes, objectifs, certificats'),
+      link('#/skills', '🌳', 'Compétences', '18 compétences à valider'),
+      link('#/bilan', '📈', 'Bilan & coach', 'Ta semaine et le plan du coach'),
+      link('#/collection', '🏅', 'Collection', `${nbBadges}/${ACHIEVEMENTS.length} succès · ${Object.keys(s.cards || {}).length}/${CARDS.length} cartes`),
+      link('#/friends', '👥', 'Amis', 'Classement de la semaine'),
+      link('#/placement', '🧪', 'Test de la semaine', placementDue(s) ? 'À passer cette semaine' : 'Fait cette semaine ✓'),
+      link('#/settings', '⚙️', 'Réglages', 'Compte, MIDI, audio, Live, sauvegarde')),
     el('div.cols',
       el('div',
         card(
@@ -121,74 +80,29 @@ export function render(root, params = {}) {
           el('div.bar', el('div.bar-fill', { style: { width: `${Math.round(lv.progress * 100)}%` } })),
           el('div.stat-grid',
             el('div', el('b', `🔥 ${s.streak.count || 0}`), el('span', `série (record ${s.streak.best || 0})`)),
+            el('div', { title: '1 joker gagné tous les 7 jours d’affilée (2 au maximum) : il rattrape un jour manqué tout seul.' }, el('b', `🧊 ${s.streak.freezes || 0}/2`), el('span', 'jokers de série')),
             el('div', el('b', s.stats.sessions), el('span', 'sessions')),
             el('div', el('b', s.xp), el('span', 'XP total')),
-            el('div', el('b', s.stats.exercises), el('span', 'exercices')),
             el('div', el('b', `${ear}%`), el('span', 'oreille')),
             el('div', el('b', Object.values(s.missions).reduce((a, b) => a + b, 0)), el('span', 'missions studio')),
           ),
           el('p.small.muted', { style: { marginTop: '10px' } }, '28 derniers jours'), heat,
         ),
-        card(el('h3', '📊 Compétences'), el('p.small.muted', 'La session express cible automatiquement ta compétence la plus faible.'),
+        card(el('div.row.between', el('h3', '📊 Compétences'), el('a.sec-more', { href: '#/skills' }, 'Arbre →')),
+          el('p.small.muted', 'La session express cible automatiquement ta compétence la plus faible.'),
           Object.entries(SKILLS).map(([k, sk]) => el('div.skill',
             el('div.skill-head', el('span', `${sk.emoji} ${sk.name}`), el('span.muted', `${s.skills[k]} XP`)),
             el('div.meter', el('div', { style: { width: `${Math.round((100 * s.skills[k]) / maxSkill)}%`, background: sk.color } }))))),
+      ),
+      el('div',
+        favCard(),
+        card(el('div.row.between', el('h3', '🏅 Derniers succès'), el('a.sec-more', { href: '#/collection' }, 'Tout voir →')),
+          el('p.small.muted', `${nbBadges}/${ACHIEVEMENTS.length} succès · ${Object.keys(s.cards || {}).length}/${CARDS.length} cartes de légende · ${plural(Object.keys(s.club?.crate || {}).length, 'vinyle')}`),
+          nbBadges ? el('div.badges', ACHIEVEMENTS.filter((a) => s.badges[a.id]).sort((a, b) => (s.badges[b.id] || '').localeCompare(s.badges[a.id] || '')).slice(0, 6)
+            .map((b) => el('div.badge.' + b.tier, { title: b.desc }, el('span.be', { 'aria-hidden': 'true' }, b.emoji), el('b', b.name)))) : el('p.small', 'Joue, crée, reviens demain : les premiers succès arrivent vite.')),
         card(el('h3', `🛂 Passeport des styles (${Object.keys(s.genres).length}/${GENRES.length})`),
           el('div.passport', GENRES.map((g) => el('a.stamp' + (s.genres[g.id] ? '.got' : ''), { href: `#/atlas?g=${g.id}` }, el('span.se', g.emoji), g.name)))),
       ),
-      el('div',
-        acct.node,
-        favCard(),
-        card(el('h3', `🏅 Ma collection`),
-          el('p.small.muted', `${Object.keys(s.badges).filter((id) => ACHIEVEMENTS.some((a) => a.id === id)).length}/${ACHIEVEMENTS.length} succès · ${Object.keys(s.cards || {}).length}/${CARDS.length} cartes de légende · ${Object.keys(s.club?.crate || {}).length} vinyle(s)`),
-          el('div.badges', ACHIEVEMENTS.filter((a) => s.badges[a.id]).sort((a, b) => (s.badges[b.id] || '').localeCompare(s.badges[a.id] || '')).slice(0, 6)
-            .map((b) => el('div.badge.' + b.tier, { title: b.desc }, el('span.be', { 'aria-hidden': 'true' }, b.emoji), el('b', b.name)))),
-          el('a.btn.primary', { href: '#/collection', style: { marginTop: '10px' } }, 'Voir toute la collection →')),
-        card(el('h3', '⚙️ Réglages'),
-          // Version web (hugokirbach.github.io) : lien vers le menu qui regroupe les applis.
-          /\.github\.io$/.test(location.hostname) ? el('a.btn.small', { href: '/', style: { marginBottom: '12px' } }, '← Retour au menu des applis') : null,
-          slider({ label: 'Volume', min: 0, max: 1, step: 0.01, value: s.settings.volume, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => { setVolume(v); update((st) => { st.settings.volume = v; }); } }),
-          el('div.ctrl-row', el('label', 'Objectif / jour'), segmented([{ value: 100, label: '100' }, { value: 150, label: '150' }, { value: 250, label: '250' }, { value: 400, label: '400' }], s.settings.dailyGoal, (v) => update((st) => { st.settings.dailyGoal = v; }))),
-          el('div.ctrl-row', el('label', 'Indices'), segmented([{ value: 'auto', label: 'Auto (disparaissent niv. 6)' }, { value: 'on', label: 'Toujours' }, { value: 'off', label: 'Jamais' }], s.settings.hints, (v) => update((st) => { st.settings.hints = v; }))),
-          el('div.ctrl-row', el('label', 'Thème'), segmented([{ value: 'auto', label: 'Auto' }, { value: 'dark', label: '🌙 Sombre' }, { value: 'light', label: '☀️ Clair' }], s.settings.theme || 'auto', (v) => update((st) => { st.settings.theme = v; }))),
-          el('div.ctrl-row', el('label', 'Animations'), segmented([{ value: 'auto', label: 'Auto' }, { value: 'reduce', label: 'Réduites' }, { value: 'full', label: 'Complètes' }], s.settings.motion || 'auto', (v) => update((st) => { st.settings.motion = v; }))),
-          el('div.ctrl-row', el('label', 'Labs'), segmented([{ value: false, label: 'Progressifs' }, { value: true, label: 'Tout afficher' }], !!s.settings.allModules, (v) => update((st) => { st.settings.allModules = v; }))),
-          el('div.ctrl-row', el('label', 'Pads'), segmented([{ value: false, label: 'Droitier' }, { value: true, label: 'Gaucher' }], !!s.pads?.lefty, (v) => update((st) => { st.pads = { ...(st.pads || {}), lefty: v }; }))),
-          el('div.row.gap.wrap',
-            el('button.btn.small', { onclick: () => import('../whatsnew.js').then((m) => m.showWhatsNew({ force: true })) }, '✨ Quoi de neuf ? / visite guidée'),
-            el('a.btn.small', { href: '#/latency' }, '⏱️ Calibrer la latence')),
-          el('h3', { style: { marginTop: '12px' } }, '🎹 Clavier MIDI (MPC Key 37)'),
-          midiLine, el('div.ctrl-row', midiBtn), tester,
-          el('details', el('summary', 'Brancher le MPC Key 37 au PC'),
-            el('ol.clean.small',
-              el('li', 'Câble USB du port « Computer » du MPC vers le PC. Allume le MPC.'),
-              el('li', 'Sur le MPC : Menu → Mode contrôleur (« Controller Mode ») pour qu’il se comporte comme un clavier MIDI.'),
-              el('li', 'Ouvre BeatForge dans Chrome ou Edge (ou l’app installée), clique sur 🎹 en haut puis « Autoriser ».'),
-              el('li', 'C’est tout : l’app se reconnecte seule ensuite, même si tu débranches / rebranches.'),
-              el('li', 'Si Ableton est ouvert, il peut partager le clavier ; sous Windows, ferme Live si le MPC n’apparaît pas.')),
-            el('p.small.muted', 'Où ça sert : Lab Synthé (touches + potards Q-Link), quiz d’Oreille (réponds en jouant), Lab Accords (reconnaissance d’accords), Lab Mélodie (saisie pas à pas), Lab Beat (pads → batterie, enregistrement live).')),
-        ),
-        audio.node,
-        studio,
-        remindersCard(),
-        card(el('h3', '💾 Sauvegarde en fichier'),
-          el('p.small.muted', 'Sans compte : exporte un fichier ici et importe-le sur l’autre appareil. Utile aussi comme copie de secours.'),
-          el('div.row.gap.wrap',
-            el('button.btn.small', { onclick: () => download(`beatforge-sauvegarde-${dayKey()}.json`, exportBackup(), 'application/json') }, '⬇ Exporter'),
-            el('button.btn.small', { onclick: () => fileIn.click() }, '⬆ Importer'), fileIn,
-            el('button.btn.small.ghost', { onclick: () => { if (confirm('Tout effacer (XP, carnet, badges) ?')) { resetAll(); location.hash = '#/home'; location.reload(); } } }, '♻️ Réinitialiser')),
-          snapshotInfo() ? el('p.small.muted', { style: { marginTop: '8px' } },
-            `🛟 Copie de secours locale (${snapshotInfo().reason}, ${new Date(snapshotInfo().at).toLocaleString('fr-FR')}, ${snapshotInfo().xp} XP) `,
-            el('button.btn.small.ghost', { onclick: () => { if (confirm('Revenir à cette copie ? L’état actuel devient à son tour la copie de secours.')) { restoreSnapshot(); toast('Copie restaurée ✅', 'good'); location.hash = '#/home'; } } }, 'Restaurer')) : null),
-        card(el('h3', '📲 Installer l’app'), installState(),
-          el('ul.clean.small',
-            el('li', el('b', 'Android (Chrome) : '), 'menu ⋮ → « Installer l’application ».'),
-            el('li', el('b', 'iPhone (Safari) : '), 'Partager → « Sur l’écran d’accueil ».'),
-            el('li', el('b', 'PC (Chrome / Edge) : '), 'icône d’installation dans la barre d’adresse. Fonctionne hors-ligne.')),
-          el('p.small.muted', 'BeatForge — tout est généré en temps réel par le navigateur (Web Audio), compte facultatif.')),
-      ),
     ),
   );
-  if (params.account) requestAnimationFrame(() => { acct.node.scrollIntoView({ block: 'center', behavior: 'smooth' }); acct.node.classList.add('flash'); });
-  return () => { offStatus(); offTest(); acct.destroy(); audio.destroy(); studio.destroy?.(); voices.forEach((x) => x.release()); };
 }

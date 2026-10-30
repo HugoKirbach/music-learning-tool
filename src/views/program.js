@@ -1,8 +1,11 @@
 // Programme de 4 semaines : un thème par semaine, une session par jour, un mini-projet le 7e jour.
-import { el, card, header, finishExercise, toast, download, confetti } from '../ui.js';
+import { el, card, header, finishExercise, toast, confetti, plural } from '../ui.js';
 import { getState, update, dueEarReviews } from '../store.js';
-import { PROGRAM, PROGRAM_DAYS, dayInfo } from '../data/program.js';
+import { PROGRAM, PROGRAM_DAYS, dayInfo, projectName } from '../data/program.js';
 import { dayKey } from '../core/progress.js';
+import { remindersCard } from './reminderscard.js';
+
+export { makeIcs } from './reminderscard.js';
 
 export function currentDay(s = getState()) {
   for (let i = 0; i < PROGRAM_DAYS; i++) if (!s.program.done[i]) return i;
@@ -31,13 +34,13 @@ export function render(root, params) {
   const cur = currentDay(s);
   const doneCount = Object.keys(s.program.done).length;
 
-  root.append(header('📅 Programme 4 semaines', 'Une session par jour (5-10 min), un thème par semaine, un mini-projet le 7e jour. Les notions ratées reviennent en révision.', '#/home'));
+  root.append(header('📅 Programme 4 semaines', 'Une session par jour (5-10 min), un thème par semaine, un mini-projet le 7e jour. Les notions ratées reviennent en révision.'));
 
   root.append(card(
     el('div.row.between', el('b', cur >= PROGRAM_DAYS ? '🏆 Programme terminé !' : `Semaine ${dayInfo(cur).week + 1} · Jour ${dayInfo(cur).day + 1}`), el('span.small.muted', `${doneCount}/${PROGRAM_DAYS} jours`)),
     el('div.bar', el('div.bar-fill', { style: { width: `${Math.round((100 * doneCount) / PROGRAM_DAYS)}%` } })),
     cur < PROGRAM_DAYS
-      ? el('button.btn.primary.big.wide', { onclick: () => startProgramDay(cur) }, dayInfo(cur).isProject ? '🏁 Ouvrir le mini-projet' : `▶ ${doneCount ? 'Continuer' : 'Commencer'} : jour ${cur + 1}`)
+      ? el('button.btn.primary.big.wide', { onclick: () => startProgramDay(cur) }, dayInfo(cur).isProject ? `🏁 Ouvrir le ${dayInfo(cur).w.project.label.toLowerCase()}` : `▶ ${doneCount ? 'Continuer' : 'Commencer'} : jour ${cur + 1}`)
       : el('p', 'Bravo ! Tu peux refaire n’importe quel jour, ou recommencer avec d’autres styles via les sessions express.'),
     el('p.small.muted', 'Conseil : un jour du programme par jour. Les autres sessions de la journée peuvent être des sessions express ou des révisions.'),
   ));
@@ -45,8 +48,8 @@ export function render(root, params) {
   PROGRAM.forEach((w, wi) => {
     const days = Array.from({ length: 7 }, (_, d) => wi * 7 + d);
     const open = days.includes(cur) || (cur >= PROGRAM_DAYS && wi === 3);
-    root.append(card(el('details', { open },
-      el('summary', el('b', `${w.emoji} Semaine ${wi + 1} : ${w.theme}`), el('span.small.muted', ` · ${days.filter((i) => s.program.done[i]).length}/7`)),
+    root.append(el('details.card.prog-week', { open },
+      el('summary', el('b', `${w.emoji} Semaine ${wi + 1} : ${w.theme}`), el('span.prog-count', `${days.filter((i) => s.program.done[i]).length}/7`)),
       el('p.small.muted', w.intro),
       el('ol.session-steps', days.map((i) => {
         const { day, isProject } = dayInfo(i);
@@ -55,13 +58,14 @@ export function render(root, params) {
         const titles = isProject ? w.project.title : w.days[day].map((x) => x.title).join(' · ');
         return el('li' + (done ? '.done' : i === cur ? '.current' : ''),
           el('span.step-num', done ? '✓' : locked ? '🔒' : String(day + 1)),
-          el('span.step-info', el('b', isProject ? '🏁 Mini-projet' : `Jour ${day + 1}`), el('span', titles)),
-          locked ? null : el('button.btn.small' + (i === cur ? '.primary' : ''), { onclick: () => startProgramDay(i) }, done ? '↻' : '▶'));
+          el('span.step-info', el('b', isProject ? `🏁 ${w.project.label}` : `Jour ${day + 1}`), el('span', titles)),
+          locked ? null : el('button.btn.small' + (i === cur ? '.primary' : ''), { onclick: () => startProgramDay(i), 'aria-label': `${done ? 'Refaire' : 'Lancer'} : ${isProject ? w.project.label : `jour ${day + 1}`}` }, done ? '↻' : '▶'));
       })),
-    )));
+    ));
   });
 
-  root.append(reminderCard());
+  // Rappel quotidien : la même carte que dans les Réglages (un seul réglage, settings.reminders)
+  root.append(remindersCard());
 }
 
 function projectView(root, wi) {
@@ -80,56 +84,24 @@ function projectView(root, wi) {
     return li;
   });
   root.append(
-    header(`🏁 ${w.project.title}`, `Semaine ${wi + 1} · ${w.theme}`, '#/program'),
+    header(`🏁 ${w.project.title}`, `${w.project.label} · semaine ${wi + 1} · ${w.theme}`, '#/program'),
     card(el('p', el('b', '🎯 Objectif : '), w.project.goal),
       el('p.small.muted', 'À faire sur Ableton Live 12 / MPC Key 37 / Serum 2, en une ou plusieurs fois. Touche une étape pour la cocher.'),
       el('ol.mission-steps', items)),
     card(note, el('button.btn.primary.wide', {
       onclick: () => {
         const done = items.filter((li) => li.classList.contains('checked')).length;
-        if (done < items.length - 1) return toast(`Encore ${items.length - 1 - done} étape(s) à cocher (tu peux en laisser une de côté)`, 'bad');
+        if (done < items.length - 1) return toast(`Encore ${plural(items.length - 1 - done, 'étape')} à cocher (tu peux en laisser une de côté)`, 'bad');
         const d = dayKey();
         update((s) => {
           s.program.done[idx] = d;
-          if (note.value.trim()) s.notebook.unshift({ id: Date.now(), type: 'note', title: w.project.title, note: note.value.trim(), date: Date.now() });
+          if (note.value.trim()) s.notebook.unshift({ id: Date.now(), type: 'note', title: projectName(w), note: note.value.trim(), date: Date.now() });
         });
         confetti();
-        finishExercise({ key: 'program:project', title: w.project.title, xp: 120, skill: 'autonomie', success: true,
-          lesson: `Semaine « ${w.theme} » bouclée. Ce mini-projet est la preuve que tu sais appliquer seul ce que tu as entraîné.`,
-          transfer: wi < 3 ? `La semaine ${wi + 2} (${PROGRAM[wi + 1].theme}) commence demain.` : 'Programme terminé : garde l’habitude avec une session express par jour et une analyse de référence par semaine.' });
+        finishExercise({ key: 'program:project', title: projectName(w), xp: 120, skill: 'autonomie', success: true,
+          lesson: `Semaine « ${w.theme} » bouclée. Ce ${w.project.label.toLowerCase()} est la preuve que tu sais appliquer seul ce que tu as entraîné.`,
+          transfer: wi < 3 ? `La semaine ${wi + 2} (${PROGRAM[wi + 1].theme}) commence demain.` : 'Programme terminé : garde l’habitude avec une session express par jour et une mission studio par semaine.' });
       },
-    }, '✓ Mini-projet terminé')),
+    }, `✓ ${w.project.label} terminé`)),
   );
-}
-
-/** Rappel quotidien via un fichier agenda (.ics) : fiable sur téléphone et PC, sans serveur. */
-function reminderCard() {
-  const time = el('input', { type: 'time', value: getState().settings.reminder || '19:00' });
-  return card(el('h3', '⏰ Rappel quotidien'),
-    el('p.small.muted', 'Ajoute un rappel récurrent à ton agenda (Google Agenda, Outlook, Apple Calendrier) avec un lien direct vers BeatForge.'),
-    el('div.row.gap.wrap', time, el('button.btn.small', {
-      onclick: () => {
-        update((s) => { s.settings.reminder = time.value; });
-        download('beatforge-rappel.ics', makeIcs(time.value), 'text/calendar');
-        toast('Ouvre le fichier pour l’ajouter à ton agenda 📅', 'good', 4000);
-      },
-    }, '📅 Ajouter à mon agenda')));
-}
-
-export function makeIcs(hhmm, url = location.href.split('#')[0] + '#/home?start=1') {
-  const [h, m] = hhmm.split(':').map(Number);
-  const d = new Date();
-  const z = (n) => String(n).padStart(2, '0');
-  const fmt = (x) => `${x.getFullYear()}${z(x.getMonth() + 1)}${z(x.getDate())}T${z(x.getHours())}${z(x.getMinutes())}00`;
-  const start = fmt(new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m));
-  const end = fmt(new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m + 10));
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  return [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BeatForge//FR', 'CALSCALE:GREGORIAN',
-    'BEGIN:VEVENT', `UID:beatforge-${Date.now()}@beatforge`, `DTSTAMP:${stamp}`,
-    `DTSTART:${start}`, `DTEND:${end}`, 'RRULE:FREQ=DAILY',
-    'SUMMARY:🎹 BeatForge : session de 10 min', `DESCRIPTION:Ta session du jour t’attend : ${url}`, `URL:${url}`,
-    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Session BeatForge', 'TRIGGER:PT0M', 'END:VALARM',
-    'END:VEVENT', 'END:VCALENDAR', '',
-  ].join('\r\n');
 }

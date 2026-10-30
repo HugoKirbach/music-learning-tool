@@ -14,6 +14,14 @@ export const tests = {
     const A = await t.open({ cloud, name: 'Hugo' });
     await A.go('#/challenge');
     t.assert.ok(await A.locator('text=Connecte-toi').count(), 'publication réservée aux comptes');
+    // Chaque règle non respectée mène à l'atelier qui la règle, et l'étape suivante est le bouton principal
+    await A.store("s.project.melody = Array(64).fill(null);");
+    await A.go('#/challenge');
+    const todo = A.locator('.card.glow .sn-proofs li:not(.ok)');
+    t.assert.ok(await todo.count() >= 1, 'au moins une règle à respecter (mélodie vide)');
+    for (const href of await todo.locator('a').evaluateAll((as) => as.map((a) => a.getAttribute('href')))) t.assert.match(href, /^#\/(beat|chords|melody)$/);
+    t.assert.equal(await todo.locator('a').count(), await todo.count(), 'un lien par règle manquante');
+    t.assert.match(await A.locator('.card.glow .btn.primary').first().innerText(), /Étape suivante/);
     await signUp(A, 'hugo@test.fr');
     await pseudo(A, 'Hugo');
     // une idée qui respecte toutes les règles du défi de la semaine
@@ -60,7 +68,14 @@ export const tests = {
     await page.store(`s.streak = { count: 5, last: '${y}', best: 5 };`);
     await page.go('#/home');
     t.assert.ok(await page.locator('text=/série de 5 jours s’arrête/').count(), 'carte « série en danger » sur l’accueil');
-    await page.go('#/profile');
+    // Le Programme affiche la même carte de rappels (un seul réglage : settings.reminders)
+    await page.go('#/program');
+    t.assert.equal(await page.locator('.card:has-text("Rappels intelligents")').count(), 1);
+    await page.locator('.card:has-text("Rappels intelligents") input[type=time]').fill('20:30'); await page.waitForTimeout(150);
+    t.assert.equal((await page.state()).settings.reminders.time, '20:30');
+    t.assert.equal((await page.state()).settings.reminder, undefined, 'plus d’ancien réglage séparé');
+    await page.go('#/settings');
+    t.assert.equal(await page.locator('.card:has-text("Rappels intelligents") input[type=time]').inputValue(), '20:30');
     await page.clickC('.card:has-text("Rappels intelligents") >> text=Activer'); await page.waitForTimeout(800);
     t.assert.equal((await page.state()).settings.reminders.enabled, true);
     const data = await page.evaluate(() => new Promise((res) => {

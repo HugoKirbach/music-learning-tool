@@ -16,7 +16,7 @@ export function render(root, params = {}) {
       header(`🎓 Parcours ${path.emoji} ${path.name}`, `${g.bpm} BPM · références : ${path.refs}`, `#/atlas?g=${path.genre}`),
       card(el('p', path.intro),
         el('div.bar', el('div.bar-fill', { style: { width: `${Math.round((100 * pr.count) / pr.total)}%` } })),
-        el('p.small.muted', pr.started ? `${pr.count}/${pr.total} étapes faites${pr.count === pr.total ? ' — morceau terminé, bravo ! 🎉' : ''}` : 'Le parcours charge l’idée de départ du style dans tes Labs (ton idée en cours est gardée au Carnet).'),
+        el('p.small.muted', pr.started ? `${pr.count}/${pr.total} étapes faites${pr.count === pr.total ? ' — morceau terminé, bravo ! 🎉' : ''}` : 'Le parcours charge l’idée de départ du style dans tes ateliers (ton idée en cours est gardée au Carnet).'),
         pr.started ? null : el('button.btn.primary.big.wide', { onclick: start }, '▶ Commencer le parcours')),
       el('ol.path-steps', path.steps.map((st, i) => {
         const done = pr.done[st.id];
@@ -37,7 +37,7 @@ export function render(root, params = {}) {
       s.project = projectFromGenre(path.genre);
       s.paths = { ...(s.paths || {}), [path.genre]: { start: dayKey(), startAt: Date.now(), exports0: s.stats.exports || 0, done: {} } };
     });
-    toast(`Idée ${path.name} chargée dans tes Labs : c’est parti ! 🎧`, 'good');
+    toast(`Idée ${path.name} chargée dans tes ateliers : c’est parti ! 🎧`, 'good');
     paint();
   };
   paint();

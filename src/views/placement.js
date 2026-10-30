@@ -1,5 +1,5 @@
 // Test de positionnement hebdomadaire (disponible chaque lundi) : 5 minutes pour mesurer ses progrès et choisir le focus de la semaine.
-import { el, header, card, toast, confetti, showBadges } from '../ui.js';
+import { el, header, card, toast, confetti, showBadges, plural } from '../ui.js';
 import { getState, update, recordExercise, recordReview } from '../store.js';
 import { ensureAudio, now, playClick, outputLatency } from '../core/audio.js';
 import { onMidi } from '../midiin.js';
@@ -13,7 +13,7 @@ const shortDate = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', {
 
 export function render(root, params = {}) {
   let cleanup = null;
-  root.append(header('🧪 Test de la semaine', 'Chaque lundi, 5 minutes pour mesurer tes progrès en rythme, harmonie, mélodie et son.', '#/skills'));
+  root.append(header('🧪 Test de la semaine', 'Chaque lundi, 5 minutes pour mesurer tes progrès en rythme, harmonie, mélodie et son.'));
   const body = el('div');
   root.append(body);
 
@@ -157,7 +157,7 @@ export function render(root, params = {}) {
   function debrief(t) {
     const list = t.mistakes || [];
     if (!list.length) return card(el('h3', '✅ Aucune erreur dans les questions'), el('p.small.muted', 'Bravo ! (La régularité au métronome est notée à part.)'));
-    return card(el('h3', `🔎 Débrief : ${list.length} erreur${list.length > 1 ? 's' : ''}`),
+    return card(el('h3', `🔎 Débrief : ${plural(list.length, 'erreur')}`),
       list.map((m) => el('div.debrief-item',
         el('div.small.muted', `${DOMAINS.find((d) => d.id === m.domain)?.emoji || ''} ${m.prompt || ''}`),
         el('div', '❌ Ta réponse : ', el('b', m.given || '—'), ' · ✅ Bonne réponse : ', el('b', m.correct || '—')),

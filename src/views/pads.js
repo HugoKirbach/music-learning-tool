@@ -1,5 +1,5 @@
 // Pad Rush : finger drumming sur une grille de pads (2×4 ou 4×4) — anneaux qui se referment + séquenceur au-dessus.
-import { el, header, segmented, confetti, showBadges, toast, landscapeBtn } from '../ui.js';
+import { el, header, segmented, confetti, showBadges, toast, landscapeBtn, plural } from '../ui.js';
 import { getState, update, recordExercise, recordGameReview } from '../store.js';
 import { inputLatency } from '../core/latency.js';
 import { ensureAudio, now, playSynth, playDrum, playClick, outputLatency, scheduleAhead } from '../core/audio.js';
@@ -9,6 +9,7 @@ import { viewKeys } from '../shortcuts.js';
 import { DIFFS, TileGame, LearnSession, noteFr, noteEn } from '../core/tiles.js';
 import { LAYOUTS, padCount, buildPadChart, hasRolls, judgeVelocity, padForNote } from '../core/padgame.js';
 import { PAD_CHAPTERS, PAD_LEVELS, padLevelById, padChapterOf } from '../data/pads.js';
+import { modeSwitch, gameHero, optionsBox, optToggle, chapterBox, levelButton } from './rush.js';
 
 const GRADE_TXT = { ok: '✓', perfect: 'Parfait', good: 'Bien', miss: 'Raté', wrong: '✗' };
 const KEY_TXT = (code) => code.replace('Key', '').replace('Digit', '');
@@ -39,56 +40,69 @@ export function render(root, params = {}) {
   let mode = params.mode === 'libre' ? 'libre' : 'parcours';
   let stopGame = null;
 
+  // Le temps de la visite : options et chapitres gardent leur état ouvert / fermé entre deux passages au menu.
+  let optsOpen = false;
+  const chOpen = {};
+
   // ---------- Menu ----------
   function menu() {
     stopGame?.(); stopGame = null;
     const st = padsState();
     root.replaceChildren(
-      header('🔲 Pad Rush', 'Finger drumming : frappe le pad quand l’anneau se referme. Théorie + pratique, du kick seul au breakbeat.'),
-      el('div.row.gap.wrap', { style: { marginBottom: '10px' } },
-        segmented([{ value: 'parcours', label: '🧭 Parcours' }, { value: 'libre', label: '🎮 Mode libre' }], mode, (v) => { mode = v; menu(); })),
-      settingsCard(),
-      mode === 'parcours' ? parcours(st) : libre(st),
+      header('🔲 Pad Rush', 'Finger drumming : frappe le pad quand l’anneau se referme, du kick seul au breakbeat.'),
+      modeSwitch(mode, (v) => { mode = v; menu(); }),
+      ...(mode === 'parcours' ? parcours(st) : libre(st)),
     );
   }
 
-  function settingsCard() {
+  function options() {
     const st = padsState();
-    const toggle = (key, label, title) => el('button.btn.small' + (st[key] ? '.primary' : ''), { title, onclick: () => { setPads((r) => { r[key] = !r[key]; }); menu(); } }, `${st[key] ? '✓' : '○'} ${label}`);
-    return el('div.card.rush-settings',
-      el('div.row.gap.wrap',
-        el('span.small.muted', 'Pads'),
-        segmented([{ value: '2x4', label: '2 × 4 (8 pads)' }, { value: '4x4', label: '4 × 4 (16 pads)' }], st.layout, (v) => setPads((r) => { r.layout = v; })),
-        toggle('rolls', 'Roulements 1/16 · 1/32', 'Désactivé : au plus une croche par pad, plus confortable au tactile'),
-        toggle('metro', 'Métronome'), toggle('guide', 'Guide audio'), toggle('lefty', 'Gaucher', 'Inverse la grille gauche ↔ droite'),
-        el('button.btn.small', { onclick: assistant }, '🎛️ Assistant pads MIDI')),
-      el('p.small.muted', { style: { margin: '8px 0 0' } }, inputHint(st.layout)),
-    );
+    const summary = () => { const r = padsState(); return [r.layout.replace('x', ' × '), r.metro && 'métronome', r.rolls && 'roulements', r.guide && 'guide audio', r.lefty && 'gaucher'].filter(Boolean).join(' · '); };
+    const set = (fn) => { setPads(fn); box.setSummary(summary()); };
+    const hint = el('p.small.muted.opt-hint', inputHint(st.layout));
+    const box = optionsBox(optsOpen, (o) => { optsOpen = o; }, summary(),
+      el('div.opt-line', el('span.small.muted', 'Pads'),
+        segmented([{ value: '2x4', label: '2 × 4 (8 pads)' }, { value: '4x4', label: '4 × 4 (16 pads)' }], st.layout, (v) => { set((r) => { r.layout = v; }); hint.textContent = inputHint(v); })),
+      el('div.opt-line',
+        optToggle(st.metro, 'Métronome', (on) => set((r) => { r.metro = on; })),
+        optToggle(st.rolls, 'Roulements 1/16 · 1/32', (on) => set((r) => { r.rolls = on; }), 'Désactivé : au plus une croche par pad, plus confortable au tactile'),
+        optToggle(st.guide, 'Guide audio', (on) => set((r) => { r.guide = on; }), 'L’app joue chaque coup au bon moment pour te guider'),
+        optToggle(st.lefty, 'Gaucher', (on) => set((r) => { r.lefty = on; }), 'Inverse la grille gauche ↔ droite')),
+      el('div.opt-line', el('button.btn.small', { type: 'button', onclick: assistant }, '🎛️ Assistant pads MIDI')),
+      hint);
+    return box;
   }
 
-  function levelRow(l, i, st, { locked = false, next = false, key = l.id } = {}) {
-    const b = st.best[key];
-    return el('button.rush-level' + (locked ? '.locked' : '') + (next ? '.next' : ''), {
-      type: 'button', disabled: locked, onclick: () => intro(l, { mode, diff: mode === 'libre' ? padsState().diff : 'normal' }),
-    },
-    el('span.rl-emoji', locked ? '🔒' : l.emoji),
-    el('span.rl-txt', el('b', `${i != null ? `${i + 1}. ` : ''}${l.title}`), el('small', l.concept)),
-    el('span.rl-stars' + (b?.stars ? '.on' : ''), b ? starsTxt(b.stars) : (hasRolls(l) ? el('small.muted', '🌀 rolls') : '')));
-  }
+  const rollsTag = (l) => (hasRolls(l) ? el('small.rl-tag', '🌀 roulements') : null);
 
   function parcours(st) {
-    const done = PAD_LEVELS.filter((l) => (st.best[l.id]?.stars || 0) >= 1).length;
-    const stars = PAD_LEVELS.reduce((a, l) => a + (st.best[l.id]?.stars || 0), 0);
-    const nextIdx = PAD_LEVELS.findIndex((l, i) => isUnlocked(i) && !(st.best[l.id]?.stars >= 1));
-    return el('div',
-      el('div.card.glow', el('div.row.between',
-        el('div', el('b', `${done}/${PAD_LEVELS.length} niveaux`), el('div.small.muted', `${stars}/${PAD_LEVELS.length * 3} ★ · 60 % pour débloquer la suite`)),
-        nextIdx >= 0 ? el('button.btn.primary', { onclick: () => intro(PAD_LEVELS[nextIdx], { mode: 'parcours', diff: 'normal' }) }, '▶ Continuer') : el('span.tag', '🏆 Terminé'))),
-      PAD_CHAPTERS.map((c) => el('div',
-        el('div.fam-head', el('h3.fam-title', `${c.emoji} ${c.id}. ${c.name}`), el('span.small.muted', c.desc)),
-        el('div.rush-levels', PAD_LEVELS.map((l, i) => [l, i]).filter(([l]) => l.ch === c.id)
-          .map(([l, i]) => levelRow(l, i, st, { locked: !isUnlocked(i), next: i === nextIdx }))))),
-    );
+    const best = (l) => st.best[l.id];
+    const done = PAD_LEVELS.filter((l) => (best(l)?.stars || 0) >= 1).length;
+    const stars = PAD_LEVELS.reduce((a, l) => a + (best(l)?.stars || 0), 0);
+    const nextIdx = PAD_LEVELS.findIndex((l, i) => isUnlocked(i) && !(best(l)?.stars >= 1));
+    // Bandeau : le prochain niveau à réussir ; parcours terminé → le premier sous 3 étoiles.
+    const target = nextIdx >= 0 ? nextIdx : PAD_LEVELS.findIndex((l) => (best(l)?.stars || 0) < 3);
+    const go = (i) => intro(PAD_LEVELS[i], { mode: 'parcours', diff: 'normal' });
+    const tl = PAD_LEVELS[target];
+    const hero = gameHero(tl ? {
+      label: nextIdx < 0 ? '🏆 Parcours terminé · vise les 3 ★' : PAD_LEVELS.some(best) ? 'Prochain niveau' : 'Premier niveau',
+      emoji: tl.emoji, title: `${target + 1}. ${tl.title}`, sub: `Chapitre ${tl.ch} · ${padChapterOf(tl).name} — ${tl.concept}`,
+      cta: nextIdx < 0 ? '⭐ Améliorer mon score' : PAD_LEVELS.some(best) ? '▶ Continuer' : '▶ Commencer', onPlay: () => go(target),
+      done, total: PAD_LEVELS.length, stars, hint: nextIdx >= 0 ? 'Réussis un niveau à 60 % pour ouvrir le suivant.' : null,
+    } : {
+      label: '🏆 Parcours parfait', emoji: '🏆', title: `${PAD_LEVELS.length} niveaux à 3 ★`, sub: 'Bravo ! Le mode libre t’attend : difficile, expert, défis à l’oreille.',
+      cta: '🎮 Mode libre', onPlay: () => { mode = 'libre'; menu(); }, done, total: PAD_LEVELS.length, stars,
+    });
+    return [hero, options(), ...PAD_CHAPTERS.map((c) => {
+      const list = PAD_LEVELS.map((l, i) => [l, i]).filter(([l]) => l.ch === c.id);
+      const nDone = list.filter(([l]) => (best(l)?.stars || 0) >= 1).length;
+      const key = `parcours:${c.id}`;
+      return chapterBox({
+        c, done: nDone, total: list.length, stars: list.reduce((a, [l]) => a + (best(l)?.stars || 0), 0),
+        locked: !list.some(([, i]) => isUnlocked(i)), current: c.id === tl?.ch,
+        open: chOpen[key] ?? (c.id === tl?.ch || (nDone > 0 && nDone < list.length)), onToggle: (o) => { chOpen[key] = o; },
+      }, list.map(([l, i]) => levelButton(l, { num: i + 1, locked: !isUnlocked(i), next: i === nextIdx, best: best(l), extra: rollsTag(l), onclick: () => go(i) })));
+    })];
   }
 
   function libre(st) {
@@ -96,15 +110,21 @@ export function render(root, params = {}) {
       facile: 'Tempo ×0,75, grande tolérance : pour apprendre.', normal: 'Tempo d’origine.',
       difficile: 'Tempo ×1,15, fenêtre plus serrée.', expert: 'Tempo ×1,3, timing strict.',
     };
-    const descEl = el('p.small.muted', diffDesc[st.diff]);
-    return el('div',
-      el('div.card', el('b', 'Difficulté'),
-        segmented(Object.values(DIFFS).map((d) => ({ value: d.id, label: `${d.emoji} ${d.name}` })), st.diff, (v) => { setPads((r) => { r.diff = v; }); descEl.textContent = diffDesc[v]; }),
-        descEl),
-      PAD_CHAPTERS.map((c) => el('div',
-        el('h3.fam-title', `${c.emoji} ${c.name}`),
-        el('div.rush-levels', PAD_LEVELS.filter((l) => l.ch === c.id).map((l) => levelRow(l, null, st, { key: `${l.id}@${st.diff}` }))))),
-    );
+    const best = (l) => st.best[`${l.id}@${st.diff}`];
+    return [
+      el('div.card.glow.game-free', el('b', 'Difficulté'),
+        segmented(Object.values(DIFFS).map((d) => ({ value: d.id, label: `${d.emoji} ${d.name}` })), st.diff, (v) => { setPads((r) => { r.diff = v; }); menu(); }),
+        el('p.small.muted', diffDesc[st.diff], ' Les étoiles des niveaux sont celles de cette difficulté.')),
+      options(),
+      ...PAD_CHAPTERS.map((c, k) => {
+        const list = PAD_LEVELS.filter((l) => l.ch === c.id);
+        const key = `libre:${c.id}`;
+        return chapterBox({
+          c, done: list.filter((l) => (best(l)?.stars || 0) >= 1).length, total: list.length, stars: list.reduce((a, l) => a + (best(l)?.stars || 0), 0),
+          open: chOpen[key] ?? k === 0, onToggle: (o) => { chOpen[key] = o; },
+        }, list.map((l) => levelButton(l, { best: best(l), extra: rollsTag(l), onclick: () => intro(l, { mode: 'libre', diff: padsState().diff }) })));
+      }),
+    ];
   }
 
   // ---------- Introduction ----------
@@ -138,7 +158,7 @@ export function render(root, params = {}) {
           el('button.btn', { onclick: () => play(l, ctx, { ear: true }) }, '🎧 Défi à l’oreille'),
           el('button.btn.primary', { style: { flex: 1 }, onclick: () => play(l, ctx) }, '▶ Jouer')),
         el('p.small.muted', { style: { margin: '8px 0 0' } },
-          '🎓 Apprentissage : les coups dans l’ordre, sans tempo.', learnCount(l) ? ` Déjà ${learnCount(l)} répétition${learnCount(l) > 1 ? 's' : ''}.` : '',
+          '🎓 Apprentissage : les coups dans l’ordre, sans tempo.', learnCount(l) ? ` Déjà ${plural(learnCount(l), 'répétition')}.` : '',
           ' 🎧 Défi à l’oreille : écoute le groove 2 fois, puis rejoue-le sans rien voir.'),
       ),
     );

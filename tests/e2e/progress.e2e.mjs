@@ -41,7 +41,7 @@ export const tests = {
     const g = (await page.state()).goals[0];
     t.assert.deepEqual([g.kind, g.target, g.start, g.weeks], ['tempo', 140, 100, 8]);
     t.assert.equal(await page.locator('.goal-steps span').count(), 8);
-    t.assert.match(await page.locator('div.goal').innerText(), /Réussir un niveau à 140 BPM[\s\S]*Actuel : 100 BPM/);
+    t.assert.match(await page.locator('div.goal-item').innerText(), /Réussir un niveau à 140 BPM[\s\S]*Actuel\s:\s100 BPM/);
     // Objectif déjà atteint : refusé
     await page.clickC('text=＋ Nouvel objectif');
     await page.click('.modal-card >> text=🏆 Monter de niveau');
@@ -50,7 +50,7 @@ export const tests = {
     t.assert.equal((await page.state()).goals.length, 1);
     await page.click('.modal-card >> text=Annuler'); await page.waitForTimeout(250);
     page.once('dialog', (d) => d.accept());
-    await page.clickC('div.goal >> text=Supprimer'); await page.waitForTimeout(200);
+    await page.clickC('div.goal-item >> text=Supprimer'); await page.waitForTimeout(200);
     t.assert.equal((await page.state()).goals.length, 0);
   },
 
@@ -59,7 +59,7 @@ export const tests = {
     await page.store('s.xp = 295;');
     await page.evaluate(async () => { const m = await import('/src/store.js'); m.recordExercise({ key: 'beat:free', xp: 10, skill: 'rythme' }); });
     await page.waitForTimeout(300);
-    t.assert.match(await page.locator('.toast').last().innerText(), /Certificat « Beatmaker »/);
+    t.assert.match(await page.locator('.toast').last().innerText(), /Certificat «\sBeatmaker\s»/);
     t.assert.ok((await page.state()).certs['3']);
     await page.go('#/progress', 500);
     t.assert.equal(await page.locator('.cert:not(.locked)').count(), 1);
@@ -71,8 +71,36 @@ export const tests = {
     t.assert.ok(buf.length > 20000, 'image dessinée');
   },
 
+  'certificats cohérents partout, écrans vides sans graphiques creux': async (t) => {
+    const page = await t.open({ device: 'mobile' });
+    // Niveau 6 sans certificat enregistré (XP importée) : 2 certificats (niveaux 3 et 5) sur les deux écrans
+    await page.store('s.xp = 1800; s.certs = {};');
+    await page.go('#/progress', 500);
+    t.assert.equal(await page.locator('.progress-empty').count(), 1, 'une seule carte « pas encore de courbes »');
+    t.assert.equal(await page.locator('svg.pchart, .skill-spark').count(), 0);
+    t.assert.doesNotMatch(await page.locator('#view').innerText(), /Aucune compétence délaissée|Pas encore de données|Révisions\n/);
+    t.assert.equal(await page.locator('.cert:not(.locked)').count(), 2);
+    t.assert.match(await page.locator('.card:has(.certs) h3').innerText(), /2\/7/);
+    await page.go('#/collection', 500);
+    t.assert.match(await page.locator('.stat-grid').first().innerText(), /2\/7\s*certificats/);
+    t.assert.doesNotMatch(await page.locator('#view').innerText(), /premier certificat arrive/);
+    t.assert.match(await page.locator('.col-sec:has(#col-certs)').innerText(), /Niveau 5 · Chercheur·se de sons[\s\S]*Niveau 3 · Beatmaker/);
+    // Bilan d'une semaine sans XP : une carte « Semaine blanche » avec une action, pas de graphiques à zéro
+    await page.go('#/bilan', 500);
+    t.assert.match(await page.locator('.bilan-blank').innerText(), /Semaine blanche/);
+    t.assert.equal(await page.locator('.week-bars, .meter.dual').count(), 0);
+    await page.clickC('.bilan-blank a:has-text("⚡ Session express")'); await page.waitForTimeout(400);
+    t.assert.ok((await page.state()).session, 'session lancée depuis le bilan');
+  },
+
   'révisions : oreille + niveaux de jeu ratés, au même endroit': async (t) => {
     const page = await t.open({ device: 'mobile' });
+    // Rien en cours : pas de graphique vide, des idées pour s'entraîner, pas de tuile « Révisions » dans le hub de l'oreille
+    await page.go('#/review', 400);
+    t.assert.equal(await page.locator('.week-bars').count(), 0);
+    t.assert.ok(await page.locator('a.btn.primary[href="#/ear"]:has-text("Faire un quiz d’oreille")').count());
+    await page.go('#/ear', 400);
+    t.assert.equal(await page.locator('.htile[href="#/review"]').count(), 0);
     await page.evaluate(async () => { const m = await import('/src/store.js'); m.recordGameReview('rush:pulse', false); m.recordGameReview('pads:otf', true); });
     let st = await page.state();
     t.assert.deepEqual(Object.keys(st.review), ['rush:pulse'], 'réussi sans fiche : rien à réviser');
@@ -82,6 +110,12 @@ export const tests = {
     t.assert.match(txt, /Oreille · 1 notion/);
     t.assert.match(txt, /Niveaux à rejouer · 1[\s\S]*Rondes et blanches/);
     t.assert.match(txt, /3 fiches en cours/);
+    t.assert.equal(await page.locator('.week-bars').count(), 1, 'une fiche prévue dans 3 jours : graphique affiché');
+    // Le hub du quiz d'oreille renvoie vers ces révisions
+    await page.go('#/ear', 400);
+    t.assert.equal(await page.locator('.htile[href="#/review"]').count(), 1);
+    t.assert.match(await page.locator('.htile[href="#/review"]').innerText(), /Révisions · 1/);
+    await page.go('#/review', 400);
     // Le quiz d'oreille ne reçoit que les notions d'oreille
     await page.clickC('text=▶ Réviser'); await page.waitForTimeout(500);
     t.assert.match(await page.locator('#view').innerText(), /Révisions d’oreille/);
@@ -151,9 +185,9 @@ export const tests = {
     await page.context().setOffline(true);
     await page.reload(); await page.waitForTimeout(1500);
     t.assert.ok(await page.locator('.chip.cloud.offline').count(), 'pastille hors-ligne avec le compte');
-    t.assert.match(await page.locator('.toast').allInnerTexts().then((x) => x.join(' ')), /Hors-ligne : continue à jouer/);
+    t.assert.match(await page.locator('.toast').allInnerTexts().then((x) => x.join(' ')), /Hors-ligne\s:\scontinue à jouer/);
     await page.evaluate(async () => { const m = await import('/src/store.js'); m.recordExercise({ key: 'beat:free', xp: 33, skill: 'rythme' }); });
-    await page.go('#/profile?account=1', 600);
+    await page.go('#/settings?sec=account', 600);
     t.assert.match(await page.locator('.card:has-text("Compte & synchro")').innerText(), /Hors-ligne[\s\S]*partiront tout seuls/);
     await page.context().setOffline(false);
     await page.evaluate(() => window.dispatchEvent(new Event('online')));
@@ -169,7 +203,7 @@ export const tests = {
     t.assert.deepEqual(man.shortcuts.map((x) => x.short_name), ['Session', 'Piano Rush', 'Pad Rush', 'Progrès']);
     t.assert.equal(await page.locator('#splash').count(), 0, 'écran de démarrage retiré');
     await page.evaluate(() => { const e = new Event('beforeinstallprompt'); e.prompt = () => { window.__prompted = true; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); window.dispatchEvent(e); });
-    await page.go('#/profile', 500);
+    await page.go('#/settings', 500);
     await page.clickC('text=📲 Installer BeatForge'); await page.waitForTimeout(200);
     t.assert.ok(await page.evaluate(() => window.__prompted));
     await page.go('#/rush?level=pulse', 500);

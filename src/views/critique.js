@@ -1,12 +1,12 @@
 // Critique de ma prod : j'importe mon export Ableton (et une référence), l'app compare et donne 3 conseils concrets.
-import { el, header, card, segmented, toast } from '../ui.js';
+import { el, header, card, select, toast } from '../ui.js';
 import { recordExercise } from '../store.js';
 import { decodeFile } from '../core/audio.js';
 import { analyzeTrack, compareTracks, TARGETS, BANDS } from '../core/critique.js';
 
 export function render(root) {
   const st = { mine: null, ref: null, mineName: '', refName: '', target: 'club' };
-  root.append(header('🩺 Critique de ma prod', 'Importe ton export (WAV/MP3) et, si tu veux, un morceau de référence : l’app compare niveau, équilibre, stéréo et arrangement, puis te donne 3 actions dans Live.', '#/labs'));
+  root.append(header('🩺 Critique de ma prod', 'Importe ton export (WAV/MP3) et, si tu veux, un morceau de référence : l’app compare niveau, équilibre, stéréo et arrangement, puis te donne 3 actions dans Live.'));
   const out = el('div');
 
   const picker = (label, key) => {
@@ -35,7 +35,8 @@ export function render(root) {
       el('h3', { style: { marginTop: '14px' } }, '2. Référence (facultatif)'),
       el('p.small.muted', 'Un titre du même style que tu aimes : c’est la meilleure comparaison. Sinon, l’app utilise des valeurs typiques du style choisi.'),
       picker('🎧 Importer une référence', 'ref'),
-      el('div.ctrl-row', el('label', 'Sans référence'), segmented(Object.entries(TARGETS).map(([id, t]) => ({ value: id, label: t.name.split(' (')[0] })), st.target, (v) => { st.target = v; paint(); })),
+      el('label.crit-target', el('span', 'Style de comparaison (sans référence)'),
+        select(Object.entries(TARGETS).map(([id, t]) => ({ value: id, label: t.name })), st.target, (v) => { st.target = v; paint(); })),
       el('p.small.muted', 'Tout est analysé sur ton appareil : rien n’est envoyé sur internet. Exporte ton morceau en WAV depuis Live (Fichier › Exporter audio).'),
     ),
     out,

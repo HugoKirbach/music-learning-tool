@@ -326,8 +326,9 @@ function authError(e) {
 
 function fsError(e) {
   const code = e?.code || '';
-  if (code === 'permission-denied') return 'Accès refusé par la base : vérifie les règles Firestore.';
+  if (code) console.warn('Synchro :', code, e?.message);
+  if (code === 'permission-denied') return 'Synchro refusée par le serveur : réessaie plus tard.';
   if (code === 'unavailable') return 'Serveur injoignable : synchro à la prochaine connexion.';
-  if (code === 'not-found' || code === 'failed-precondition') return 'Base Firestore introuvable : crée-la dans la console Firebase.';
+  if (code === 'not-found' || code === 'failed-precondition') return 'Service de synchro momentanément indisponible : réessaie plus tard.';
   return e?.message || 'Erreur de synchronisation';
 }

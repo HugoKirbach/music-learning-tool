@@ -1,4 +1,4 @@
-import { el, card, header, playButton, toast, downloadMidi } from '../ui.js';
+import { el, card, header, playButton, toast, downloadMidi, htile } from '../ui.js';
 import { cleanFavs } from '../core/daily.js';
 import { PATHS } from '../data/paths.js';
 import { getState, update, projectFromGenre } from '../store.js';
@@ -13,15 +13,16 @@ export function render(root, params) {
   if (params.g) return detail(root, genreById(params.g));
   const s = getState();
   const families = [...new Set(GENRES.map((g) => g.family))];
-  root.append(header('🗺️ Atlas des styles', `${Object.keys(s.genres).length}/${GENRES.length} styles explorés. Chaque style = quelques ingrédients à connaître… pour mieux les mélanger.`));
+  const explored = GENRES.filter((g) => s.genres[g.id]).length;
+  root.append(header('🗺️ Atlas des styles', `${explored}/${GENRES.length} styles explorés. Chaque style = quelques ingrédients à connaître… pour mieux les mélanger.`));
   const favs = cleanFavs(s.settings.favGenres || []);
-  const tile = (g) => el('a.tile.genre-card', { href: `#/atlas?g=${g.id}` },
-    el('div.ge', g.emoji), el('b', g.name + (s.genres[g.id] ? ' ✓' : '')), el('span', `${g.bpm} BPM · ${SCALES[g.scale].name}`));
-  if (favs.length) root.append(el('h3', { style: { margin: '10px 0 8px' } }, '❤️ Tes styles préférés'), el('div.grid2.wide3', favs.map((id) => tile(genreById(id)))));
-  for (const f of families) {
-    root.append(el('h3', { style: { margin: '10px 0 8px' } }, f),
-      el('div.grid2.wide3', GENRES.filter((g) => g.family === f).map(tile)));
-  }
+  // Tuile compacte : nom, tempo et gamme courte (« Mineur » plutôt que « Mineur (Éolien) ») ; ✓ quand le style a été exploré
+  const tile = (g) => htile(`#/atlas?g=${g.id}`, g.emoji,
+    [g.name, s.genres[g.id] ? el('span.atlas-seen', { title: 'Style exploré' }, '✓', el('span.sr-only', ' exploré')) : null],
+    `${g.bpm} BPM · ${SCALES[g.scale].name.replace(/ \(.*\)$/, '')}`, '.atlas-style' + (s.genres[g.id] ? '.seen' : ''));
+  const group = (title, list) => el('section.atlas-fam', el('h3.fam-title', title), el('div.atlas-grid', list.map(tile)));
+  if (favs.length) root.append(group('❤️ Tes styles préférés', favs.map(genreById)));
+  for (const f of families) root.append(group(f, GENRES.filter((g) => g.family === f)));
 }
 
 /** Ajoute / retire le style du top 3 (si le top est plein, il remplace le 3e). */

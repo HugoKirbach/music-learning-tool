@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { humToNotes, snapToScale, fitRange } from '../src/core/hum.js';
-import { critiqueBass, bassVariants, lineToNotes, notesToLine } from '../src/core/basscritic.js';
+import { critiqueBass, bassVariants, lineToNotes, notesToLine, groupIssues, barsLabel } from '../src/core/basscritic.js';
 import { makeScenario, scoreMix, referenceMix, PROBLEMS } from '../src/core/mixdown.js';
 import { TRANSFORMS, remapDegree } from '../src/core/variations.js';
 import { weekStart, weekStats, coachPlan } from '../src/core/weekly.js';
@@ -49,6 +49,28 @@ test('Labo de basse : critique et variantes', () => {
   assert.equal(eventsAt(q, v, 0).bass[0].note, good[0].n);
 });
 
+test('Labo de basse : la basse en contretemps de la house n’est pas pénalisée, les remarques sont regroupées', () => {
+  const p = proj('house');
+  const v = voiceProgression(p);
+  const line = new Array(64).fill(null);
+  for (let s = 0; s < 64; s++) { const b = eventsAt(p, v, s).bass[0]; if (b) line[s] = { n: b.note, len: Math.max(1, Math.round(b.len)) }; }
+  const notes = lineToNotes(line);
+  assert.ok(notes.every((n) => n.s % 16 !== 0), 'basse house par défaut : rien sur le 1er temps');
+  const c = critiqueBass(notes, v, p.drums.kick, p.rootPc, p.scale);
+  assert.ok(c.score >= 90, `${c.score} ${JSON.stringify(c.issues)}`);
+  assert.ok(!c.issues.some((i) => i.type === 'downbeat'));
+  assert.ok(c.goods.some((g) => /kick garde le 1/.test(g)));
+  // Sans kick sur le 1, le même trou est un vrai défaut, signalé une seule fois pour les 4 mesures
+  const noKick = critiqueBass(notes, v, p.drums.kick.map((x, i) => (i === 0 ? 0 : x)), p.rootPc, p.scale);
+  const g = groupIssues(noKick.issues).filter((x) => x.type === 'downbeat');
+  assert.equal(g.length, 1);
+  assert.equal(g[0].label, 'M1–M4');
+  assert.equal(g[0].notes.length, new Set(v.map((x) => x.rootPc)).size);
+  assert.ok(noKick.issues.every((i) => !/Mesure \d/.test(i.msg)), 'pas de « Mesure n : » répété dans le texte');
+  assert.equal(barsLabel([0, 2]), 'M1, M3');
+  assert.equal(barsLabel([1, 2, 3]), 'M2–M4');
+});
+
 test('Mixdown : scénario, score parfait sur la référence, mauvais sur le mix cassé', () => {
   for (const g of ['house', 'lofi', 'techno']) {
     const sc = makeScenario(g, 5);
@@ -85,5 +107,6 @@ test('Bilan hebdo et coach', () => {
   const prev = weekStats(s, '2026-10-05');
   const c = coachPlan(w, prev, { review: s.review, untriedGenre: GENRES[3] });
   assert.ok(c.plan.length >= 4 && c.plan.every((x) => x.route.startsWith('#/')));
+  assert.equal(new Set(c.plan.map((x) => x.why)).size, c.plan.length, 'chaque étape du plan a sa propre raison');
   assert.notEqual(c.weakest, 'rythme');
 });

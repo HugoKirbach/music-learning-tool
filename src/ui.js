@@ -3,6 +3,7 @@ import { recordExercise, getState } from './store.js';
 import { titleFor, hintsByDefault, levelFromXp } from './core/progress.js';
 import { buildMidi } from './core/midi.js';
 import { ensureAudio } from './core/audio.js';
+import { tabOf } from './catalog.js';
 
 // append / prepend / replaceChildren natifs affichent « null » : on ignore null/false pour écrire `cond ? node : null`.
 for (const m of ['append', 'prepend', 'replaceChildren']) {
@@ -36,24 +37,38 @@ export function el(spec, props = {}, ...children) {
   return node;
 }
 
+/** Typographie française : espace insécable avant « : ; ! ? » et à l'intérieur des guillemets (pas de « : » seul en début de ligne). */
+export const frType = (t) => t.replace(/ ([:;!?»])/g, '\u00a0$1').replace(/« /g, '«\u00a0');
+
 function append(node, children) {
   for (const c of children.flat(Infinity)) {
     if (c == null || c === false) continue;
-    node.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
+    node.appendChild(c instanceof Node ? c : document.createTextNode(frType(String(c))));
   }
 }
+
+/** « 1 piste », « 3 pistes » (0 et 1 au singulier, comme en français). */
+export const plural = (n, word, many = `${word}s`) => `${n} ${n > 1 ? many : word}`;
 
 export function clear(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
   return node;
 }
 
+// Notifications : 2 à la fois au plus (les suivantes attendent leur tour pour ne pas recouvrir l'écran).
+const toastQueue = [];
+let toastsShown = 0;
 export function toast(msg, kind = 'info', ms = 2600) {
+  if (toastsShown >= 2) { if (toastQueue.length < 6) toastQueue.push([msg, kind, ms]); return; }
+  toastsShown++;
   const host = document.getElementById('toasts');
-  const t = el('div.toast.' + kind, msg);
+  const t = el('div.toast.' + kind, { role: 'status' }, msg);
   host.appendChild(t);
   requestAnimationFrame(() => t.classList.add('show'));
-  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, ms);
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => { t.remove(); toastsShown--; if (toastQueue.length) toast(...toastQueue.shift()); }, 300);
+  }, ms);
 }
 
 /** Fenêtre modale. Renvoie une fonction close(). */
@@ -144,14 +159,14 @@ export function showBadges(badges = []) {
   const msgs = [];
   if (badges.length > 3) {
     const cards = badges.filter((b) => b.card).length + (badges.extraCards?.length || 0);
-    toast(`🏅 ${badges.length} nouveaux succès${cards ? ` et 🃏 ${cards} carte(s) de légende` : ''} — Profil › Ma collection`, 'badge', 5000);
+    toast(`🏅 ${badges.length} nouveaux succès${cards ? ` et 🃏 ${plural(cards, 'carte')} de légende` : ''} — Profil › Ma collection`, 'badge', 5000);
     return;
   }
   badges.forEach((b) => {
     msgs.push(`${b.emoji} Succès débloqué : ${b.name}`);
     if (b.card) msgs.push(`🃏 Nouvelle carte ${RARE[b.card.rarity] || ''} : ${b.card.name} — Profil › Ma collection`);
   });
-  if (badges.extraCards?.length) msgs.push(`🃏 ${badges.extraCards.length} carte(s) de légende reçue(s) pour tes succès — Profil › Ma collection`);
+  if (badges.extraCards?.length) msgs.push(`🃏 ${plural(badges.extraCards.length, 'carte')} de légende ${badges.extraCards.length > 1 ? 'reçues' : 'reçue'} pour tes succès — Profil › Ma collection`);
   msgs.forEach((m, i) => setTimeout(() => toast(m, 'badge', 3500), i * 700));
 }
 
@@ -230,7 +245,9 @@ export function card(...children) {
   return el('section.card', ...children);
 }
 
-export function header(title, sub, back = '#/labs') {
+/** En-tête d'écran. Sans `back`, le bouton retour mène à l'onglet de l'écran (Jouer, Créer, Profil…) ; `null` le retire. */
+export function header(title, sub, back) {
+  if (back === undefined) back = '#/' + tabOf((location.hash.slice(2) || 'home').split('?')[0]);
   return el('div.page-head',
     back ? el('a.back', { href: back, 'aria-label': 'Retour' }, '‹') : null,
     el('div', el('h1', title), sub ? el('p.sub', sub) : null),
@@ -266,4 +283,17 @@ export function landscapeBtn() {
     }
   } }, '⛶');
   return b;
+}
+
+/** Tuile d'accès (icône à gauche, nom + détail) : accueil, pages Jouer et Créer. */
+export function htile(href, emoji, name, desc, cls = '') {
+  return el('a.htile' + cls, { href },
+    el('span.htile-emoji', { 'aria-hidden': 'true' }, emoji), el('span.htile-text', el('b', name), desc ? el('span', desc) : null));
+}
+
+/** Titre de rubrique (h2) avec un lien « Tout voir » facultatif. */
+export function sectionHead(id, title, sub, more) {
+  return el('div.sec-head',
+    el('div', el('h2.home-h2', { id }, title), sub ? el('p.small.muted.home-sub', sub) : null),
+    more ? el('a.sec-more', { href: more.href }, more.label) : null);
 }

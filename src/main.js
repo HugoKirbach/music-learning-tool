@@ -6,7 +6,7 @@ import { transport, ensureAudio, setVolume, playSynth, now } from './core/audio.
 import { autoEnableMidi, enableMidi, onMidiActivity, midiStatus, midiStatusText, onMidiStatus, onDeviceChange, setMidiFallback, midiSupported } from './midiin.js';
 import { presetParams } from './player.js';
 import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
-import { pushRecent } from './catalog.js';
+import { pushRecent, TABS, tabOf, screenById } from './catalog.js';
 import { cloudWanted, startCloud, onCloud, cloudStatus } from './cloud.js';
 import { applyAudioMode } from './audiomode.js';
 import { applyPrefs } from './prefs.js';
@@ -18,7 +18,9 @@ import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
 const ROUTES = {
   home: () => import('./views/home.js'),
-  labs: () => import('./views/labs.js'),
+  play: () => import('./views/play.js'),
+  create: () => import('./views/create.js'),
+  labs: () => import('./views/create.js'), // ancienne page « Labs » : remplacée par l'onglet Créer
   beat: () => import('./views/beat.js'),
   chords: () => import('./views/chords.js'),
   melody: () => import('./views/melody.js'),
@@ -52,15 +54,10 @@ const ROUTES = {
   path: () => import('./views/path.js'),
   latency: () => import('./views/latency.js'),
   profile: () => import('./views/profile.js'),
+  settings: () => import('./views/settings.js'),
+  tools: () => import('./views/tools.js'),
 };
 
-const NAV = [
-  { id: 'home', icon: '⚡', label: 'Session', also: ['program', 'placement', 'project', 'skills', 'challenge', 'review', 'club'] },
-  { id: 'labs', icon: '🧪', label: 'Labs', also: ['beat', 'chords', 'melody', 'synth', 'ear', 'atlas', 'callresponse', 'arrange', 'hum', 'basslab', 'mixdown', 'remix', 'rush', 'pads', 'critique'] },
-  { id: 'studio', icon: '🎛️', label: 'Studio', also: ['path'] },
-  { id: 'notebook', icon: '📓', label: 'Carnet' },
-  { id: 'profile', icon: '🏆', label: 'Profil', also: ['bilan', 'friends', 'progress', 'latency', 'collection'] },
-];
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
@@ -73,13 +70,16 @@ const paintMini = () => mini.setVisible(MINI_ROUTES.includes(currentId) && !!get
 
 function renderNav(current) {
   clear(nav);
-  for (const n of NAV) {
-    const active = n.id === current || n.also?.includes(current);
-    nav.appendChild(el('a.nav-item' + (active ? '.active' : ''), { href: '#/' + n.id },
-      el('span.nav-icon', n.icon), el('span.nav-label', n.label)));
+  const tab = tabOf(current);
+  for (const n of TABS) {
+    const active = n.id === tab;
+    nav.appendChild(el('a.nav-item' + (active ? '.active' : ''), { href: '#/' + n.id, 'aria-current': active ? 'page' : null },
+      el('span.nav-icon', { 'aria-hidden': 'true' }, n.icon), el('span.nav-label', n.label)));
   }
+  nav.appendChild(el('button.nav-item.nav-kbd.nav-search', { type: 'button', title: 'Rechercher (Ctrl+K)', onclick: () => import('./search.js').then((m) => m.openSearch()) },
+    el('span.nav-icon', { 'aria-hidden': 'true' }, '🔍'), el('span.nav-label', 'Rechercher')));
   nav.appendChild(el('button.nav-item.nav-kbd', { type: 'button', title: 'Raccourcis clavier (?)', onclick: showShortcutHelp },
-    el('span.nav-icon', '⌨️'), el('span.nav-label', 'Raccourcis')));
+    el('span.nav-icon', { 'aria-hidden': 'true' }, '⌨️'), el('span.nav-label', 'Raccourcis')));
 }
 
 function renderStatus() {
@@ -91,7 +91,8 @@ function renderStatus() {
   clear(status);
   status.appendChild(el('a.brand', { href: '#/home' }, el('span.logo', '◆'), el('span.brand-name', 'BeatForge')));
   status.appendChild(el('div.status-right',
-    el('a.chip.streak' + (s.streak.last === dayKey() ? '.lit' : ''), { href: '#/profile', title: 'Série de jours' }, '🔥 ', String(s.streak.count || 0)),
+    el('a.chip.streak' + (s.streak.last === dayKey() ? '.lit' : ''), { href: '#/profile', title: `Série de jours${s.streak.freezes ? ` · ${s.streak.freezes > 1 ? `${s.streak.freezes} jokers` : '1 joker'} 🧊 pour sauver un jour manqué` : ''}` },
+      '🔥 ', String(s.streak.count || 0), s.streak.freezes ? el('span.chip-freeze', { 'aria-label': s.streak.freezes > 1 ? `${s.streak.freezes} jokers` : '1 joker' }, s.streak.freezes > 1 ? `🧊${s.streak.freezes}` : '🧊') : null),
     el('a.chip.goal', { href: '#/profile', title: `Objectif du jour : ${t.xp}/${goal} XP` },
       ring(pct), ` ${t.xp}/${goal}`),
     el('a.chip.lvl', { href: '#/profile', title: `${lv.into}/${lv.needed} XP vers le niveau ${lv.level + 1}` },
@@ -106,7 +107,7 @@ const CLOUD_ICON = { syncing: '🔄', loading: '⏳', pending: '⏳', synced: '�
 const CLOUD_TXT = { syncing: 'synchronisation…', loading: 'connexion…', pending: 'modifications en attente', synced: 'synchronisé', offline: 'hors-ligne', error: 'problème de synchro' };
 function cloudChip() {
   const st = cloudStatus();
-  const href = '#/profile?account=1';
+  const href = '#/settings?sec=account';
   if (!st.user && st.known && st.state === 'offline') {
     // Hors-ligne avec un compte mémorisé : on reste « connecté », la synchro attendra le réseau
     const who = st.known.name || st.known.email;
@@ -149,7 +150,7 @@ async function midiClick() {
     if (!(await enableMidi())) toast('Accès MIDI refusé : autorise-le via l’icône 🔒 de la barre d’adresse', 'bad', 5000);
     return;
   }
-  location.hash = '#/profile';
+  location.hash = '#/settings?sec=midi';
 }
 onMidiStatus(paintMidiChip);
 onDeviceChange((added, removed) => {
@@ -190,6 +191,8 @@ async function route() {
   paintMini();
   if (getState().recent?.[0] !== id && pushRecent([], id).length) update((s) => { s.recent = pushRecent(s.recent, id); });
   renderNav(id);
+  const label = TABS.find((x) => x.id === id)?.label || screenById(id)?.name;
+  document.title = label && id !== 'home' ? `${label} · BeatForge` : 'BeatForge';
   let mod;
   try {
     mod = await ROUTES[id]();
@@ -216,9 +219,9 @@ function onboarding() {
     el('h2', 'Bienvenue dans BeatForge'),
     el('p', 'Ta salle d’entraînement de poche pour composer : rythmes, accords, mélodies « catchy » et sound design — puis transposer chaque geste dans Ableton Live 12, ton MPC Key 37 et Serum 2.'),
     el('ol.onboard-steps',
-      el('li', el('b', '👂 Échauffement'), ' — 2 min pour entraîner l’oreille.'),
-      el('li', el('b', '🧪 Création'), ' — 3-5 min de composition guidée dans un style.'),
-      el('li', el('b', '🎛️ Transfert studio'), ' — une mission concrète à refaire sur tes outils.'),
+      el('li', el('b', '⚡ Session express'), ' — 5-10 min : oreille, création dans un style, puis une mission sur tes outils.'),
+      el('li', el('b', '🎮 Jouer'), ' — sur téléphone : des jeux courts, même sans le son, pour progresser sans y penser.'),
+      el('li', el('b', '🎛️ Créer'), ' — sur PC : les ateliers, ton idée qui te suit partout, l’export vers Live.'),
     ),
     el('p.muted', 'Les indices disparaissent progressivement avec ton niveau : le but est que tu deviennes autonome.'),
     el('p', el('b', 'Objectif quotidien :')),
@@ -251,6 +254,17 @@ setInterval(() => {
 }, 15000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPractice(); });
 onMidiActivity(touchInput);
+
+// ---------- Jokers de série : gagné (7 jours d'affilée) ou utilisé (jour manqué rattrapé) ----------
+let streakSeen = { ...getState().streak };
+subscribe((s) => {
+  const st = s.streak || {};
+  if (st.last && st.last !== streakSeen.last) {
+    if (st.saved) toast(`🧊 Joker utilisé : ${st.saved > 1 ? `${st.saved} jours manqués rattrapés` : 'le jour manqué est rattrapé'}, ta série de ${st.count} jours continue !`, 'good', 5000);
+    else if ((st.freezes || 0) > (streakSeen.freezes || 0)) toast(`🧊 ${st.count} jours d’affilée : tu gagnes un joker ! Il sauvera ta série un jour où tu ne pourras pas jouer.`, 'good', 5000);
+  }
+  streakSeen = { ...st };
+});
 
 // ---------- Nouveau certificat (à chaque nouveau titre) ----------
 let certsSeen = Object.keys(getState().certs || {}).length;

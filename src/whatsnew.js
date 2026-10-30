@@ -2,8 +2,19 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '2.5';
+export const APP_VERSION = '3.0';
 export const CHANGELOG = [
+  {
+    version: '3.0', date: 'octobre 2026', items: [
+      ['🧭', 'Nouveau menu en 5 onglets', 'Accueil, 🎮 Jouer, 🎛️ Créer, 📓 Carnet, 👤 Profil. Chaque écran a son retour vers son onglet, les réglages ont leur propre page (roue ⚙️ du Profil).'],
+      ['🔇', 'Jeux sans le son', 'la Nuit au club se joue aussi en silence : Grid Puzzle, Accord Express, Calcul de producteur, L’Architecte et Le Bon Réglage, avec leurs propres étoiles et leur set du jour.'],
+      ['🔍', 'Recherche rapide', 'un atelier, un style, une mission ou un niveau en quelques lettres : bouton 🔍, Ctrl+K ou « / » sur PC.'],
+      ['🧰', 'Boîte à outils', 'tap tempo, delays en ms, roue Camelot, accords de la tonalité et accordage du kick, à garder ouverte à côté d’Ableton.'],
+      ['🧊', 'Jokers de série', '7 jours d’affilée rapportent un joker (2 au maximum) qui sauve ta série un jour où tu ne peux pas jouer.'],
+      ['📓', 'Carnet', 'recherche, compteurs par type, filtre « à finir sur PC » et bouton pour garder ton idée en cours.'],
+      ['✨', 'Finitions partout', 'thème clair lisible partout, boutons plus grands au doigt, menus de Piano Rush et Pad Rush par chapitres, collection plus claire, ateliers harmonisés.'],
+    ],
+  },
   {
     version: '2.5', date: 'octobre 2026', items: [
       ['⚡', 'Hard Trance et 🔨 Hard House', 'deux nouveaux styles dans l’Atlas (155 et 145 BPM), avec démo, ingrédients et astuces Live / MPC / Serum.'],
@@ -63,15 +74,13 @@ export const CHANGELOG = [
 ];
 
 const TOUR = [
-  { route: '#/home', title: 'Ton accueil', text: 'Sur téléphone, les jeux d’abord ; sur PC, le studio d’abord (bouton Jouer / Studio en haut). La session express et ta carte de suivi sont toujours là.' },
-  { route: '#/club', title: 'Nuit au club', text: 'Le jeu du téléphone : mini-jeux express, salles à débloquer, vinyles à collectionner… et ton oreille progresse sans que tu y penses.' },
-  { route: '#/skills', title: 'Arbre de compétences', text: 'Ouvre une compétence pour voir comment la valider : chaque jeu ou Lab y contribue.' },
-  { route: '#/project', title: 'Projet de la semaine', text: 'Une étape par jour, puis l’export vers Live le dimanche.' },
-  { route: '#/labs', title: 'Labs', text: 'Les ateliers par familles. Les plus avancés apparaissent avec ton niveau (ou « Tout afficher » dans le Profil).' },
-  { route: '#/pads', title: 'Pad Rush', text: 'Finger drumming sur tes pads (2×4 ou 4×4), au clavier ou au tactile.' },
-  { route: '#/challenge', title: 'Défi de la semaine', text: 'La même contrainte pour tout le monde : publie ta version et écoute celles des autres.' },
-  { route: '#/progress', title: 'Mes progrès', text: 'Tes courbes semaine après semaine, tes objectifs découpés en étapes et tes certificats.' },
-  { route: '#/profile', title: 'Profil', text: 'Compte et amis, thème clair, mode gaucher, moteur audio, sortie MIDI vers Live.' },
+  { route: '#/home', title: 'Ton accueil', text: 'La session du jour, ta prochaine étape et un accès direct aux jeux (sur téléphone) ou à ton idée (sur PC).' },
+  { route: '#/play', title: '🎮 Jouer', text: 'Tous les jeux au même endroit : Nuit au club avec ou sans le son, Piano Rush, Pad Rush, oreille et révisions.' },
+  { route: '#/club?silent=1', title: '🔇 Sans le son', text: 'Des mini-jeux 100 % visuels pour progresser là où tu ne peux pas mettre le son : grilles, accords, calcul, structure, réglages.' },
+  { route: '#/create', title: '🎛️ Créer', text: 'Ton idée en cours, puis les ateliers rangés : écrire, son & mix, développer, et tout ce qui se finit dans ton studio.' },
+  { route: '#/tools', title: '🧰 Boîte à outils', text: 'À garder ouverte à côté d’Ableton : tap tempo, delays en ms, roue Camelot, accords de la tonalité, accordage du kick.' },
+  { route: '#/profile', title: '👤 Profil', text: 'Progrès, compétences, collection et amis. La roue ⚙️ ouvre les réglages (compte, MIDI, audio, Live, sauvegarde).' },
+  { route: '#/home', title: '🔍 Trouver n’importe quoi', text: 'Le bouton 🔍 (ou Ctrl+K sur PC) cherche un atelier, un style, une mission ou un niveau en quelques lettres.' },
 ];
 
 const items = (list) => el('ul.whatsnew', list.map(([e, t, d]) => el('li', el('span', e), el('div', el('b', t), ' — ', d))));

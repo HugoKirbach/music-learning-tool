@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { levelFromXp, xpForLevel, updateStreak, hintsByDefault, newBadges } from '../src/core/progress.js';
+import { levelFromXp, xpForLevel, updateStreak, hintsByDefault, newBadges, earnedCerts, CERT_LEVELS } from '../src/core/progress.js';
 import { buildSession, stepMatches, genreOfDay } from '../src/core/daily.js';
 import { analyzeMelody } from '../src/core/catchy.js';
 import { similarity, normalizeParams, PARAMS, getPath } from '../src/core/synthparams.js';
@@ -24,6 +24,26 @@ test('série de jours', () => {
   s = updateStreak(s, '2026-10-18');
   assert.equal(s.count, 1);
   assert.equal(s.best, 2);
+});
+
+test('série de jours : jokers gagnés tous les 7 jours et utilisés pour un jour manqué', () => {
+  let s = { count: 0, last: null, best: 0 };
+  const day = (n) => `2026-10-${String(n).padStart(2, '0')}`;
+  for (let d = 1; d <= 7; d++) s = updateStreak(s, day(d));
+  assert.equal(s.count, 7);
+  assert.equal(s.freezes, 1, '1 joker au 7e jour');
+  s = updateStreak(s, day(9)); // le 8 est manqué
+  assert.deepEqual([s.count, s.freezes, s.saved], [8, 0, 1], 'le joker sauve la série');
+  s = updateStreak(s, day(10));
+  assert.equal(s.saved, undefined);
+  s = updateStreak(s, day(13)); // 2 jours manqués, plus de joker
+  assert.deepEqual([s.count, s.freezes], [1, 0]);
+  // plafond de 2 jokers
+  s = { count: 0, last: null, best: 0 };
+  for (let d = 1; d <= 28; d++) s = updateStreak(s, day(d));
+  assert.equal(s.freezes, 2);
+  s = updateStreak(s, day(31)); // 29 et 30 manqués : 2 jokers
+  assert.deepEqual([s.count, s.freezes, s.saved], [29, 0, 2]);
 });
 
 test('les indices disparaissent avec le niveau', () => {
@@ -69,4 +89,13 @@ test('missions et badges cohérents', () => {
   assert.equal(ids.size, MISSIONS.length);
   const fresh = { xp: 0, stats: { exercises: 1, sessions: 0, earCorrect: 0, beatPerfect: 0, bestCatchy: 0, bestMatch: 0, exports: 0, noHintWins: 0, midiNotes: 0 }, streak: {}, genres: {}, missions: {}, notebook: [], badges: {} };
   assert.deepEqual(newBadges(fresh).map((b) => b.id), ['first']);
+});
+
+test('certificats : une seule source de vérité (enregistrés + niveaux déjà atteints)', () => {
+  assert.deepEqual(earnedCerts({ xp: 0 }), []);
+  // XP importée sans certificat enregistré (synchro, ancien profil) : niveau 6 → certificats 3 et 5
+  assert.deepEqual(earnedCerts({ xp: xpForLevel(6), certs: {} }), [3, 5]);
+  // Certificat enregistré gardé même si l'XP affichée est plus basse (fusion de deux appareils)
+  assert.deepEqual(earnedCerts({ xp: xpForLevel(3), certs: { 5: '2026-10-01' } }), [3, 5]);
+  assert.equal(earnedCerts({ xp: 1e7 }).length, CERT_LEVELS.length);
 });

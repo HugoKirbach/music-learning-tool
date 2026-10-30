@@ -19,8 +19,8 @@ export const tests = {
     t.assert.match(await page.locator('.ach-cat:has-text("Piano Rush")').innerText(), /Dans le temps[\s\S]*🥉/);
     // Profil : résumé + lien
     await page.go('#/profile', 500);
-    t.assert.match(await page.locator('.card:has-text("Ma collection")').innerText(), /succès · \d+\/24 cartes/);
-    await page.clickC('text=Voir toute la collection'); await page.waitForTimeout(300);
+    t.assert.match(await page.locator('.card:has-text("Derniers succès")').innerText(), /succès · \d+\/24 cartes/);
+    await page.clickC('.card:has-text("Derniers succès") >> text=Tout voir'); await page.waitForTimeout(300);
     t.assert.match(page.url(), /#\/collection/);
   },
 
@@ -33,9 +33,14 @@ export const tests = {
       store.update((s) => { s.rush = { best: { pulse: { stars: 2 } } }; });
       ui.showBadges(store.recordExercise({ key: 'rush', xp: 10, skill: 'rythme', score: 90 }).badges);
     });
-    await page.waitForTimeout(1600);
-    const toasts = (await page.locator('.toast').allInnerTexts()).join(' | ');
-    t.assert.match(toasts, /Succès débloqué : Premières touches/);
+    // 2 toasts au plus à l'écran, les suivants attendent leur tour : on relève tout ce qui passe
+    const seen = new Set();
+    for (let i = 0; i < 50 && ![...seen].some((x) => /Premières touches/.test(x)); i++) {
+      (await page.locator('.toast').allInnerTexts()).forEach((x) => seen.add(x));
+      await page.waitForTimeout(200);
+    }
+    const toasts = [...seen].join(' | ');
+    t.assert.match(toasts, /Succès débloqué\s:\sPremières touches/);
     t.assert.match(toasts, /Nouvelle carte/);
   },
 };

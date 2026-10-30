@@ -7,8 +7,13 @@ import { playProject, stopAll, previewNote, previewChord, presetParams, onPlayhe
 import { transport, playSynth, ensureAudio, now as getCtxTime } from '../core/audio.js';
 import { presetOptions } from '../data/presets.js';
 import { GENRES, genreById } from '../data/genres.js';
-import { onMidi } from '../midiin.js';
+import { onMidi, midiStatus, onMidiStatus } from '../midiin.js';
 import { viewKeys } from '../shortcuts.js';
+
+/** Bouton bascule : état visible (.on) et annoncé (aria-pressed). */
+const setOn = (btn, on) => { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', String(on)); };
+/** Couleur du Catchy-mètre, lisible dans les deux thèmes. */
+export const catchyTone = (score) => (score >= 70 ? 'var(--good)' : score >= 50 ? 'var(--warn)' : score >= 30 ? 'var(--hot)' : 'var(--bad)');
 
 const CHALLENGES = [
   { text: 'Hook avec 3 hauteurs différentes maximum. Catchy-mètre ≥ 60.', min: 60,
@@ -51,10 +56,12 @@ export function render(root, params) {
   const challenge = mode === 'challenge' ? CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)] : null;
   if (challenge) update((s) => { s.project.melody = new Array(MELODY_STEPS).fill(null); });
 
-  root.append(header('Lab Mélodie', mode === 'dictation' ? 'Dictée : retrouve le motif à l’oreille' : challenge ? `Hook ${genre.name} sous contrainte` : 'Écris des hooks sur ta boucle'));
+  root.append(header('🎵 Lab Mélodie', mode === 'dictation' ? 'Dictée : retrouve le motif à l’oreille' : challenge ? `Hook ${genre.name} sous contrainte` : 'Écris des hooks sur ta boucle'));
   root.append(el('div.row.gap.wrap', { style: { marginBottom: '10px' } },
     segmented([{ value: 'free', label: '🎨 Libre' }, { value: 'challenge', label: '🧩 Défi hook' }, { value: 'dictation', label: '👂 Dictée' }], mode,
       (v) => { location.hash = `#/melody?mode=${v}&genre=${v === 'free' ? '' : shuffle(GENRES)[0].id}`; })));
+  const intro = el('div'); // consigne du défi ou de la dictée, sous l'en-tête
+  root.append(intro);
 
   const rowsFor = () => {
     const p = P();
@@ -76,6 +83,7 @@ export function render(root, params) {
     tabs.replaceChildren(...Array.from({ length: maxBars }, (_, b) => el('button.btn.small' + (b === bar ? '.primary' : ''), { onclick: () => { bar = b; follow = false; renderRoll(); renderTabs(); } },
       `M${b + 1}${v[b] ? ' · ' + v[b].symbol : ''}`)));
     chordName.textContent = v[bar] ? `Accord : ${v[bar].symbol} (${v[bar].roman}) — cases teintées = notes de l’accord` : '';
+    copyBtn.textContent = `⧉ Copier vers M${(bar + 1) % 4 + 1}`;
   };
 
   const renderRoll = () => {
@@ -142,10 +150,17 @@ export function render(root, params) {
     const p = P();
     const v = voiceProgression(p);
     const res = analyzeMelody(p.melody, v.map((c) => c || { pcs: [] }), p.rootPc);
-    const lab = catchyLabel(res.score);
+    if (p.melody.filter(Boolean).length < 3) {
+      catchyEl.replaceChildren(
+        el('div.row.between', el('h3', '🐛 Catchy-mètre'), el('b.muted', '— · Pose 3-4 notes')),
+        el('div.meter'),
+        el('p.small.muted', 'Commence par un rythme sur une seule note, puis varie les hauteurs : le Catchy-mètre s’allume dès 3 notes.'));
+      return res;
+    }
+    const lab = catchyLabel(res.score), tone = catchyTone(res.score);
     catchyEl.replaceChildren(
-      el('div.row.between', el('h3', '🐛 Catchy-mètre'), el('b', { style: { color: lab.color } }, `${res.score} · ${lab.label}`)),
-      el('div.meter', el('div', { style: { width: `${res.score}%`, background: lab.color } })),
+      el('div.row.between', el('h3', '🐛 Catchy-mètre'), el('b', { style: { color: tone } }, `${res.score} · ${lab.label}`)),
+      el('div.meter', el('div', { style: { width: `${res.score}%`, background: tone } })),
       res.criteria.length ? el('div', { style: { marginTop: '8px' } }, res.criteria.map((c) => el('div.crit', el('span', c.label), el('span' + (c.ok ? '.ok' : '.ko'), c.ok ? '✓' : '…')))) : null,
       res.tips.length ? el('div.lesson', el('div.lesson-title', 'Conseil'), el('p', res.tips[0])) : null,
     );
@@ -162,16 +177,22 @@ export function render(root, params) {
     return rows[Math.max(0, Math.min(rows.length - 1, idx + k))];
   };
   const tool = (fn, msg) => () => { update((s) => fn(s.project.melody)); renderRoll(); if (msg) toast(msg); };
-  const tools = el('div.row.gap.wrap',
-    el('button.btn.small', { onclick: tool((m) => setBar(m, (bar + 1) % 4, barSlice(m, bar)), 'Mesure copiée → change la fin pour faire une « réponse »') }, '⧉ Copier →'),
-    el('button.btn.small', { onclick: tool((m) => { const a = barSlice(m, 0); setBar(m, 1, a); setBar(m, 3, a); }, 'AABA : écris la partie B en mesure 3') }, 'AABA'),
-    el('button.btn.small', { onclick: tool((m) => { const a = barSlice(m, bar); const notes = a.map((x, i) => (x ? { ...x, i } : null)).filter(Boolean); const out = new Array(16).fill(null); notes.forEach((x, k) => { const src = notes[notes.length - 1 - k]; out[x.i] = { n: src.n, len: x.len }; }); setBar(m, bar, out); }, 'Rétrograde : mêmes rythmes, notes à l’envers') }, '⇆ Rétro'),
-    el('button.btn.small', { onclick: tool((m) => { const a = barSlice(m, bar); const first = a.find(Boolean); if (!first) return; const rows = rowsFor().slice().reverse(); const f = rows.indexOf(first.n); setBar(m, bar, a.map((x) => { if (!x) return null; const i = rows.indexOf(x.n); return { ...x, n: rows[Math.max(0, Math.min(rows.length - 1, 2 * f - i))] ?? x.n }; })); }, 'Miroir : les montées deviennent des descentes') }, '⇅ Miroir'),
-    el('button.btn.small', { onclick: tool((m) => setBar(m, bar, barSlice(m, bar).map((x) => (x ? { ...x, n: scaleShift(x.n, 1) } : null))), 'Séquence : motif monté d’un degré') }, '↑ Degré'),
-    el('button.btn.small', { onclick: tool((m) => setBar(m, bar, barSlice(m, bar).map((x) => (x ? { ...x, n: scaleShift(x.n, -1) } : null)))) }, '↓ Degré'),
-    el('button.btn.small', { onclick: tool((m) => seed(m, rowsFor(), voiceProgression(P())), 'Graine générée : garde ce qui te plaît, efface le reste !') }, '🌱 Graine'),
-    el('button.btn.small', { onclick: tool((m) => setBar(m, bar, new Array(16).fill(null))) }, '🗑 Mesure'),
-    el('button.btn.small', { onclick: tool((m) => m.fill(null)) }, '🗑 Tout'),
+  const copyBtn = el('button.btn.small', { title: 'Copie la mesure affichée dans la suivante : change ensuite la fin pour faire une « réponse »', onclick: tool((m) => setBar(m, (bar + 1) % 4, barSlice(m, bar)), 'Mesure copiée → change la fin pour faire une « réponse »') }, '⧉ Copier vers M2');
+  /** Une transformation : bouton + ce qu'elle fait, en une ligne. */
+  const xf = (label, desc, fn, msg) => el('div.xf-row', el('button.btn.small', { title: desc, onclick: tool(fn, msg) }, label), el('span.small.muted', desc));
+  const tools = el('div',
+    el('div.ctrl-row', copyBtn,
+      el('button.btn.small', { title: 'Génère une idée « rythme d’abord » sur 4 mesures (A A B A’) : garde ce qui te plaît, efface le reste', onclick: tool((m) => seed(m, rowsFor(), voiceProgression(P())), 'Graine générée : garde ce qui te plaît, efface le reste !') }, '🌱 Graine')),
+    el('details.xf-box',
+      el('summary', el('b', '🧬 Transformer la mesure')),
+      xf('AABA', 'Recopie la mesure 1 en 2 et 4 : il ne reste qu’à écrire le B en mesure 3.', (m) => { const a = barSlice(m, 0); setBar(m, 1, a); setBar(m, 3, a); }, 'AABA : écris la partie B en mesure 3'),
+      xf('⇆ Rétrograde', 'Mêmes rythmes, notes dans l’ordre inverse.', (m) => { const a = barSlice(m, bar); const notes = a.map((x, i) => (x ? { ...x, i } : null)).filter(Boolean); const out = new Array(16).fill(null); notes.forEach((x, k) => { const src = notes[notes.length - 1 - k]; out[x.i] = { n: src.n, len: x.len }; }); setBar(m, bar, out); }, 'Rétrograde : mêmes rythmes, notes à l’envers'),
+      xf('⇅ Miroir', 'Les montées deviennent des descentes (autour de la 1re note).', (m) => { const a = barSlice(m, bar); const first = a.find(Boolean); if (!first) return; const rows = rowsFor().slice().reverse(); const f = rows.indexOf(first.n); setBar(m, bar, a.map((x) => { if (!x) return null; const i = rows.indexOf(x.n); return { ...x, n: rows[Math.max(0, Math.min(rows.length - 1, 2 * f - i))] ?? x.n }; })); }, 'Miroir : les montées deviennent des descentes'),
+      xf('↑ Un degré', 'Monte tout le motif d’une note de la gamme (séquence).', (m) => setBar(m, bar, barSlice(m, bar).map((x) => (x ? { ...x, n: scaleShift(x.n, 1) } : null))), 'Séquence : motif monté d’un degré'),
+      xf('↓ Un degré', 'Descend tout le motif d’une note de la gamme.', (m) => setBar(m, bar, barSlice(m, bar).map((x) => (x ? { ...x, n: scaleShift(x.n, -1) } : null))), 'Motif descendu d’un degré'),
+      el('div.ctrl-row',
+        el('button.btn.small.ghost', { title: 'Vide la mesure affichée', onclick: tool((m) => setBar(m, bar, new Array(16).fill(null)), 'Mesure effacée') }, '🗑 Effacer la mesure'),
+        el('button.btn.small.ghost', { title: 'Vide les 4 mesures', onclick: tool((m) => m.fill(null), 'Mélodie effacée') }, '🗑 Tout effacer'))),
   );
 
   // ---------- Lecture ----------
@@ -184,7 +205,12 @@ export function render(root, params) {
   const play = playButton(() => { follow = true; playProject(P, { onVisual: onVis }); }, () => { stopAll(); playStep = -1; paintPlayhead(); });
 
   // ---------- Clavier MIDI : saisie pas à pas ----------
-  const recBtn = el('button.btn.small', { onclick: () => { rec = !rec; recBtn.classList.toggle('primary', rec); recBtn.textContent = rec ? '⏺ Saisie MIDI : ON' : '⏺ Saisie MIDI'; renderRoll(); } }, '⏺ Saisie MIDI');
+  const recBtn = el('button.btn.small', { 'aria-pressed': 'false', onclick: () => { rec = !rec; setOn(recBtn, rec); renderRoll(); } }, '⏺ Saisie MIDI');
+  const midiWrap = el('div');
+  const paintMidi = () => midiWrap.replaceChildren(midiStatus().state === 'connected'
+    ? el('div.ctrl-row', recBtn, el('span.small.muted', 'Active la saisie : chaque note jouée au clavier s’écrit et le curseur avance.')) : null);
+  paintMidi();
+  const offStatus = onMidiStatus(paintMidi);
   const offMidi = onMidi({
     noteOn: (n, v) => {
       ensureAudio();
@@ -200,61 +226,69 @@ export function render(root, params) {
     },
   });
 
-  const durSeg = segmented([{ value: 1, label: '♬ 1/16' }, { value: 2, label: '♪ 1/8' }, { value: 4, label: '♩ 1/4' }, { value: 8, label: '𝅗𝅥 1/2' }], dur, (v) => { dur = v; });
+  const durSeg = segmented([{ value: 1, label: '1/16', title: 'Double-croche' }, { value: 2, label: '1/8', title: 'Croche' }, { value: 4, label: '1/4', title: 'Noire' }, { value: 8, label: '1/2', title: 'Blanche' }], dur, (v) => { dur = v; });
   const leadSel = select(presetOptions((p) => p.role !== 'bass'), P().sounds.lead, (v) => update((s) => { s.project.sounds.lead = v; }));
+  leadSel.setAttribute('aria-label', 'Son de la mélodie');
+  const pentaBtn = el('button.btn.small', {
+    'aria-pressed': 'false', title: 'N’affiche que les 5 notes de la gamme pentatonique : impossible de sonner faux',
+    onclick: () => { penta = !penta; setOn(pentaBtn, penta); renderRoll(); toast(penta ? 'Pentatonique : impossible de sonner faux' : 'Gamme complète'); },
+  }, '🎯 Pentatonique');
+  const actions = el('div.action-bar');
   const muteSeg = segmented([{ value: 'all', label: 'Tout' }, { value: 'nodrums', label: 'Sans drums' }, { value: 'solo', label: 'Mélodie seule' }], 'all', (v) => update((s) => {
     s.project.mutes = v === 'all' ? {} : v === 'nodrums' ? { drums: true } : { drums: true, chords: true, bass: true };
   }));
 
   root.append(card(
-    el('div.ctrl-row', play, mode !== 'dictation' ? leadSel : null, el('span.muted.small', `${genre.emoji} ${NOTE_NAMES[P().rootPc]} ${SCALES[P().scale].name} · ${P().bpm} BPM`)),
-    el('div.ctrl-row', el('label', 'Durée'), durSeg, mode !== 'dictation' ? el('button.btn.small', { onclick: () => { penta = !penta; renderRoll(); toast(penta ? 'Pentatonique : impossible de sonner faux' : 'Gamme complète'); } }, 'Penta ⇄') : null),
+    el('div.ctrl-row.lab-top', play, mode !== 'dictation' ? leadSel : null, el('span.muted.small', `${genre.emoji} ${NOTE_NAMES[P().rootPc]} ${SCALES[P().scale].name} · ${P().bpm} BPM`)),
+    el('div.ctrl-row', el('div.field', el('span', 'Durée'), durSeg), mode !== 'dictation' ? pentaBtn : null),
     tabs, chordName,
     el('div.roll-wrap', rollEl),
     mode !== 'dictation' ? tools : null,
-    el('div.ctrl-row', recBtn, el('span.small.muted', 'Clavier MIDI (MPC Key 37) : active la saisie, chaque note jouée s’écrit et le curseur avance.')),
-    el('div.ctrl-row', el('label', 'Écoute'), muteSeg),
+    midiWrap,
+    el('div.ctrl-row', el('div.field', el('span', 'Écoute'), muteSeg)),
+    actions,
   ));
   if (mode !== 'dictation') root.append(card(catchyEl));
 
   // ---------- Modes ----------
   if (mode === 'free') {
     let rewarded = false;
+    actions.append(
+      el('button.btn.small', { title: 'Les 4 pistes : batterie, basse, accords, mélodie', onclick: () => downloadMidi(`idee-${P().genre}-${P().bpm}bpm`, projectToSong(P())) }, '⬇ MIDI'),
+      el('button.btn.small', { onclick: () => downloadMidi(`melodie-${P().genre}`, projectToSong(P(), { melody: true })) }, '⬇ MIDI mélodie'),
+      el('button.btn.small', {
+        onclick: () => {
+          update((s) => { s.notebook.unshift({ id: Date.now(), type: 'idea', title: `Idée ${genreById(s.project.genre).name}`, date: Date.now(), genre: s.project.genre, project: JSON.parse(JSON.stringify(s.project)) }); });
+          toast('Idée complète rangée dans le Carnet 📓', 'good');
+        },
+      }, '📓 Au Carnet'),
+      el('button.btn.small.primary', {
+        onclick: () => {
+          const res = renderCatchy();
+          if (!res || P().melody.filter(Boolean).length < 4) return toast('Écris au moins 4 notes', 'bad');
+          if (rewarded) return toast('Déjà validé — tu peux encore l’améliorer !');
+          rewarded = true;
+          update((s) => { s.stats.bestCatchy = Math.max(s.stats.bestCatchy, res.score); });
+          stopAll();
+          finishExercise({ key: 'melody:free', title: 'Mélodie écrite', score: res.score, xp: 10 + res.score / 4, skill: 'melodie', genre: P().genre, success: res.score >= 60,
+            lesson: res.tips[0] || 'Excellent équilibre ! Essaie maintenant la même mélodie avec un autre son ou une octave plus bas (en basse).',
+            transfer: 'Exporte le MIDI complet : dans Live, glisse chaque piste sur Serum 2 (accords, basse, lead) et un Drum Rack.' });
+        },
+      }, '✓ Valider'),
+    );
     root.append(
       hintBox(el('div', el('p', '1) Tape d’abord un rythme sur une seule note. 2) Répète-le. 3) Change quelques hauteurs en visant les cases teintées (notes de l’accord) sur les temps. 4) Termine la mesure 2 ou 4 sur la tonique.'), el('p', 'Utilise ⧉ Copier puis modifie la fin : question → réponse.'))),
-      card(el('div.row.gap.wrap',
-        el('button.btn.small', { onclick: () => downloadMidi(`idee-${P().genre}-${P().bpm}bpm`, projectToSong(P())) }, '⬇ MIDI complet (4 pistes)'),
-        el('button.btn.small', { onclick: () => downloadMidi(`melodie-${P().genre}`, projectToSong(P(), { melody: true })) }, '⬇ MIDI mélodie'),
-        el('button.btn.small', {
-          onclick: () => {
-            update((s) => { s.notebook.unshift({ id: Date.now(), type: 'idea', title: `Idée ${genreById(s.project.genre).name}`, date: Date.now(), genre: s.project.genre, project: JSON.parse(JSON.stringify(s.project)) }); });
-            toast('Idée complète sauvée 📓', 'good');
-          },
-        }, '📓 Sauver l’idée'),
-        el('a.btn.small', { href: '#/beat' }, '🥁 Modifier le beat'),
-        el('a.btn.small', { href: '#/chords' }, '🎼 Modifier les accords'),
-        el('button.btn.small.primary', {
-          onclick: () => {
-            const res = renderCatchy();
-            if (!res || P().melody.filter(Boolean).length < 4) return toast('Écris au moins 4 notes', 'bad');
-            if (rewarded) return toast('Déjà validé — tu peux encore l’améliorer !');
-            rewarded = true;
-            update((s) => { s.stats.bestCatchy = Math.max(s.stats.bestCatchy, res.score); });
-            stopAll();
-            finishExercise({ key: 'melody:free', title: 'Mélodie écrite', score: res.score, xp: 10 + res.score / 4, skill: 'melodie', genre: P().genre, success: res.score >= 60,
-              lesson: res.tips[0] || 'Excellent équilibre ! Essaie maintenant la même mélodie avec un autre son ou une octave plus bas (en basse).',
-              transfer: 'Exporte le MIDI complet : dans Live, glisse chaque piste sur Serum 2 (accords, basse, lead) et un Drum Rack.' });
-          },
-        }, '✓ Valider'),
-      )),
+      el('div.lab-next',
+        el('a.btn.small.ghost', { href: '#/beat' }, '🥁 Modifier le beat'),
+        el('a.btn.small.ghost', { href: '#/chords' }, '🎼 Modifier les accords')),
     );
   }
 
   if (challenge) {
-    root.prepend(card(el('div.lesson', el('div.lesson-title', '🧩 Défi'), el('p', el('b', challenge.text)))));
-    root.append(
-      hintBox('Commence par le rythme sur une seule note, utilise ⧉ Copier pour répéter, puis ajuste les hauteurs. Le Catchy-mètre te guide.', () => { hintUsed = true; }),
-      el('button.btn.primary.wide', {
+    intro.append(card(el('div.lesson', el('div.lesson-title', '🧩 Défi'), el('p', el('b', challenge.text)))));
+    root.append(hintBox('Commence par le rythme sur une seule note, utilise ⧉ Copier pour répéter, puis ajuste les hauteurs. Le Catchy-mètre te guide.', () => { hintUsed = true; }));
+    actions.append(
+      el('button.btn.small.primary', {
         onclick: () => {
           const res = renderCatchy();
           const p = P();
@@ -291,18 +325,19 @@ export function render(root, params) {
       const lead = presetParams('pluck');
       P().melody.slice(0, 16).forEach((m, i) => { if (m) playSynth(lead, m.n, getCtxTime() + 0.05 + i * sd, m.len * sd * 0.9, 0.9, { send: 0.2 }); });
     };
-    root.prepend(card(
+    intro.append(card(
       el('div.lesson', el('div.lesson-title', '👂 Dictée'), el('p', target.showRhythm ? 'Les cases vertes indiquent le RYTHME. Retrouve les hauteurs.' : 'Retrouve le rythme ET les hauteurs du motif (mesure 1).')),
-      el('p.small.muted', `Le motif commence sur ${target.startHint ? midiToName(target.startHint) + ' (la première note est donnée)' : 'une note de l’accord'}.`),
-      el('div.row.gap.wrap', el('button.btn.primary', { onclick: playTarget }, '▶ Écouter le motif'), el('button.btn', { onclick: playMine }, '▶ Ma version')),
+      el('p.small.muted', `Le motif commence sur ${target.startHint ? midiToName(target.startHint) + ' (la première note est donnée)' : 'une note de l’accord'}. Écoute-le avec le bouton en bas de la grille.`),
     ));
     if (target.startHint) {
       const first = target.notes.findIndex(Boolean);
       update((s) => { s.project.melody[first] = { ...target.notes[first] }; });
     }
-    root.append(
-      hintBox('Chante le motif. Repère d’abord si ça monte ou descend, puis la note la plus haute. Les notes sur les temps sont presque toujours des notes de l’accord (cases teintées).', () => { hintUsed = true; }),
-      el('button.btn.primary.wide', {
+    root.append(hintBox('Chante le motif. Repère d’abord si ça monte ou descend, puis la note la plus haute. Les notes sur les temps sont presque toujours des notes de l’accord (cases teintées).', () => { hintUsed = true; }));
+    actions.append(
+      el('button.btn.small', { onclick: playTarget }, '👂 Écouter le motif'),
+      el('button.btn.small', { onclick: playMine }, '▶ Ma version'),
+      el('button.btn.small.primary', {
         onclick: () => {
           const mine = P().melody.slice(0, 16);
           let hit = 0, total = 0, extra = 0;
@@ -325,7 +360,7 @@ export function render(root, params) {
   const goBar = (d) => { if (maxBars < 2) return; bar = (bar + d + maxBars) % maxBars; follow = false; renderTabs(); renderRoll(); };
   viewKeys({ left: () => goBar(-1), right: () => goBar(1) });
   const offPh = onPlayhead((step) => { if (step < 0) { playStep = -1; paintPlayhead(); } else onVis(step); });
-  return () => { stopAll(); offMidi(); offPh(); };
+  return () => { stopAll(); offMidi(); offStatus(); offPh(); };
 }
 
 

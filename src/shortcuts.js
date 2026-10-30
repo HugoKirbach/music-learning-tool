@@ -5,9 +5,10 @@ import { getState, update } from './store.js';
 import { transport, ensureAudio } from './core/audio.js';
 
 export const NAV_KEYS = {
-  s: ['home', 'Session'], l: ['labs', 'Labs'], b: ['beat', 'Lab Beat'], a: ['chords', 'Lab Accords'],
-  m: ['melody', 'Lab Mélodie'], g: ['basslab', 'Labo de basse'], y: ['synth', 'Lab Synthé'], o: ['ear', 'Quiz d’oreille'],
-  r: ['arrange', 'Lab Arrangement'], j: ['rush', 'Piano Rush'], d: ['pads', 'Pad Rush'], n: ['club', 'Nuit au club'], t: ['skills', 'Arbre de compétences'], x: ['remix', 'Remix'], k: ['notebook', 'Carnet'], p: ['profile', 'Profil'],
+  h: ['home', 'Accueil'], e: ['play', 'Jouer'], c: ['create', 'Créer'], s: ['home?start=1', 'Lancer une session express'],
+  b: ['beat', 'Lab Beat'], a: ['chords', 'Lab Accords'], m: ['melody', 'Lab Mélodie'], g: ['basslab', 'Labo de basse'], y: ['synth', 'Lab Synthé'],
+  o: ['ear', 'Quiz d’oreille'], r: ['arrange', 'Lab Arrangement'], j: ['rush', 'Piano Rush'], d: ['pads', 'Pad Rush'], n: ['club', 'Nuit au club'],
+  t: ['skills', 'Arbre de compétences'], x: ['remix', 'Remix'], k: ['notebook', 'Carnet'], p: ['profile', 'Profil'],
 };
 
 const LAYERS = ['drums', 'bass', 'chords', 'melody'];
@@ -42,6 +43,7 @@ export function showShortcutHelp() {
     el('h3.fam-title', 'Aller à (Maj + lettre)'),
     el('div.kbd-grid', Object.entries(NAV_KEYS).map(([k, [, name]]) => row(['Maj', k.toUpperCase()], name))),
     el('h3.fam-title', 'Divers'),
+    row(['Ctrl', 'K'], 'Rechercher un atelier, un style, une mission, un niveau (ou « / »)'),
     row(['?'], 'Afficher / cacher cette aide'),
     row(['Échap'], 'Fermer une fenêtre ou le panneau du mini-lecteur'),
     el('p.small.muted', 'Les lettres seules (A W S E D F T G…) jouent du piano quand un clavier est affiché.'),
@@ -55,7 +57,11 @@ function nudgeTempo(d) {
   import('./ui.js').then(({ toast }) => toast(`Tempo : ${bpm} BPM`, 'info', 900));
 }
 
+const search = () => import('./search.js').then((m) => m.openSearch());
+
 function onKey(e) {
+  // Recherche rapide : Ctrl+K (Cmd+K sur Mac) partout, « / » hors champ de saisie
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') { e.preventDefault(); search(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === 'Escape') {
     const back = openModal();
@@ -65,6 +71,7 @@ function onKey(e) {
   }
   if (isTyping(e.target)) return;
   if (e.key === '?') { e.preventDefault(); showShortcutHelp(); return; }
+  if (e.key === '/' && !openModal()) { e.preventDefault(); search(); return; }
   if (openModal()) return;
 
   const v = view();

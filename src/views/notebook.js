@@ -42,13 +42,42 @@ export function markDone(id) {
   update((s) => { const n = s.notebook.find((x) => x.id === id); if (n) n.inbox = false; });
 }
 
+/** Garde l'idée en cours (mini-lecteur) dans le Carnet. */
+export function saveCurrentIdea() {
+  update((s) => { s.notebook.unshift({ id: Date.now(), type: 'idea', title: `Idée ${genreById(s.project.genre).name}`, date: Date.now(), genre: s.project.genre, project: JSON.parse(JSON.stringify(s.project)) }); });
+  toast('💡 Idée gardée dans le Carnet', 'good');
+}
+
+const fold = (x = '') => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 export function render(root, params = {}) {
-  let filter = 'all';
+  let filter = params.filter || 'all';
+  let q = '';
   const list = el('div');
+  const filters = el('div');
+  const search = el('input.nb-search', { type: 'search', placeholder: '🔍 Chercher dans le carnet (titre, style, note)…', 'aria-label': 'Chercher dans le carnet', oninput: (e) => { q = fold(e.target.value.trim()); draw(); } });
+  const paintFilters = () => {
+    const all = getState().notebook;
+    const count = (k) => all.filter((n) => (k === 'inbox' ? n.inbox : n.type === k)).length;
+    const opts = [{ value: 'all', label: `Tout (${all.length})` },
+      ...(count('inbox') ? [{ value: 'inbox', label: `📲 À finir (${count('inbox')})` }] : []),
+      ...Object.entries(TYPES).filter(([k]) => count(k)).map(([k, t]) => ({ value: k, label: `${t.emoji} ${t.name} (${count(k)})` }))];
+    if (!opts.some((o) => o.value === filter)) filter = 'all';
+    filters.replaceChildren(all.length ? segmented(opts, filter, (v) => { filter = v; draw(); }) : null);
+    search.hidden = all.length < 6;
+  };
   const draw = () => {
-    const items = getState().notebook.filter((n) => filter === 'all' || n.type === filter);
+    paintFilters();
+    const items = getState().notebook.filter((n) => (filter === 'all' || (filter === 'inbox' ? n.inbox : n.type === filter))
+      && (!q || fold(`${n.title} ${n.note || ''} ${n.genre ? genreById(n.genre).name : ''}`).includes(q)));
     if (!items.length) {
-      list.replaceChildren(card(el('p.muted', 'Rien ici pour l’instant. Sauve tes beats, progressions, mélodies et sons depuis les Labs, ou note une idée qui te passe par la tête.')));
+      list.replaceChildren(card(q ? el('p.muted', `Rien ne correspond à « ${search.value} ».`) : el('div.nb-empty',
+        el('p', el('b', 'Ton carnet est vide pour l’instant.')),
+        el('p.small.muted', 'Tout ce que tu gardes depuis les ateliers (beats, accords, idées complètes, sons) arrive ici, prêt à être rouvert ou exporté en MIDI vers Live ou le MPC.'),
+        el('div.row.gap.wrap',
+          el('button.btn.small.primary', { onclick: () => { saveCurrentIdea(); draw(); } }, '💡 Garder mon idée en cours'),
+          el('a.btn.small', { href: '#/hum' }, '🎤 Fredonner une idée'),
+          el('a.btn.small', { href: '#/beat' }, '🥁 Faire un beat')))));
       return;
     }
     list.replaceChildren(...items.map((it) => card(el('div.note-item',
@@ -60,12 +89,13 @@ export function render(root, params = {}) {
         el('div.row.gap.wrap',
           it.type !== 'note' ? el('button.btn.small', { onclick: () => openItem(it) }, '↗ Ouvrir') : null,
           it.type === 'idea' ? el('button.btn.small', { onclick: () => downloadMidi(`idee-${it.genre}`, projectToSong(it.project)) }, '⬇ MIDI') : null,
-          it.type === 'idea' && it.project ? el('button.btn.small', { title: 'Partager par lien', onclick: () => import('../share.js').then(({ shareIdea }) => shareIdea(it.project, it.title)) }, '🔗') : null,
+          it.type === 'idea' && it.project ? el('button.btn.small', { title: 'Partager par lien', 'aria-label': 'Partager par lien', onclick: () => import('../share.js').then(({ shareIdea }) => shareIdea(it.project, it.title)) }, '🔗') : null,
           it.type === 'beat' ? el('button.btn.small', { onclick: () => downloadMidi(`beat-${it.genre}`, beatSong(it)) }, '⬇ MIDI') : null,
           it.type === 'chords' ? el('button.btn.small', { onclick: () => downloadMidi('accords', projectToSong({ ...getState().project, chords: it.chords, rootPc: it.rootPc, scale: it.scale, ext: it.ext }, { chords: true, bass: true })) }, '⬇ MIDI') : null,
           it.inbox ? el('button.btn.small', { onclick: () => { markDone(it.id); draw(); } }, '✓ Fait dans Live') : null,
-          el('button.btn.small', { onclick: () => editNote(it, draw) }, '✏️'),
+          el('button.btn.small', { title: 'Renommer / modifier la note', 'aria-label': 'Modifier', onclick: () => editNote(it, draw) }, '✏️'),
           el('button.btn.small.ghost', {
+            title: 'Supprimer', 'aria-label': 'Supprimer',
             onclick: () => {
               if (!confirm('Supprimer cet élément ?')) return;
               update((s) => { s.notebook = s.notebook.filter((n) => n.id !== it.id); s.deleted = [...(s.deleted || []), it.id].slice(-300); });
@@ -77,11 +107,11 @@ export function render(root, params = {}) {
     ))));
   };
   root.append(
-    header('📓 Carnet d’idées', 'Tout ce que tu crées, prêt à être rouvert ou exporté en MIDI vers Ableton / le MPC.', null),
-    el('div.row.gap.wrap', { style: { marginBottom: '10px' } },
-      segmented([{ value: 'all', label: 'Tout' }, ...Object.entries(TYPES).map(([k, t]) => ({ value: k, label: `${t.emoji} ${t.name}` }))], filter, (v) => { filter = v; draw(); }),
-      el('button.btn.small.primary', { onclick: () => editNote(null, draw) }, '+ Note rapide')),
-    list,
+    header('📓 Carnet d’idées', 'Tout ce que tu crées, prêt à être rouvert ou exporté en MIDI vers Ableton ou le MPC.', null),
+    el('div.row.gap.wrap.nb-actions',
+      el('button.btn.small.primary', { onclick: () => editNote(null, draw) }, '📝 Note rapide'),
+      el('button.btn.small', { onclick: () => { saveCurrentIdea(); draw(); } }, '💡 Garder mon idée en cours')),
+    search, filters, list,
   );
   draw();
   if (params.new) editNote(null, draw);

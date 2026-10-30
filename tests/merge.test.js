@@ -76,4 +76,24 @@ test('Nuit au club : meilleures nuits, vinyles et set du jour fusionnés', () =>
   assert.deepEqual(m.club.crate, { house: { n: 2, kind: 'gold' }, trap: { n: 1, kind: 'color' } });
   assert.equal(m.club.nights, 4);
   assert.equal(m.club.daily.score, 800);
+  assert.ok(!('nightsSilent' in m.club) && !('dailySilent' in m.club), 'rien d’ajouté sans le mode sans le son');
+});
+
+test('Nuit au club sans le son : étoiles, soirées et set du jour muets fusionnés à part', () => {
+  const a = { xp: 10, updatedAt: 1, club: { best: { 'bar@silent': { stars: 2, score: 900 } }, crate: {}, nights: 6, nightsSilent: 5, daily: { day: '2026-10-28', score: 100 }, dailySilent: { day: '2026-10-29', score: 700 }, silent: true } };
+  const b = { xp: 12, updatedAt: 2, club: { best: { bar: { stars: 1, score: 300 }, 'bar@silent': { stars: 3, score: 600 } }, crate: {}, nights: 4, nightsSilent: 3, daily: { day: '2026-10-29', score: 50 }, dailySilent: { day: '2026-10-29', score: 800 } } };
+  const m = mergeStates(a, b);
+  assert.deepEqual(m.club.best, { bar: { stars: 1, score: 300 }, 'bar@silent': { stars: 3, score: 900 } });
+  assert.equal(m.club.nightsSilent, 5);
+  assert.deepEqual(m.club.dailySilent, { day: '2026-10-29', score: 800 });
+  assert.deepEqual(m.club.daily, { day: '2026-10-29', score: 50 }, 'les deux sets du jour sont indépendants');
+  assert.equal(m.club.silent, true, 'le mode choisi est conservé');
+  // Un appareil qui n'a jamais joué sans le son ne fait rien perdre
+  const c = mergeStates({ xp: 1, updatedAt: 5, club: { best: {}, nights: 1 } }, a);
+  assert.equal(c.club.nightsSilent, 5);
+  assert.deepEqual(c.club.dailySilent, a.club.dailySilent);
+  assert.equal(c.club.best['bar@silent'].stars, 2);
+  // Set du jour muet plus récent d'un côté : il gagne
+  const d = mergeStates(a, { ...b, club: { ...b.club, dailySilent: { day: '2026-10-30', score: 10 } } });
+  assert.deepEqual(d.club.dailySilent, { day: '2026-10-30', score: 10 });
 });

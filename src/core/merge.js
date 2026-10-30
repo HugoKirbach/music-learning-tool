@@ -116,7 +116,7 @@ export function mergeStates(local, remote, base = null) {
     }
     out[key] = { ...pick3(ra, rb, base?.[key], newer === remote), best, learn: maxMap(ra.learn, rb.learn) };
   }
-  // Nuit au club : meilleures nuits, vinyles et compteurs au maximum
+  // Nuit au club : meilleures nuits (avec et sans le son : clés 'bar' et 'bar@silent'), vinyles et compteurs au maximum
   if (local.club || remote.club) {
     const ca = local.club || {}, cb = remote.club || {};
     const best = { ...(ca.best || {}) };
@@ -124,8 +124,13 @@ export function mergeStates(local, remote, base = null) {
     const rank = { black: 1, color: 2, gold: 3 };
     const crate = { ...(ca.crate || {}) };
     for (const [k, v] of Object.entries(cb.crate || {})) crate[k] = crate[k] ? { n: maxNum(crate[k].n, v.n), kind: rank[v.kind] > rank[crate[k].kind] ? v.kind : crate[k].kind } : v;
-    const daily = (ca.daily?.day || '') > (cb.daily?.day || '') ? ca.daily : (cb.daily?.day || '') > (ca.daily?.day || '') ? cb.daily : (ca.daily && { ...ca.daily, score: maxNum(ca.daily.score, cb.daily?.score) });
-    out.club = { ...pick3(ca, cb, base?.club, newer === remote), best, crate, nights: maxNum(ca.nights, cb.nights), dailyCount: maxNum(ca.dailyCount, cb.dailyCount), daily: daily || null };
+    // Set du jour (avec / sans le son) : le jour le plus récent, meilleur score si c'est le même jour
+    const lastDay = (a, b) => ((a?.day || '') > (b?.day || '') ? a : (b?.day || '') > (a?.day || '') ? b : (a && { ...a, score: maxNum(a.score, b?.score) })) || null;
+    out.club = {
+      ...pick3(ca, cb, base?.club, newer === remote), best, crate, nights: maxNum(ca.nights, cb.nights), dailyCount: maxNum(ca.dailyCount, cb.dailyCount), daily: lastDay(ca.daily, cb.daily),
+      ...(ca.nightsSilent || cb.nightsSilent ? { nightsSilent: maxNum(ca.nightsSilent, cb.nightsSilent) } : {}),
+      ...(ca.dailySilent || cb.dailySilent ? { dailySilent: lastDay(ca.dailySilent, cb.dailySilent) } : {}),
+    };
   }
   out.settings = { ...pick3(local.settings || {}, remote.settings || {}, base?.settings, newer === remote), onboarded: !!(local.settings?.onboarded || remote.settings?.onboarded) };
   out.updatedAt = Math.max(local.updatedAt || 0, remote.updatedAt || 0);

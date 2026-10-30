@@ -2,6 +2,9 @@
 import { SKILLS, dayKey } from './progress.js';
 import { addDays } from './srs.js';
 
+/** « 1 fiche », « 3 fiches » (module pur : pas d'import de ui.js). */
+const nb = (n, word, many = `${word}s`) => `${n} ${n > 1 ? many : word}`;
+
 /** Lundi de la semaine contenant `day` ('AAAA-MM-JJ'). */
 export function weekStart(day) {
   const d = new Date(day + 'T12:00:00');
@@ -71,11 +74,15 @@ export function coachPlan(cur, prev, { review = {}, programNext = null, untriedG
   if (cur.xp) msgs.push(`Point fort : ${SKILLS[strongest].name}. À travailler : ${SKILLS[weakest].name}.`);
   if (cur.ear.total >= 10) msgs.push(`Oreille : ${Math.round((100 * cur.ear.ok) / cur.ear.total)} % de bonnes réponses cette semaine.`);
 
-  SKILL_ROUTES[weakest].forEach((r) => plan.push({ ...r, why: `${SKILLS[weakest].emoji} ${SKILLS[weakest].name} est ta compétence la moins travaillée.` }));
+  // La raison n'est donnée qu'une fois : le 2e exercice de la même compétence dit juste qu'il change d'angle.
+  const sk0 = SKILLS[weakest];
+  SKILL_ROUTES[weakest].forEach((r, i) => plan.push({ ...r,
+    why: i ? 'Même compétence, autre angle : varier l’exercice ancre mieux.'
+      : cur.xp ? `${sk0.emoji} ${sk0.name} est ta compétence la moins travaillée.` : `Pour reprendre en douceur : ${sk0.emoji} ${sk0.name}, 5 minutes suffisent.` }));
   const weak = weakNotions(review, 3);
-  if (weak.length) plan.push({ title: `Révisions (${Object.keys(review).length} fiches)`, route: '#/ear?mode=review', why: `Notions à consolider : ${weak.map((k) => k.split(':')[1]).join(', ')}.` });
+  if (weak.length) plan.push({ title: `Révisions (${nb(Object.keys(review).length, 'fiche')})`, route: '#/ear?mode=review', why: `Notions à consolider : ${weak.map((k) => k.split(':')[1]).join(', ')}.` });
   plan.push({ title: 'Quiz des styles', route: '#/ear?mode=genre', why: 'Reconnaître un style à l’oreille, c’est savoir quels ingrédients lui voler.' });
-  if (cur.ideas.length) plan.push({ title: 'Développe une idée de la semaine', route: '#/remix', why: `Tu as ${cur.ideas.length} idée(s) au Carnet : transforme-en une plutôt que d’en commencer une nouvelle.` });
+  if (cur.ideas.length) plan.push({ title: 'Développe une idée de la semaine', route: '#/remix', why: cur.ideas.length > 1 ? `Tu as ${cur.ideas.length} idées au Carnet : transforme-en une plutôt que d’en commencer une nouvelle.` : 'Tu as une idée au Carnet : transforme-la plutôt que d’en commencer une nouvelle.' });
   if (untriedGenre) plan.push({ title: `Découvre : ${untriedGenre.name}`, route: `#/atlas?g=${untriedGenre.id}`, why: 'Un style jamais exploré = de nouveaux réflexes.' });
   if (programNext) plan.push({ title: programNext.title, route: '#/program', why: 'Continue le programme 4 semaines.' });
   return { msgs, plan: plan.slice(0, 6), weakest, strongest };

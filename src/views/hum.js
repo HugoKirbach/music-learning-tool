@@ -1,5 +1,5 @@
 // Fredonne → MIDI : chante ou siffle une idée sur ta boucle, l'app la transcrit en notes calées sur la gamme et le tempo.
-import { el, card, header, segmented, finishExercise, toast, downloadMidi } from '../ui.js';
+import { el, card, header, segmented, finishExercise, toast, downloadMidi, playButton } from '../ui.js';
 import { getState, update } from '../store.js';
 import { humToNotes, fitRange, freqToMidiF } from '../core/hum.js';
 import { yin } from '../core/extract.js';
@@ -22,9 +22,11 @@ export function render(root, params) {
     segmented([{ value: 'free', label: '💡 Capturer une idée' }, { value: 'response', label: '💬 Chante la réponse' }], mode, (v) => { location.hash = `#/hum?mode=${v}`; })));
 
   const tuner = el('div.tuner', el('div.tuner-note', '—'), el('div.tuner-bar', el('span')), el('div.small.muted', 'Chante une note tenue pour tester'));
-  const status = el('div.cr-banner', 'Micro inactif');
+  const status = el('div.cr-banner', 'Micro prêt 🎙️');
+  const live = el('div'); // accordeur + état : seulement quand le micro écoute
   const out = el('div');
-  const micBtn = el('button.btn.primary', { onclick: () => startMic() }, '🎤 Activer le micro');
+  // Un seul bouton principal : activer le micro, puis enregistrer
+  const mainBtn = el('button.btn.primary.big.wide', { onclick: () => (analyser ? record() : startMic()) }, '🎤 Activer le micro');
 
   // ---------- Micro et suivi de hauteur ----------
   async function startMic() {
@@ -43,8 +45,8 @@ export function render(root, params) {
     micSrc.connect(analyser);
     buf = new Float32Array(analyser.fftSize);
     dbuf = new Float32Array(analyser.fftSize / 2);
-    micBtn.remove();
-    status.textContent = 'Micro prêt 🎙️ — mets un casque pour que la boucle ne repasse pas dans le micro';
+    live.replaceChildren(tuner, status);
+    mainBtn.textContent = '🔴 Enregistrer';
     poll = setInterval(sample, 30); // ~33 analyses/s (largement assez pour des doubles croches)
   }
 
@@ -80,6 +82,7 @@ export function render(root, params) {
     frames = [];
     result = null;
     out.replaceChildren();
+    mainBtn.disabled = true;
     let lastBass = null;
     const lead = presetParams('pluck');
     transport.start((step, time) => {
@@ -112,6 +115,8 @@ export function render(root, params) {
     function finishTake() {
       recording = false;
       transport.stop();
+      mainBtn.disabled = false;
+      mainBtn.textContent = '🔴 Nouvelle prise';
       status.textContent = 'Prise terminée ✓';
       status.className = 'cr-banner';
       const all = humToNotes(frames, { bpm: p.bpm, start: 0, steps: regionSteps, rootPc: p.rootPc, scale: p.scale });
@@ -150,15 +155,15 @@ export function render(root, params) {
     notes.forEach((x) => { if (x.s < MELODY_STEPS) mel[x.s] = { n: x.n, len: x.len }; });
     const cat = analyzeMelody(mel, voiced.map((c) => c || { pcs: [] }), p.rootPc);
     const lab = catchyLabel(cat.score);
+    const tone = cat.score >= 70 ? 'var(--good)' : cat.score >= 50 ? 'var(--warn)' : cat.score >= 30 ? 'var(--hot)' : 'var(--bad)';
     result = { notes, cat };
     out.replaceChildren(card(
-      el('div.row.between', el('h3', `🎵 ${notes.length} notes transcrites`), el('b', { style: { color: lab.color } }, `Catchy ${cat.score} · ${lab.label}`)),
+      el('div.row.between', el('h3', `🎵 ${notes.length} notes transcrites`), notes.length < 3 ? el('b.muted', 'Catchy — · trop court') : el('b', { style: { color: tone } }, `Catchy ${cat.score} · ${lab.label}`)),
       el('p.small.muted', `Calées sur ${NOTE_NAMES[p.rootPc]} ${SCALES[p.scale].name}, ${p.bpm} BPM, ramenées dans la tessiture d’un lead.`),
       lanes(notes, bars),
       cat.tips[0] ? el('div.lesson', el('div.lesson-title', 'Conseil'), el('p', cat.tips[0])) : null,
-      el('div.row.gap.wrap', { style: { marginTop: '8px' } },
-        el('button.btn.small', { onclick: () => playNotes(notes, p, bars * 16) }, '▶ Écouter sur la boucle'),
-        el('button.btn.small', { onclick: () => transport.stop() }, '■ Stop'),
+      el('div.action-bar',
+        playButton(() => playNotes(notes, p, bars * 16), () => transport.stop(), 'Écouter sur la boucle'),
         el('button.btn.small', { onclick: () => record() }, '↻ Nouvelle prise'),
         el('button.btn.small', { onclick: () => downloadMidi(`fredonne-${p.bpm}bpm`, { bpm: p.bpm, tracks: [{ name: 'Fredonne', notes: notes.map((x) => ({ pitch: x.n, start: x.s / 4, dur: x.len / 4, vel: 100 })) }] }) }, '⬇ MIDI'),
         el('button.btn.small.primary', {
@@ -171,9 +176,9 @@ export function render(root, params) {
             finishExercise({ key: 'hum:free', title: 'Idée fredonnée capturée', score: cat.score, xp: 18 + cat.score / 5, skill: 'melodie', genre: p.genre, success: true,
               lesson: 'Ta voix trouve naturellement des mélodies chantables : c’est la meilleure source de hooks. Les doigts, eux, reproduisent des habitudes.',
               transfer: 'Dans Live 12 : enregistre-toi dans une piste audio puis « Convert Melody to New MIDI Track ». Ou rejoue la transcription au MPC Key 37 et ajuste les notes.' });
-            e.target.replaceWith(el('a.btn.small.primary', { href: '#/melody' }, '✓ Envoyée — ouvrir le Lab Mélodie →'));
+            e.target.replaceWith(el('a.btn.small.primary', { href: '#/melody' }, 'Ouvrir le Lab Mélodie →'));
           },
-        }, '→ Envoyer au Lab Mélodie'),
+        }, '✓ Envoyer au Lab Mélodie'),
       ),
     ));
   }
@@ -189,27 +194,26 @@ export function render(root, params) {
       el('div.row.between', el('h3', '💬 Tes réponses chantées'), el('b', `${avg}%`)),
       results.map((x, r) => el('div.cr-result', el('div.row.between', el('b', `Manche ${r + 1}`), el('b', `${x.score}%`)),
         lanes(x.call, 1, 'Appel '), lanes(x.resp, 1, 'Toi '), x.tips[0] ? el('p.small.muted', x.tips[0]) : null)),
-      el('div.row.gap.wrap', { style: { marginTop: '8px' } },
+      el('div.action-bar',
         el('button.btn.small', { onclick: record }, '↻ Rejouer'),
         el('button.btn.small.primary', {
           onclick: () => finishExercise({ key: 'hum:response', title: 'Réponses chantées', score: avg, xp: 15 + avg * 0.3, skill: 'melodie', genre: p.genre, success: avg >= 60,
             lesson: 'Chanter une réponse, c’est composer en temps réel : reprendre le rythme de l’appel, changer la fin, se poser sur une note de l’accord.',
             transfer: 'Mets une boucle de 2 mesures dans Live, chante 5 réponses différentes sur la mesure vide, garde la meilleure et rejoue-la au MPC.' }),
-        }, '✓ Terminer'))));
+        }, '✓ Valider'))));
   }
 
   root.append(
     card(
       el('p.small.muted', mode === 'response'
-        ? 'L’app joue une phrase (1 mesure), tu chantes la réponse sur la mesure suivante, 3 fois. Casque recommandé.'
-        : 'Ta boucle actuelle tourne (accords + basse + batterie) : chante ou siffle une mélodie pendant 2 ou 4 mesures. « Da-da » ou sifflement = détection plus nette.'),
-      el('div.row.gap.wrap', micBtn),
-      tuner,
-      mode === 'free' ? el('div.ctrl-row', el('label', 'Durée'), segmented([{ value: 2, label: '2 mesures' }, { value: 4, label: '4 mesures' }], bars, (v) => { bars = v; })) : null,
-      el('div.ctrl-row', el('label', 'Accompagnement'), segmented([{ value: true, label: 'Boucle' }, { value: false, label: 'Métronome seul' }], backing, (v) => { backing = v; })),
-      status,
-      el('button.btn.primary.big.wide', { onclick: () => record() }, '🔴 Enregistrer (après 1 mesure de décompte)'),
-      el('p.small.muted', `Boucle : ${P().bpm} BPM, ${NOTE_NAMES[P().rootPc]} ${SCALES[P().scale].name}. Change-la dans les Labs (Accords / Beat).`),
+        ? 'L’app joue une phrase (1 mesure), tu chantes la réponse sur la mesure suivante, 3 fois.'
+        : 'Ta boucle tourne (accords, basse, batterie) : chante ou siffle une mélodie pendant 2 ou 4 mesures. « Da-da » ou sifflement = détection plus nette.'),
+      el('div.ctrl-grid.lab-grid',
+        mode === 'free' ? [el('span', 'Durée'), segmented([{ value: 2, label: '2 mesures' }, { value: 4, label: '4 mesures' }], bars, (v) => { bars = v; })] : null,
+        el('span', 'Accompagnement'), segmented([{ value: true, label: 'Boucle' }, { value: false, label: 'Métronome seul' }], backing, (v) => { backing = v; })),
+      live,
+      mainBtn,
+      el('p.small.muted.hum-print', `1 mesure de décompte avant chaque prise · casque conseillé (la boucle ne doit pas repasser dans le micro). Boucle : ${P().bpm} BPM, ${NOTE_NAMES[P().rootPc]} ${SCALES[P().scale].name} — change-la dans l’onglet Créer (Lab Accords, Lab Beat).`),
     ),
     out,
   );

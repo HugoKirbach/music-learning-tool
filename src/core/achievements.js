@@ -1,9 +1,9 @@
 // Succès (badges) par catégorie et cartes « Machines de légende » à collectionner. Module pur.
 // Chaque nouveau succès fait gagner une carte (tirée au hasard, de façon reproductible, parmi celles qui manquent).
-import { BADGES, levelFromXp, SKILLS, CERT_LEVELS } from './progress.js';
+import { BADGES, levelFromXp, SKILLS, CERT_LEVELS, earnedCerts } from './progress.js';
 import { LEVELS, CHAPTERS } from '../data/rush.js';
 import { PAD_LEVELS, PAD_CHAPTERS } from '../data/pads.js';
-import { VENUES, totalStars, MAX_STARS } from './club.js';
+import { VENUES, totalStars, MAX_STARS, starKey } from './club.js';
 import { rng } from './daily.js';
 import { GENRES } from '../data/genres.js';
 
@@ -61,6 +61,9 @@ const EXTRA = [
   A('venuesAll', 'club', 'gold', '🛸', 'Tournée mondiale', `Ouvre les ${VENUES.length} salles`, (s) => totalStars(s.club?.best) >= VENUES.at(-1).need),
   A('clubStars', 'club', 'gold', '🌟', 'Tête d’affiche', `${MAX_STARS} étoiles au club`, (s) => totalStars(s.club?.best) >= MAX_STARS),
   A('daily7', 'club', 'silver', '📅', 'Fidèle du set', '7 sets du jour joués', (s) => (s.club?.dailyCount || 0) >= 7),
+  A('silent1', 'club', 'bronze', '✈️', 'Mode avion', 'Termine une soirée sans le son', (s) => (s.club?.nightsSilent || 0) >= 1),
+  A('silent3', 'club', 'silver', '👀', 'Lecture à vue', 'Une salle à 3 étoiles sans le son', (s) => VENUES.some((v) => (s.club?.best?.[starKey(v.id, true)]?.stars || 0) >= 3)),
+  A('silent20', 'club', 'silver', '🧱', 'Architecte', '20 soirées sans le son', (s) => (s.club?.nightsSilent || 0) >= 20),
   // Oreille
   A('ear50', 'ear', 'bronze', '👂', 'À l’écoute', '50 bonnes réponses à l’oreille', (s) => s.stats.earCorrect >= 50),
   A('ear500', 'ear', 'gold', '🦇', 'Oreille de chauve-souris', '500 bonnes réponses à l’oreille', (s) => s.stats.earCorrect >= 500),
@@ -79,7 +82,7 @@ const EXTRA = [
   // Progression
   A('level5', 'growth', 'bronze', '🌱', 'Niveau 5', 'Atteins le niveau 5', (s) => levelFromXp(s.xp).level >= 5),
   A('level20', 'growth', 'gold', '🚀', 'Niveau 20', 'Atteins le niveau 20', (s) => levelFromXp(s.xp).level >= 20),
-  A('certs3', 'growth', 'silver', '🎓', 'Diplômé·e', `${Math.min(3, CERT_LEVELS.length)} certificats de niveau`, (s) => Object.keys(s.certs || {}).length >= 3),
+  A('certs3', 'growth', 'silver', '🎓', 'Diplômé·e', `${Math.min(3, CERT_LEVELS.length)} certificats de niveau`, (s) => earnedCerts(s).length >= 3),
   A('allround', 'growth', 'gold', '🧩', 'Touche-à-tout', `Au moins 300 XP dans chacune des ${Object.keys(SKILLS).length} compétences`, (s) => Object.keys(SKILLS).every((k) => (s.skills?.[k] || 0) >= 300)),
 ];
 

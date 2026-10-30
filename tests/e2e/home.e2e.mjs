@@ -1,13 +1,11 @@
-// Accueil : sections titrées, mode Jouer (téléphone) / Studio (PC), jeux en accès direct, accessibilité.
+// Accueil et onglets : jeux d'abord sur téléphone, studio d'abord sur PC, onglets Jouer / Créer / Profil / Réglages, accessibilité.
 export const tests = {
-  'téléphone : mode Jouer d’abord, jeux en accès direct, sans défiler': async (t) => {
+  'téléphone : les jeux d’abord, en accès direct, sans défiler': async (t) => {
     const page = await t.open({ device: 'mobile' });
     await page.store("s.rush = { best: { pulse: { stars: 3, acc: 95 } } }; s.club = { best: { bar: { stars: 2 } }, crate: {}, nights: 1 };");
     await page.go('#/home', 500);
-    t.assert.equal(await page.locator('.home-mode-btn[aria-pressed="true"]').innerText(), '🎮 Jouer');
-    const heads = await page.locator('h2.home-h2').allInnerTexts();
-    t.assert.deepEqual(heads, ['🎮 Jouer', '☀️ Aujourd’hui', '🎛️ Studio', '📈 Mon suivi']);
-    for (const name of ['Nuit au club', 'Piano Rush', 'Pad Rush']) {
+    t.assert.deepEqual(await page.locator('h2.home-h2').allInnerTexts(), ['🎮 Jouer', '☀️ Aujourd’hui', '🎛️ Créer']);
+    for (const name of ['Nuit au club', 'Piano Rush', 'Pad Rush', 'Sans le son']) {
       const box = await page.locator(`.htile:has-text("${name}")`).boundingBox();
       t.assert.ok(box && box.y + box.height <= 844 - 64, `${name} visible sans défiler (${box?.y})`);
     }
@@ -15,24 +13,45 @@ export const tests = {
     t.assert.match(await page.locator('.htile:has-text("Nuit au club")').innerText(), /2\/\d+ ★/);
     await page.click('.htile:has-text("Pad Rush")'); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/pads$/);
+    t.assert.equal(await page.locator('.nav-item.active .nav-label').innerText(), 'Jouer', 'onglet Jouer allumé dans un jeu');
+    await page.click('.page-head .back'); await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/play$/, 'le retour mène à l’onglet du jeu');
     await page.go('#/home', 400);
-    await page.click('.htile:has-text("Nuit au club")'); await page.waitForTimeout(400);
-    t.assert.match(page.url(), /#\/club$/);
+    await page.click('.htile:has-text("Sans le son")'); await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/club\?silent=1$/);
   },
 
-  'PC : mode Studio d’abord, bascule mémorisée': async (t) => {
+  'PC : la session et le studio d’abord, puis les jeux': async (t) => {
     const page = await t.open();
     await page.go('#/home', 400);
-    t.assert.equal(await page.locator('.home-mode-btn[aria-pressed="true"]').innerText(), '🎛️ Studio');
-    t.assert.deepEqual(await page.locator('h2.home-h2').allInnerTexts(), ['☀️ Aujourd’hui', '🎛️ Studio', '🎮 Jouer', '📈 Mon suivi']);
+    t.assert.deepEqual(await page.locator('h2.home-h2').allInnerTexts(), ['☀️ Aujourd’hui', '🎛️ Créer', '🎮 Jouer']);
     t.assert.match(await page.locator('.home-live').innerText(), /Brancher la sortie MIDI/);
-    await page.click('.home-mode-btn:has-text("Jouer")'); await page.waitForTimeout(200);
-    t.assert.equal((await page.state()).settings.homeMode, 'play');
-    t.assert.equal(await page.locator('h2.home-h2').first().innerText(), '🎮 Jouer');
-    await page.reload(); await page.waitForTimeout(500);
-    t.assert.equal(await page.locator('.home-mode-btn[aria-pressed="true"]').innerText(), '🎮 Jouer', 'choix mémorisé');
-    // La session express reste là, quel que soit le mode
     t.assert.ok(await page.locator('text=⚡ Lancer une session').count());
+    await page.click('text=Tous les ateliers →'); await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/create$/);
+    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Accueil', 'Jouer', 'Créer', 'Carnet', 'Profil', 'Rechercher', 'Raccourcis']);
+  },
+
+  'onglets : Jouer, Créer, Profil et Réglages bien rangés': async (t) => {
+    const page = await t.open({ device: 'mobile' });
+    await page.go('#/play', 400);
+    t.assert.ok(await page.locator('.play-feature:has-text("Nuit au club") >> text=🔇 Sans le son').count());
+    t.assert.ok(await page.locator('.htile:has-text("Piano Rush")').count() && await page.locator('.htile:has-text("Quiz d’oreille")').count());
+    await page.go('#/create', 400);
+    await page.click('.idea-step:has-text("Accords")'); await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/chords$/);
+    t.assert.equal(await page.locator('.nav-item.active .nav-label').innerText(), 'Créer');
+    await page.go('#/profile', 400);
+    t.assert.equal(await page.locator('text=Diagnostic en direct').count(), 0, 'les réglages ne sont plus dans le profil');
+    await page.click('.profile-link:has-text("Réglages")'); await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/settings$/);
+    t.assert.equal(await page.locator('.nav-item.active .nav-label').innerText(), 'Profil');
+    await page.click('.set-jump >> text=Audio'); await page.waitForTimeout(600);
+    const top = await page.locator('#set-audio').evaluate((n) => n.getBoundingClientRect().top);
+    t.assert.ok(top < 200, `rubrique Audio amenée en haut (${top})`);
+    // l'ancienne adresse du compte mène aux réglages
+    await page.go('#/profile?account=1', 600);
+    t.assert.match(page.url(), /#\/settings\?sec=account$/);
   },
 
   'accessibilité : sections nommées, cibles tactiles, liens explicites': async (t) => {
@@ -47,7 +66,7 @@ export const tests = {
       return { sections, small, unnamed, h1: document.querySelectorAll('#view h1').length };
     });
     t.assert.equal(a11y.h1, 1);
-    t.assert.ok(a11y.sections.every(Boolean) && a11y.sections.length === 4);
+    t.assert.ok(a11y.sections.every(Boolean) && a11y.sections.length === 3, JSON.stringify(a11y.sections));
     t.assert.deepEqual(a11y.small, [], 'cibles tactiles d’au moins 40 px');
     t.assert.equal(a11y.unnamed, 0);
   },

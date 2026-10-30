@@ -1,4 +1,4 @@
-import { el, card, header, finishExercise, shuffle, toast } from '../ui.js';
+import { el, card, header, finishExercise, shuffle, toast, htile, plural } from '../ui.js';
 import { getState, update, level, recordReview, dueEarReviews } from '../store.js';
 import { recurringErrors, drillPlan } from '../core/mistakes.js';
 import { dayKey } from '../core/progress.js';
@@ -271,13 +271,14 @@ export const REVIEW_NAMES = { intervals: '📏 Intervalle', chords: '🎨 Accord
 /** Révisions espacées : uniquement les notions ratées dont la date de révision est arrivée. */
 function reviewRender(root) {
   const items = dueEarReviews().filter((x) => REVIEW_NAMES[x.mode]).slice(0, 10);
-  root.append(header('🔁 Révisions d’oreille', 'Les notions que tu as ratées reviennent après 1, 3, 7, 14 puis 30 jours.', '#/review'));
+  const M = { name: 'Révisions d’oreille', emoji: '🔁', skill: 'oreille', desc: 'Les notions que tu as ratées reviennent après 1, 3, 7, 14 puis 30 jours.' };
   if (!items.length) {
-    root.append(card(el('p', '🎉 Rien à réviser aujourd’hui. Chaque erreur dans les quiz d’oreille crée une fiche qui reviendra au bon moment.'),
-      el('a.btn.primary', { href: '#/ear' }, 'Faire un quiz')));
+    root.append(header(`${M.emoji} ${M.name}`, M.desc, '#/review'),
+      card(el('p', '🎉 Rien à réviser aujourd’hui. Chaque erreur dans les quiz d’oreille crée une fiche qui reviendra au bon moment.'),
+        el('a.btn.primary', { href: '#/ear' }, '▶ Faire un quiz d’oreille')));
     return;
   }
-  return runQuiz(root, { mode: 'review', n: items.length, M: { name: 'Révisions', emoji: '🔁', skill: 'oreille', desc: '' }, nextQuestion: (idx, lv) => makeQuestion(items[idx].mode, lv, idx, items[idx].value), inReview: true, label: (q) => REVIEW_NAMES[q.mode] });
+  return runQuiz(root, { mode: 'review', n: items.length, M, back: '#/review', nextQuestion: (idx, lv) => makeQuestion(items[idx].mode, lv, idx, items[idx].value), inReview: true, label: (q) => REVIEW_NAMES[q.mode] });
 }
 
 /** Nom lisible d'une notion d'oreille (ex. 'intervals', '4' → « Tierce majeure »). */
@@ -297,7 +298,7 @@ function drillRender(root, key) {
   const name = notionLabel(err.mode, err.value);
   const M = { name: 'Exercice ciblé', emoji: '🎯', skill: MODES[err.mode].skill, desc: err.confused ? `${name} ou ${notionLabel(err.mode, err.confused)} ? On les fait écouter l’un après l’autre jusqu’à ce que la différence saute aux oreilles.` : `${name}, plusieurs fois de suite pour l’ancrer.` };
   return runQuiz(root, {
-    mode: err.mode, n: plan.length, M, inReview: false, drill: true,
+    mode: err.mode, n: plan.length, M, inReview: false, drill: true, back: '#/progress',
     nextQuestion: (idx, lv) => {
       const q = makeQuestion(err.mode, lv, idx, plan[idx]);
       // Les deux notions confondues sont toujours proposées
@@ -318,10 +319,12 @@ export function render(root, params) {
   if (mode === 'review') return reviewRender(root);
   if (mode === 'drill') return drillRender(root, params.k);
   if (!MODES[mode]) {
-    root.append(header('Oreille', 'Entraînements courts. Le niveau s’adapte à ta progression.'),
-      el('div.grid2',
-        el('a.tile', { href: '#/ear?mode=review' }, el('div.tile-emoji', '🔁'), el('b', `Révisions (${dueEarReviews().filter((x) => REVIEW_NAMES[x.mode]).length})`), el('span', 'Tes erreurs passées, revues au bon moment')),
-        Object.entries(MODES).map(([id, m]) => el('a.tile', { href: `#/ear?mode=${id}` }, el('div.tile-emoji', m.emoji), el('b', m.name), el('span', m.desc)))));
+    // Les révisions vivent dans « 🔁 Révisions » (oreille + jeux) : la tuile n'apparaît que s'il y a quelque chose à revoir
+    const due = dueEarReviews().filter((x) => REVIEW_NAMES[x.mode]).length;
+    root.append(header('👂 Quiz d’oreille', 'Entraînements courts. Le niveau s’adapte à ta progression.'),
+      el('div.home-tiles',
+        due ? htile('#/review', '🔁', `Révisions · ${due}`, `${plural(due, 'notion ratée', 'notions ratées')} à revoir aujourd’hui, juste avant de l’oublier.`, '.feature') : null,
+        Object.entries(MODES).map(([id, m]) => htile(`#/ear?mode=${id}`, m.emoji, m.name, m.desc))));
     return;
   }
   const M = MODES[mode];
@@ -329,7 +332,7 @@ export function render(root, params) {
   return runQuiz(root, { mode, n, M, nextQuestion: (idx, lv) => makeQuestion(mode, lv, idx), inReview: false });
 }
 
-function runQuiz(root, { mode, n, M, nextQuestion, inReview, label, drill = false, onDone = null }) {
+function runQuiz(root, { mode, n, M, nextQuestion, inReview, label, drill = false, onDone = null, back = '#/ear' }) {
   const lv = level();
   let idx = 0, correct = 0;
   const results = [];
@@ -411,11 +414,11 @@ function runQuiz(root, { mode, n, M, nextQuestion, inReview, label, drill = fals
       onRetry: inReview || drill ? null : () => { location.hash = `#/ear?mode=${mode}&n=${n}&r=${Date.now()}`; },
     });
     if (pad) pad.node.remove();
-    body.replaceChildren(el('div.row.gap.center', el('a.btn', { href: drill ? '#/progress' : '#/ear' }, drill ? '← Mes progrès' : '← Autres entraînements'),
-      drill ? null : el('a.btn.primary', { href: `#/ear?mode=${mode}&n=${n}&r=${Date.now()}` }, '↻ Encore')));
+    body.replaceChildren(el('div.row.gap.center', el('a.btn', { href: back }, drill ? '← Mes progrès' : inReview ? '← Révisions' : '← Autres entraînements'),
+      drill || inReview ? null : el('a.btn.primary', { href: `#/ear?mode=${mode}&n=${n}&r=${Date.now()}` }, '↻ Encore')));
   };
 
-  root.append(header(`${M.emoji} ${M.name}`, M.desc, '#/ear'), card(progress, body, pad?.node));
+  root.append(header(`${M.emoji} ${M.name}`, M.desc, back), card(progress, body, pad?.node));
   next();
   return () => pad?.destroy();
 }

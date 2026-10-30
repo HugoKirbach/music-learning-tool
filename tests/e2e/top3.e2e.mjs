@@ -35,7 +35,7 @@ export const tests = {
     await page.go('#/progress', 500);
     const card = await page.locator('.card:has-text("Tes erreurs récurrentes")').innerText();
     t.assert.match(card, /Tu confonds souvent Tierce majeure et Quarte juste/);
-    t.assert.match(card, /« Rondes et blanches » raté 2 fois/);
+    t.assert.match(card, /«\sRondes et blanches\s» raté 2 fois/); // espaces insécables à l'intérieur des guillemets
     await page.go('#/home', 400);
     t.assert.match(await page.locator('#view').innerText(), /Tu confonds souvent Tierce majeure et Quarte juste/);
     await page.go('#/ear?mode=drill&k=intervals%3A4', 500);

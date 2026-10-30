@@ -3,7 +3,7 @@ import { getState, update, level } from '../store.js';
 import { DRUM_ROWS, STEPS, VEL, gridFromPatterns, emptyGrid, cloneGrid, compareGrids, euclid, countHits, shiftRow } from '../core/rhythm.js';
 import { transport, playDrum, kitForGenre, KITS } from '../core/audio.js';
 import { GENRES, genreById } from '../data/genres.js';
-import { onMidi, drumForNote } from '../midiin.js';
+import { onMidi, drumForNote, midiStatus, onMidiStatus } from '../midiin.js';
 import { onPlayhead } from '../player.js';
 
 // ---------- Grille réutilisable ----------
@@ -57,9 +57,14 @@ export function drumGrid({ getGrid, onChange, locked = [], hidden = [], onLabel,
   // Pads du MPC (ou tout clavier MIDI) : jouent la batterie ; en « Rec » pendant la lecture, écrivent dans la grille.
   let rec = false;
   const recBtn = el('button.btn.small', {
+    'aria-pressed': 'false',
     title: 'Lance la lecture, active Rec et joue aux pads : chaque coup est quantifié à la double-croche la plus proche.',
-    onclick: () => { rec = !rec; recBtn.classList.toggle('primary', rec); recBtn.textContent = rec ? '⏺ Rec pads : ON' : '⏺ Rec pads'; },
+    onclick: () => { rec = !rec; recBtn.classList.toggle('on', rec); recBtn.setAttribute('aria-pressed', String(rec)); },
   }, '⏺ Rec pads');
+  // Enregistrement aux pads : seulement quand un clavier / MPC est branché
+  const showRec = () => { recBtn.style.display = midiStatus().state === 'connected' ? '' : 'none'; };
+  showRec();
+  const offStatus = onMidiStatus(showRec);
   const offMidi = onMidi({
     noteOn: (n, v) => {
       const id = drumForNote(n);
@@ -84,7 +89,7 @@ export function drumGrid({ getGrid, onChange, locked = [], hidden = [], onLabel,
     }
   };
   paint();
-  return { node: wrap, paint, setPlayhead, setFeedback, recBtn, destroy: offMidi };
+  return { node: wrap, paint, setPlayhead, setFeedback, recBtn, destroy: () => { offMidi(); offStatus(); } };
 }
 
 export function playGrid(grid, { bpm, swing, kit, onVisual, bars = 0 }) {
@@ -165,7 +170,7 @@ export function render(root, params) {
   const genre = genreById(params.genre || s.project.genre);
   const lv = level();
 
-  root.append(header('Lab Beat', mode === 'ear' ? `Recrée le groove ${genre.name} à l’oreille` : mode === 'constraint' ? `Beat ${genre.name} sous contrainte` : 'Boîte à rythmes 16 pas'));
+  root.append(header('🥁 Lab Beat', mode === 'ear' ? `Recrée le groove ${genre.name} à l’oreille` : mode === 'constraint' ? `Beat ${genre.name} sous contrainte` : 'Boîte à rythmes 16 pas'));
 
   const modeSeg = segmented([
     { value: 'free', label: '🎨 Libre' }, { value: 'ear', label: '👂 À l’oreille' }, { value: 'constraint', label: '🧩 Contrainte' },
@@ -197,6 +202,8 @@ function freeMode(root, params) {
     location.hash = `#/beat?genre=${v}&t=${Date.now()}`;
   });
   const kitSel = select(Object.keys(KITS).map((k) => ({ value: k, label: `🥁 ${KITS[k].name}` })), P().kit, (v) => update((s) => { s.project.kit = v; }));
+  genreSel.setAttribute('aria-label', 'Style');
+  kitSel.setAttribute('aria-label', 'Kit de batterie');
 
   let rewarded = false;
   root.append(
@@ -206,17 +213,18 @@ function freeMode(root, params) {
       slider({ label: 'Swing', min: 0, max: 0.6, step: 0.01, value: P().swing, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => { update((s) => { s.project.swing = v; }); transport.swing = v; } }),
       g.node,
       el('p.small.muted', 'Touche une case : coup → ghost note (doux) → vide. Touche le nom d’une rangée pour le générateur euclidien et le décalage.'),
-      el('div.row.gap.wrap',
-        el('button.btn.small', { onclick: () => { update((s) => { s.project.drums = gridFromPatterns(genreById(s.project.genre).drums); }); g.paint(); } }, '↺ Pattern du style'),
-        el('button.btn.small', { onclick: () => { update((s) => { s.project.drums = emptyGrid(); }); g.paint(); } }, '🗑 Vider'),
-        el('button.btn.small', { onclick: () => { mutate(grid()); save(); g.paint(); toast('2 pas modifiés : garde si c’est mieux !'); } }, '🧬 Muter'),
-        el('button.btn.small', { onclick: () => downloadMidi(`beat-${P().genre}-${P().bpm}bpm`, gridToSong(grid(), P().bpm)) }, '⬇ MIDI'),
+      el('div.ctrl-row',
+        el('button.btn.small', { title: 'Recharge le groove type du style', onclick: () => { update((s) => { s.project.drums = gridFromPatterns(genreById(s.project.genre).drums); }); g.paint(); } }, '↺ Pattern du style'),
+        el('button.btn.small', { title: 'Vide toute la grille', onclick: () => { update((s) => { s.project.drums = emptyGrid(); }); g.paint(); } }, '🗑 Vider'),
+        el('button.btn.small', { title: 'Change 2 pas au hasard : garde si c’est mieux, sinon relance', onclick: () => { mutate(grid()); save(); g.paint(); toast('2 pas modifiés : garde si c’est mieux !'); } }, '🎲 Varier')),
+      el('div.action-bar',
+        el('button.btn.small', { title: '1 mesure × 4, notes GM (36 = kick, 38 = snare…)', onclick: () => downloadMidi(`beat-${P().genre}-${P().bpm}bpm`, gridToSong(grid(), P().bpm)) }, '⬇ MIDI'),
         el('button.btn.small', {
           onclick: () => {
             update((s) => { s.notebook.unshift({ id: Date.now(), type: 'beat', title: `Beat ${genreById(s.project.genre).name}`, date: Date.now(), genre: s.project.genre, bpm: s.project.bpm, swing: s.project.swing, drums: cloneGrid(s.project.drums) }); });
-            toast('Beat sauvé dans le Carnet 📓', 'good');
+            toast('Beat rangé dans le Carnet 📓', 'good');
           },
-        }, '📓 Sauver'),
+        }, '📓 Au Carnet'),
         el('button.btn.small.primary', {
           onclick: () => {
             if (countHits(grid()) < 4) return toast('Pose au moins 4 coups 😉', 'bad');
@@ -233,7 +241,7 @@ function freeMode(root, params) {
     ),
     card(el('h3', `${genre.emoji} Ingrédients ${genre.name}`), el('ul.clean', genre.signature.map((x) => el('li', x))),
       el('p.small', el('b', 'Live 12 : '), genre.tips.ableton), el('p.small', el('b', 'MPC : '), genre.tips.mpc),
-      el('a.btn.small', { href: '#/melody' }, '→ Ajouter accords et mélodie')),
+      el('div.lab-next', el('a.btn.small.ghost', { href: '#/chords' }, '🎼 Ajouter des accords →'), el('a.btn.small.ghost', { href: '#/melody' }, '🎵 Écrire une mélodie →'))),
   );
   return () => { transport.stop(); g.destroy(); offPh(); };
 }
@@ -292,34 +300,35 @@ function earMode(root, genre, lv) {
   };
 
   root.append(card(
-    el('div.row.gap.wrap', tBtn, uBtn, g.recBtn),
+    el('div.ctrl-row', tBtn, uBtn, g.recBtn),
     el('p.small.muted', `${genre.emoji} ${genre.name} · ${genre.bpm} BPM. Les rangées 🔒 sont données. Écoute la cible, reproduis le reste.`),
     scoreLine,
     g.node,
     hintBox(el('div', el('p', 'Méthode de transcription : écoute UN seul instrument à la fois. Commence par le kick (compte « 1 e & a 2 e & a… »), puis la snare/clap, puis les hats.'), el('p', 'Chaque colonne claire = un temps (noire). 4 cases = 1 temps.')), () => { hintUsed = true; }),
-    el('div.row.gap.wrap',
-      el('button.btn', {
+    el('div.action-bar',
+      el('button.btn.small', {
         onclick: () => {
           checks++;
           const res = compareGrids(target, user);
           best = Math.max(best, res.score);
           g.setFeedback(target);
-          scoreLine.lastChild.textContent = `${res.score}%`;
-          toast(res.score === 100 ? 'Parfait ! 🎯' : `${res.score}% — jaune = manquant, rouge = en trop`, res.score === 100 ? 'good' : 'info');
+          scoreLine.lastChild.textContent = `${res.score} %`;
+          toast(res.score === 100 ? 'Parfait ! 🎯' : `${res.score} % — jaune = manquant, rouge = en trop`, res.score === 100 ? 'good' : 'info');
           if (res.score === 100) setTimeout(finish, 700);
         },
       }, '🔍 Vérifier'),
-      el('button.btn', {
+      el('button.btn.small', {
+        title: 'Remplit une rangée à ta place (indice : −20 % XP)',
         onclick: () => {
           const missing = toFind.find((id) => target[id].join() !== user[id].join());
           if (!missing) return;
           hintUsed = true;
           user[missing] = [...target[missing]];
           g.paint();
-          toast(`Rangée ${DRUM_ROWS.find((r) => r.id === missing).name} révélée (−XP)`);
+          toast(`Rangée ${DRUM_ROWS.find((r) => r.id === missing).name} révélée (indice : −20 % XP)`);
         },
-      }, '💡 Révéler une rangée'),
-      el('button.btn.primary', { onclick: finish }, 'Terminer'),
+      }, '💡 Révéler une rangée (−20 % XP)'),
+      el('button.btn.small.primary', { onclick: finish }, '✓ Valider'),
     ),
   ));
   return () => { transport.stop(); g.destroy(); };
@@ -344,11 +353,10 @@ function constraintMode(root, genre) {
     slider({ label: 'Swing', min: 0, max: 0.6, step: 0.01, value: swing, format: (v) => `${Math.round(v * 100)}%`, onInput: (v) => { swing = v; transport.swing = v; } }),
     g.node,
     hintBox('Change une chose à la fois et réécoute. Garde les éléments signature du style que la contrainte n’interdit pas.', () => { hintUsed = true; }),
-    el('p', 'Ton ressenti : ça groove ?'),
-    segmented([{ value: 1, label: '😐 Bof' }, { value: 2, label: '🙂 Pas mal' }, { value: 3, label: '🔥 Ça groove' }], rating, (v) => { rating = v; }),
-    el('div.row.gap.wrap', { style: { marginTop: '10px' } },
+    el('div.action-bar',
       el('button.btn.small', { onclick: () => downloadMidi(`contrainte-${genre.id}`, gridToSong(grid, bpm)) }, '⬇ MIDI'),
-      el('button.btn.primary', {
+      el('div.field', el('span', 'Ça groove ?'), segmented([{ value: 1, label: '😐 Bof' }, { value: 2, label: '🙂 Pas mal' }, { value: 3, label: '🔥 Oui' }], rating, (v) => { rating = v; })),
+      el('button.btn.small.primary', {
         onclick: () => {
           if (!c.check(grid, arg)) return toast('La règle n’est pas encore respectée 🧐', 'bad');
           transport.stop();

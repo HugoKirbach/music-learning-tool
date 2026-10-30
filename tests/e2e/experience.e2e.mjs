@@ -3,18 +3,21 @@ import { fakeCloud } from './harness.mjs';
 import { signUp } from './cloud.e2e.mjs';
 
 export const tests = {
-  'labs progressifs puis « tout afficher »': async (t) => {
+  'ateliers progressifs puis « tout afficher »': async (t) => {
     const page = await t.open({ device: 'mobile' });
-    await page.go('#/labs');
+    await page.go('#/create');
     t.assert.ok(await page.locator('text=/ateliers avancés se débloquent/').count());
-    t.assert.equal(await page.locator('.tile:has-text("Mixdown express")').count(), 0);
+    t.assert.equal(await page.locator('.htile:has-text("Mixdown express")').count(), 0);
     await page.store('s.xp = 5000;');
+    await page.go('#/create');
+    t.assert.ok(await page.locator('.htile:has-text("Mixdown express")').count(), 'débloqué avec le niveau');
+    // l'ancienne adresse des Labs mène au même écran
     await page.go('#/labs');
-    t.assert.ok(await page.locator('.tile:has-text("Mixdown express")').count(), 'débloqué avec le niveau');
+    t.assert.ok(await page.locator('h1:has-text("Créer")').count());
   },
   'thème clair, animations réduites, focus clavier, libellés': async (t) => {
     const page = await t.open();
-    await page.go('#/profile');
+    await page.go('#/settings');
     await page.click('.ctrl-row:has-text("Thème") >> text=☀️ Clair'); await page.waitForTimeout(150);
     t.assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'light');
     t.assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(244, 244, 250)');
@@ -72,7 +75,7 @@ export const tests = {
     await page.setViewportSize({ width: 375, height: 667 });
     await signUp(page, 'visite@test.fr');
     if (await page.locator('text=Choisis ton pseudo').count()) await page.tap('text=Plus tard');
-    await page.go('#/profile', 600);
+    await page.go('#/settings', 600);
     await page.locator('text=Quoi de neuf ? / visite').scrollIntoViewIfNeeded();
     await page.tap('text=Quoi de neuf ? / visite'); await page.waitForTimeout(400);
     t.assert.ok(await page.locator('.modal-card summary:has-text("Version 2.")').count(), 'nouveautés précédentes repliées');
@@ -89,7 +92,7 @@ export const tests = {
       t.assert.equal(await page.locator('text=Choisis ton pseudo').count(), 0, 'pseudo demandé pendant la visite');
       await btn.tap();
     }
-    t.assert.equal(seen.length, 9, seen.join(' '));
+    t.assert.equal(seen.length, 7, seen.join(' '));
     t.assert.equal(await page.locator('.tour-bubble').count(), 0);
   },
 };

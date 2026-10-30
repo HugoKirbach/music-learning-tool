@@ -7,6 +7,33 @@ import {
   removeFriend, friendsProfiles, publicStats, publishProfile,
 } from '../social.js';
 
+/** Erreur du service en ligne lisible par tous : le détail technique (code Firebase) part dans la console. */
+export function cloudErrorText(x) {
+  if (x?.code && x.code !== 'taken') {
+    console.warn('BeatForge · service en ligne :', x.code, x.message);
+    return 'Service momentanément indisponible, réessaie plus tard.';
+  }
+  return x?.message || String(x);
+}
+
+/** Aperçu d'un classement (données d'exemple) pour donner envie de se connecter. */
+const EXAMPLE = [
+  { pseudo: 'nina_loops', level: 7, title: 'Productrice', weekXp: 1240, streak: 12, best: 21 },
+  { pseudo: 'toi', level: 6, title: 'Beatmaker', weekXp: 980, streak: 5, best: 9, me: true },
+  { pseudo: 'max.808', level: 4, title: 'Groover', weekXp: 610, streak: 3, best: 7 },
+];
+
+function ranking(list, example = false) {
+  return el('div.friends-table' + (example ? '.example' : ''), example ? { 'aria-hidden': 'true' } : {},
+    el('div.ft-row.ft-head', el('span', '#'), el('span', 'Pseudo'), el('span', 'Niveau'), el('span', 'XP sem.'), el('span', '🔥 Série')),
+    list.map((p, i) => el('div.ft-row' + (p.me ? '.me' : ''),
+      el('span', i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)),
+      el('span.ft-name', p.pseudo, p.me && !example ? el('small', ' (toi)') : null, (p.fav || []).length ? el('small.ft-fav', { title: `Styles préférés : ${p.fav.map((id) => genreById(id).name).join(', ')}` }, p.fav.map((id) => genreById(id).emoji).join(' ')) : null),
+      el('span', `Niv. ${p.level || 1}`, el('small', p.title || '')),
+      el('b', String(p.weekXp || 0)),
+      el('span', `${p.streak || 0} j`, el('small', `record ${p.best || 0} j`)))));
+}
+
 /** Fenêtre de choix du pseudo (1re connexion, ou changement). Résout avec le pseudo choisi ou null. */
 export function askPseudo({ current = '', canLater = true } = {}) {
   return new Promise((resolve) => {
@@ -19,7 +46,7 @@ export function askPseudo({ current = '', canLater = true } = {}) {
         const v = validPseudo(input.value);
         if (v) { err.textContent = v; return; }
         btn.disabled = true; err.textContent = '';
-        try { const p = await setPseudo(input.value); close(); toast(`Bienvenue ${p} 🎧`, 'good'); resolve(p); } catch (x) { err.textContent = x.message; btn.disabled = false; }
+        try { const p = await setPseudo(input.value); close(); toast(`Bienvenue ${p} 🎧`, 'good'); resolve(p); } catch (x) { err.textContent = cloudErrorText(x); btn.disabled = false; }
       },
     }, input, err, btn);
     const close = modal(el('div',
@@ -35,13 +62,26 @@ export function askPseudo({ current = '', canLater = true } = {}) {
 export function render(root) {
   let alive = true;
   const body = el('div');
-  root.append(header('👥 Amis', 'Compare ton niveau, ton XP de la semaine et tes séries avec tes amis.', '#/profile'), body);
+  root.append(header('👥 Amis', 'Compare ton niveau, ton XP de la semaine et tes séries avec tes amis.'), body);
+
+  /** Action en ligne (accepter, refuser, retirer) : erreur affichée en toast, puis on rafraîchit. */
+  const safe = async (fn) => { try { await fn(); } catch (x) { toast(cloudErrorText(x), 'bad', 3500); } paint(); };
 
   async function paint() {
     const st = cloudStatus();
     if (!st.user) {
-      body.replaceChildren(card(el('p', 'Connecte-toi pour ajouter des amis : ta progression reste privée, seuls ton pseudo, ton niveau, ton XP et tes séries sont visibles par tes amis.'),
-        el('a.btn.primary', { href: '#/profile?account=1' }, '👤 Se connecter')));
+      body.replaceChildren(
+        el('div.card.glow',
+          el('h3', '🤝 Progresser à plusieurs'),
+          el('ul.friends-perks',
+            el('li', el('span', { 'aria-hidden': 'true' }, '🏆'), el('div', el('b', 'Un classement chaque semaine'), el('span', 'L’XP repart de zéro le lundi : tout le monde peut gagner.'))),
+            el('li', el('span', { 'aria-hidden': 'true' }, '🔥'), el('div', el('b', 'Des séries qui motivent'), el('span', 'Voir la série d’un ami donne envie de ne pas casser la sienne.'))),
+            el('li', el('span', { 'aria-hidden': 'true' }, '🔒'), el('div', el('b', 'Ta progression reste privée'), el('span', 'Tes amis ne voient que ton pseudo, ton niveau, ton XP et tes séries.')))),
+          el('a.btn.primary.wide', { href: '#/settings?sec=account' }, '👤 Se connecter ou créer un compte'),
+          el('p.small.muted', 'Gratuit, et ton compte synchronise aussi ta progression entre ton téléphone et ton PC.')),
+        card(el('div.row.between', el('h3', '🏆 Classement de la semaine'), el('span.tag.example-tag', 'Exemple')),
+          ranking(EXAMPLE, true),
+          el('p.small.muted', 'Aperçu avec des pseudos fictifs : connecte-toi pour voir tes vrais amis ici.')));
       return;
     }
     body.replaceChildren(card(el('p.small.muted', '⏳ Chargement…')));
@@ -54,7 +94,7 @@ export function render(root) {
     await publishProfile(true).catch(() => {});
     let friends = [], requests = [];
     try { [friends, requests] = await Promise.all([friendsProfiles(), incomingRequests()]); } catch (e) {
-      body.replaceChildren(card(el('p.bad', `Impossible de charger les amis : ${e.code === 'permission-denied' ? 'règles Firestore à mettre à jour (voir README)' : e.message}`)));
+      body.replaceChildren(card(el('p.bad', `Impossible de charger les amis : ${cloudErrorText(e)}`), el('button.btn.small', { onclick: () => paint() }, '🔄 Réessayer')));
       return;
     }
     if (!alive) return;
@@ -68,7 +108,7 @@ export function render(root) {
       onsubmit: async (e) => {
         e.preventDefault();
         if (!input.value.trim()) return;
-        try { const r = await addFriend(input.value); toast(r === 'accepted' ? 'Vous êtes maintenant amis 🤝' : 'Demande envoyée 📨', 'good'); paint(); } catch (x) { toast(x.message, 'bad', 3500); }
+        try { const r = await addFriend(input.value); toast(r === 'accepted' ? 'Vous êtes maintenant amis 🤝' : 'Demande envoyée 📨', 'good'); paint(); } catch (x) { toast(cloudErrorText(x), 'bad', 3500); }
       },
     }, input, el('button.btn.primary', { type: 'submit' }, 'Ajouter'));
 
@@ -82,25 +122,18 @@ export function render(root) {
       requests.length ? card(el('h3', `📨 Demandes reçues (${requests.length})`),
         requests.map((r) => el('div.friend-req', el('b', r.fromPseudo),
           el('div.row.gap',
-            el('button.btn.small.primary', { onclick: async () => { await acceptRequest(r.from); toast(`${r.fromPseudo} ajouté 🤝`, 'good'); paint(); } }, 'Accepter'),
-            el('button.btn.small.ghost', { onclick: async () => { await refuseRequest(r.from); paint(); } }, 'Refuser'))))) : null,
+            el('button.btn.small.primary', { onclick: () => safe(async () => { await acceptRequest(r.from); toast(`${r.fromPseudo} ajouté 🤝`, 'good'); }) }, 'Accepter'),
+            el('button.btn.small.ghost', { onclick: () => safe(() => refuseRequest(r.from)) }, 'Refuser'))))) : null,
       card(el('h3', '🏆 Classement de la semaine'),
-        el('div.friends-table',
-          el('div.ft-row.ft-head', el('span', '#'), el('span', 'Pseudo'), el('span', 'Niveau'), el('span', 'XP sem.'), el('span', '🔥 Série')),
-          ranked.map((p, i) => el('div.ft-row' + (p.me ? '.me' : ''),
-            el('span', i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)),
-            el('span.ft-name', p.pseudo, p.me ? el('small', ' (toi)') : null, (p.fav || []).length ? el('small.ft-fav', { title: `Styles préférés : ${p.fav.map((id) => genreById(id).name).join(', ')}` }, p.fav.map((id) => genreById(id).emoji).join(' ')) : null),
-            el('span', `Niv. ${p.level || 1}`, el('small', p.title || '')),
-            el('b', String(p.weekXp || 0)),
-            el('span', `${p.streak || 0} j`, el('small', `record ${p.best || 0} j`))))),
+        ranking(ranked),
         ranked.length === 1 ? el('p.small.muted', 'Ajoute un ami pour lancer la compétition 😉') : null,
         el('p.small.muted', 'La semaine commence le lundi. Les statistiques se mettent à jour à chaque synchronisation.')),
       waiting.length ? card(el('h3', '⏳ En attente'), waiting.map((p) => el('div.friend-req', el('span', p.pseudo), el('small.muted', 'demande envoyée')))) : null,
       friends.filter((f) => !f.waiting).length ? el('details.card', el('summary', 'Gérer mes amis'),
         friends.filter((f) => !f.waiting).map((p) => el('div.friend-req', el('span', p.pseudo),
-          el('button.btn.small.ghost', { onclick: async () => { if (confirm(`Retirer ${p.pseudo} de tes amis ?`)) { await removeFriend(p.uid); paint(); } } }, 'Retirer')))) : null,
+          el('button.btn.small.ghost', { onclick: () => { if (confirm(`Retirer ${p.pseudo} de tes amis ?`)) safe(() => removeFriend(p.uid)); } }, 'Retirer')))) : null,
     );
   }
-  paint().catch((e) => { body.replaceChildren(card(el('p.bad', e.message))); });
+  paint().catch((e) => { body.replaceChildren(card(el('p.bad', cloudErrorText(e)))); });
   return () => { alive = false; };
 }

@@ -2,14 +2,14 @@
 import { fakeCloud } from './harness.mjs';
 
 export async function signUp(page, email, pw = 'secret1', create = true) {
-  await page.go('#/profile?account=1', 400);
+  await page.go('#/settings?sec=account', 400);
   await page.fill('input[type=email]', email);
   await page.fill('input[type=password]', pw);
   await page.click(create ? 'button:has-text("Créer un compte")' : 'button:has-text("Se connecter")');
   await page.waitForTimeout(900);
 }
 const skipPseudo = async (page) => { if (await page.locator('text=Choisis ton pseudo').count()) { await page.click('text=Plus tard'); await page.waitForTimeout(200); } };
-const syncNow = async (page) => { await page.go('#/profile'); await skipPseudo(page); await page.click('text=Synchroniser maintenant'); await page.waitForTimeout(700); };
+const syncNow = async (page) => { await page.go('#/settings'); await skipPseudo(page); await page.click('text=Synchroniser maintenant'); await page.waitForTimeout(700); };
 const summary = (s) => ({ xp: s.xp, nb: s.notebook.map((x) => x.title).sort(), bpm: s.project.bpm });
 
 export const tests = {
@@ -70,7 +70,7 @@ export const tests = {
     await A.waitForTimeout(5000);
     const left = [...cloud.docs.keys()].filter((k) => k.includes('/backups/')).sort();
     t.assert.equal(left.length, 7);
-    await A.go('#/profile');
+    await A.go('#/settings');
     await A.click('text=🕘 Sauvegardes en ligne'); await A.waitForTimeout(500);
     A.on('dialog', (d) => d.accept());
     await A.locator('.acct-backups >> text=Restaurer').last().click(); await A.waitForTimeout(800);

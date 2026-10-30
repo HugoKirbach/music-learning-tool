@@ -4,7 +4,7 @@ export const tests = {
     const page = await t.open({ midi: true, midiConnected: false });
     await page.evaluate(() => window.__plug()); await page.waitForTimeout(300);
     t.assert.match(await page.locator('.chip.midi').getAttribute('class'), /connected/);
-    await page.go('#/profile');
+    await page.go('#/settings');
     await page.evaluate(() => window.__midi(0x90, 36, 90)); await page.waitForTimeout(150);
     t.assert.ok(await page.locator('text=/note 36/').count());
     await page.go('#/synth');

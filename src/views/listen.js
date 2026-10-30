@@ -9,7 +9,7 @@ import { NOTE_NAMES, SCALES } from '../core/theory.js';
 import { genreById } from '../data/genres.js';
 
 export function render(root, params = {}) {
-  root.append(header('🔗 Idée partagée', 'Quelqu’un t’a envoyé une idée BeatForge : écoute-la, garde-la ou développe-la.', '#/home'));
+  root.append(header('🔗 Idée partagée', 'Quelqu’un t’a envoyé une idée BeatForge : écoute-la, garde-la ou développe-la.'));
   const body = el('div', card(el('p.muted', '⏳ Ouverture de l’idée…')));
   root.append(body);
   (async () => {

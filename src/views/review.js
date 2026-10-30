@@ -1,6 +1,6 @@
 // Révisions espacées, tout au même endroit : notions d'oreille ratées + niveaux de Piano Rush / Pad Rush à rejouer.
 // Chaque fiche revient après 1, 3, 7, 14 puis 30 jours tant qu'elle n'est pas réussie au bon moment.
-import { el, card, header } from '../ui.js';
+import { el, card, header, plural } from '../ui.js';
 import { getState, dueReviews } from '../store.js';
 import { dayKey } from '../core/progress.js';
 import { addDays, isGameItem, BOX_DAYS } from '../core/srs.js';
@@ -27,17 +27,21 @@ export function render(root) {
   const ear = due.filter((x) => !isGameItem(x) && REVIEW_NAMES[x.mode]);
   const games = due.filter(isGameItem).map((x) => ({ ...x, info: gameItem(x) })).filter((x) => x.info);
 
-  root.append(header('🔁 Révisions', 'Ce que tu as raté revient après 1, 3 puis 7 jours (puis 14 et 30) : juste avant de l’oublier.', '#/home'));
+  root.append(header('🔁 Révisions', 'Ce que tu as raté revient après 1, 3 puis 7 jours (puis 14 et 30) : juste avant de l’oublier.'));
 
   if (!ear.length && !games.length) {
     root.append(card(el('h3', '🎉 Rien à réviser aujourd’hui'),
-      el('p.small.muted', 'Une erreur dans un quiz d’oreille, ou un niveau de Piano Rush / Pad Rush sous 80 %, crée une fiche qui reviendra ici au bon moment.')));
+      el('p.small.muted', 'Une erreur dans un quiz d’oreille, ou un niveau de Piano Rush / Pad Rush sous 80 %, crée une fiche qui reviendra ici au bon moment.'),
+      el('div.row.gap.wrap',
+        el('a.btn.primary', { href: '#/ear' }, '▶ Faire un quiz d’oreille'),
+        el('a.btn', { href: '#/rush' }, '🎹 Piano Rush'),
+        el('a.btn', { href: '#/pads' }, '🔲 Pad Rush'))));
   }
   if (ear.length) {
     const kinds = {};
     ear.forEach((x) => { kinds[x.mode] = (kinds[x.mode] || 0) + 1; });
     root.append(card(
-      el('div.row.between', el('h3', `👂 Oreille · ${ear.length} notion${ear.length > 1 ? 's' : ''}`), el('a.btn.small.primary', { href: '#/ear?mode=review' }, '▶ Réviser')),
+      el('div.row.between', el('h3', `👂 Oreille · ${plural(ear.length, 'notion')}`), el('a.btn.small.primary', { href: '#/ear?mode=review' }, '▶ Réviser')),
       el('div', Object.entries(kinds).map(([m, n]) => el('span.tag', `${REVIEW_NAMES[m]} ×${n}`)))));
   }
   if (games.length) {
@@ -48,12 +52,14 @@ export function render(root) {
         el('a.btn.small.primary', { href: x.info.href }, 'Jouer')))));
   }
 
-  // Les 7 prochains jours
+  // Les 7 prochains jours (seulement s'il y a des fiches en cours)
   const all = Object.entries(s.review || {});
+  if (!all.length) return;
   const next = Array.from({ length: 7 }, (_, i) => addDays(today, i + 1)).map((d) => ({ d, n: all.filter(([, e]) => e.due === d).length }));
+  const soon = next.reduce((a, x) => a + x.n, 0);
   const max = Math.max(1, ...next.map((x) => x.n));
   root.append(card(el('h3', '📅 À venir'),
-    el('div.week-bars', next.map((x) => el('div', { title: `${dayFr(x.d)} : ${x.n} fiche(s)` },
-      el('span', { style: { height: `${Math.round((100 * x.n) / max)}%` } }), el('small', dayFr(x.d).split(' ')[0])))),
-    el('p.small.muted', `${all.length} fiche${all.length > 1 ? 's' : ''} en cours au total.`)));
+    soon ? el('div.week-bars', next.map((x) => el('div', { title: `${dayFr(x.d)} : ${plural(x.n, 'fiche')}` },
+      el('span', { style: { height: `${Math.round((100 * x.n) / max)}%` } }), el('small', dayFr(x.d).split(' ')[0])))) : null,
+    el('p.small.muted', `${plural(all.length, 'fiche')} en cours au total${soon ? '' : ', aucune à revoir dans les 7 prochains jours'}.`)));
 }

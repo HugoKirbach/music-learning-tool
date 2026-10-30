@@ -1,5 +1,6 @@
 // 🪩 Nuit au club : le jeu du téléphone. Des mini-jeux de quelques secondes (façon WarioWare), la salle s'échauffe,
 // le tempo monte… et l'oreille, le rythme et la théorie progressent en arrière-plan.
+// Mode « 🔇 Sans le son » : mini-jeux à lire et à toucher, aucun son joué (vibrations et animations seulement).
 import { el, card, header, toast, confetti, showBadges } from '../ui.js';
 import { getState, update, recordExercise } from '../store.js';
 import { ensureAudio, now, playSynth, playDrum, playClick, playRiser, outputLatency, kitForGenre, muteFxTails, restoreFx } from '../core/audio.js';
@@ -11,9 +12,10 @@ import { GENRES, genreById } from '../data/genres.js';
 import {
   GAMES, VENUES, MAX_STARS, venueById, dailyVenue, planNight, roundTime, judgeTaps, roundPoints, nextHype, starsFor,
   totalStars, isOpen, nightXp, pressVinyl, addToCrate, nightConcepts, noteNameFr, noteNameEn,
+  SOUND_GAMES, SILENT_GAMES, starKey, energyCurve, ASK_LABEL, stepName,
 } from '../core/club.js';
 
-const clubState = () => ({ best: {}, crate: {}, nights: 0, daily: null, vib: true, ...(getState().club || {}) });
+const clubState = () => ({ best: {}, crate: {}, nights: 0, daily: null, vib: true, silent: false, ...(getState().club || {}) });
 const setClub = (fn) => update((s) => { s.club = { best: {}, crate: {}, nights: 0, daily: null, vib: true, ...(s.club || {}) }; fn(s.club); });
 const starsTxt = (n, max = 3) => '★'.repeat(n) + '☆'.repeat(max - n);
 const HYPE = ['😴', '😐', '🙂', '😃', '🤩', '🔥'];
@@ -48,37 +50,46 @@ export function render(root, params = {}) {
     stopGame?.(); stopGame = null;
     document.body.classList.remove('rush-playing');
     const st = clubState();
+    const silent = !!st.silent;
     const today = dayKey();
-    const stars = totalStars(st.best);
+    const stars = totalStars(st.best, silent);
     const daily = dailyVenue(today);
-    const doneToday = st.daily?.day === today;
+    const dRec = silent ? st.dailySilent : st.daily;
+    const doneToday = dRec?.day === today;
     const crateN = Object.keys(st.crate).length;
+    const games = silent ? SILENT_GAMES : SOUND_GAMES;
+    const setMode = (v) => { if (v !== silent) { setClub((c) => { c.silent = v; }); menu(); } };
     root.replaceChildren(
-      header('🪩 Nuit au club', 'Le jeu du téléphone : 2-3 minutes, des mini-jeux express, et tu progresses sans y penser.', '#/home'),
+      header('🪩 Nuit au club', silent ? 'Sans le son : des mini-jeux à lire et à toucher, pour apprendre dans le métro, en salle d’attente ou en réunion.' : 'Le jeu du téléphone : 2-3 minutes, des mini-jeux express, et tu progresses sans y penser.'),
+      el('div.club-mode', { role: 'group', 'aria-label': 'Mode de jeu' },
+        [[false, '🔊 Avec le son'], [true, '🔇 Sans le son']].map(([v, label]) => el('button.club-mode-btn' + (v === silent ? '.on' : ''), { type: 'button', 'aria-pressed': String(v === silent), onclick: () => setMode(v) }, label))),
+      silent ? el('p.small.muted.club-mode-note', 'Aucun son, jamais : grilles de rythme, accords au clavier, calculs, structures et réglages de synthé. Tes étoiles sans le son ont leur propre progression.') : null,
       el('section.card.glow.club-daily', { 'aria-labelledby': 'club-daily-t' },
         el('div.row.between',
-          el('div', el('h2', { id: 'club-daily-t' }, '📅 Le set du jour'), el('p.small.muted', doneToday ? `Fait aujourd’hui : ${st.daily.score} pts. Rejoue pour battre ton score.` : 'Tous les mini-jeux, le même set pour tout le monde. XP ×2 la première fois aujourd’hui.')),
-          el('button.btn.primary.big', { onclick: () => play(daily, today) }, doneToday ? '↻ Rejouer' : '▶ Jouer'))),
-      el('h2.fam-title', `🎧 Les salles · ${stars}/${MAX_STARS} ★`),
+          el('div', el('h2', { id: 'club-daily-t' }, silent ? '📅 Le set du jour · 🔇' : '📅 Le set du jour'), el('p.small.muted', doneToday ? `Fait aujourd’hui : ${dRec.score} pts. Rejoue pour battre ton score.` : `${silent ? 'Les mini-jeux sans le son' : 'Tous les mini-jeux'}, le même set pour tout le monde. XP ×2 la première fois aujourd’hui.`)),
+          el('button.btn.primary.big', { onclick: () => play(daily, today, silent) }, doneToday ? '↻ Rejouer' : '▶ Jouer'))),
+      el('h2.fam-title', `${silent ? '🔇 Les salles sans le son' : '🎧 Les salles'} · ${stars}/${MAX_STARS} ★`),
       el('div.club-venues', VENUES.map((v) => {
-        const open = isOpen(v, st.best);
-        const b = st.best[v.id];
+        const open = isOpen(v, st.best, silent);
+        const b = st.best[starKey(v.id, silent)];
         return el('button.club-venue' + (open ? '' : '.locked'), {
           type: 'button', disabled: !open,
-          'aria-label': open ? `${v.name}, ${v.length} manches, ${b?.stars || 0} étoiles sur 3. Jouer` : `${v.name}, verrouillé : ${v.need} étoiles nécessaires`,
-          onclick: () => play(v, `${Date.now()}`),
+          'aria-label': open ? `${v.name}${silent ? ' sans le son' : ''}, ${v.length} manches, ${b?.stars || 0} étoiles sur 3. Jouer` : `${v.name}, verrouillé : ${v.need} étoiles nécessaires`,
+          onclick: () => play(v, `${Date.now()}`, silent),
         },
         el('span.club-venue-emoji', { 'aria-hidden': 'true' }, v.emoji),
-        el('span.club-venue-info', el('b', v.name), el('small', open ? `${v.length} manches · dès ${v.bpm} BPM · ${v.games.length} mini-jeux` : `🔒 ${v.need} ★ pour entrer (tu en as ${stars})`)),
+        el('span.club-venue-info', el('b', v.name), el('small', open ? (silent ? `${v.length} manches · niveau ${'●'.repeat(Math.min(4, 1 + Math.floor(v.diff)))}` : `${v.length} manches · dès ${v.bpm} BPM · ${v.games.length} mini-jeux`) : `🔒 ${v.need} ★ pour entrer (tu en as ${stars})`)),
         el('span.club-venue-stars', { 'aria-hidden': 'true' }, open ? starsTxt(b?.stars || 0) : '🔒'));
       })),
       el('div.row.gap.wrap', { style: { marginTop: '14px' } },
         el('button.btn', { onclick: crate }, `🎚️ Ma caisse de vinyles (${crateN}/${GENRES.length})`),
         el('button.btn.ghost', { 'aria-pressed': String(!!st.vib), onclick: () => { setClub((c) => { c.vib = !c.vib; }); menu(); } }, st.vib ? '📳 Vibrations : oui' : '📴 Vibrations : non')),
       card(el('details', el('summary', '❓ Comment jouer (et ce que ça t’apprend)'),
-        el('p.small', 'Chaque manche dure quelques secondes : lis la consigne, écoute, réponds. 3 erreurs et la soirée s’arrête. Toutes les 4 manches, la salle s’échauffe : le tempo monte et le temps pour répondre diminue.'),
-        el('ul.clean.small', Object.values(GAMES).map((g) => el('li', el('b', `${g.emoji} ${g.title}`), ` — ${g.concept} (${SKILLS[g.skill].name})`))),
-        el('p.small.muted', 'Sur PC : touches 1 à 4 pour répondre, Espace pour taper le temps.'))),
+        el('p.small', silent
+          ? 'Chaque manche dure quelques secondes : lis la consigne, regarde, touche. Si tu te trompes, la bonne réponse s’affiche. 3 erreurs et la soirée s’arrête. Toutes les 4 manches, ça se corse et le temps pour répondre diminue.'
+          : 'Chaque manche dure quelques secondes : lis la consigne, écoute, réponds. 3 erreurs et la soirée s’arrête. Toutes les 4 manches, la salle s’échauffe : le tempo monte et le temps pour répondre diminue.'),
+        el('ul.clean.small', games.map((id) => GAMES[id]).map((g) => el('li', el('b', `${g.emoji} ${g.title}`), ` — ${g.concept} (${SKILLS[g.skill].name})`))),
+        el('p.small.muted', silent ? 'Sur PC : touches 1 à 6 pour répondre ou placer les blocs, clic sur la grille, touches A W S E D F T G Y H U J K pour le piano.' : 'Sur PC : touches 1 à 4 pour répondre, Espace pour taper le temps.'))),
     );
   }
 
@@ -95,8 +106,7 @@ export function render(root, params = {}) {
           'aria-label': v ? `${g.name}, ${VINYL[v.kind].name}, ${v.n} exemplaire(s). Écouter` : `${g.name} : pas encore gagné`,
           onclick: () => {
             if (!v) { toast('Gagne ce style en finissant une soirée dans une salle qui le passe 🎧', 'info'); return; }
-            ensureAudio();
-            playGenreBeat(g, now() + 0.05, 2);
+            if (!clubState().silent) { ensureAudio(); playGenreBeat(g, now() + 0.05, 2); }
             toast(`${g.emoji} ${g.name} · ${g.bpm} BPM — ${g.signature[0]}`, 'info', 4500);
           },
         }, el('span.vinyl-disc', { 'aria-hidden': 'true' }, el('span', g.emoji)), el('b', g.name), el('small', v ? `${VINYL[v.kind].name}${v.n > 1 ? ` ×${v.n}` : ''}` : '—'));
@@ -105,14 +115,14 @@ export function render(root, params = {}) {
   }
 
   // ---------------- Partie ----------------
-  function play(venue, seed) {
-    ensureAudio();
+  function play(venue, seed, silent = false) {
+    if (!silent) ensureAudio(); // sans le son : aucun contexte audio, aucun son
     stopGame?.();
-    const rounds = planNight(venue, seed);
+    const rounds = planNight(venue, seed, { silent });
     const daily = venue.id === 'daily';
     let idx = 0, lives = 3, score = 0, combo = 0, hype = 40, ended = false;
     const results = [];
-    let roundCleanup = null, timer = 0, raf = 0;
+    let roundCleanup = null, roundReveal = null, timer = 0, raf = 0;
 
     const livesEl = el('span.club-lives', { 'aria-label': '3 vies' });
     const scoreEl = el('b.club-score', '0');
@@ -128,17 +138,18 @@ export function render(root, params = {}) {
       scoreEl.textContent = score;
       hypeFill.style.width = `${hype}%`;
       hypeEmoji.textContent = hypeFace(hype);
-      bpmEl.textContent = `${rounds[Math.min(idx, rounds.length - 1)].bpm} BPM`;
+      bpmEl.textContent = silent ? '🔇' : `${rounds[Math.min(idx, rounds.length - 1)].bpm} BPM`;
     };
 
-    root.replaceChildren(
-      el('div.club-game', { 'data-venue': venue.id, 'data-seed': seed },
-        el('div.club-top',
-          el('button.btn.small', { type: 'button', 'aria-label': 'Quitter la soirée', onclick: () => { stop(); menu(); } }, '✕'),
-          el('span.club-venue-name', `${venue.emoji} ${venue.name}`), bpmEl, livesEl, scoreEl),
-        el('div.club-hype', { role: 'meter', 'aria-label': 'Ambiance de la salle', 'aria-valuemin': 0, 'aria-valuemax': 100 }, hypeEmoji, el('div.club-hype-bar', hypeFill)),
-        el('div.club-time', timeFill),
-        stage));
+    const game = el('div.club-game' + (silent ? '.silent' : ''), { 'data-venue': venue.id, 'data-seed': seed, 'data-silent': silent ? '1' : null },
+      el('div.club-top',
+        el('button.btn.small', { type: 'button', 'aria-label': 'Quitter la soirée', onclick: () => { stop(); menu(); } }, '✕'),
+        el('span.club-venue-name', `${venue.emoji} ${venue.name}`), bpmEl, livesEl, scoreEl),
+      el('div.club-hype', { role: 'meter', 'aria-label': 'Ambiance de la salle', 'aria-valuemin': 0, 'aria-valuemax': 100 }, hypeEmoji, el('div.club-hype-bar', hypeFill)),
+      el('div.club-time', timeFill),
+      stage);
+    root.replaceChildren(game);
+    if (silent) bpmEl.setAttribute('aria-label', 'Sans le son');
     document.body.classList.add('rush-playing');
     paintHud();
 
@@ -147,7 +158,7 @@ export function render(root, params = {}) {
       cancelAnimationFrame(raf); clearTimeout(timer);
       roundCleanup?.(); roundCleanup = null;
       viewKeys({ space: null });
-      restoreFx();
+      if (!silent) restoreFx();
       document.body.classList.remove('rush-playing');
     }
     stopGame = stop;
@@ -169,8 +180,8 @@ export function render(root, params = {}) {
       const area = el('div.club-area');
       stage.replaceChildren(el('div.club-head', el('b', `${GAMES[r.type].emoji} ${GAMES[r.type].title}`)), area);
       let answered = false;
-      const t0 = now() + 0.15;
-      restoreFx(t0 - 0.02);
+      const t0 = silent ? 0 : now() + 0.15;
+      if (!silent) restoreFx(t0 - 0.02);
       const api = {
         t0,
         done(ok, why = '') {
@@ -181,8 +192,9 @@ export function render(root, params = {}) {
           resolve(r, ok, left, why);
         },
       };
-      const { cleanup, minTime = 0 } = ROUNDS[r.type](area, r, api) || {};
+      const { cleanup, minTime = 0, reveal } = ROUNDS[r.type](area, r, api) || {};
       roundCleanup = cleanup || null;
+      roundReveal = reveal || null;
       const limit = Math.max(roundTime(r), minTime);
       const start = performance.now();
       const tick = () => {
@@ -198,26 +210,32 @@ export function render(root, params = {}) {
 
     function resolve(r, ok, left, why) {
       roundCleanup?.(); roundCleanup = null;
-      muteFxTails(now());
+      if (!silent) muteFxTails(now());
       viewKeys({ space: null });
       results.push({ type: r.type, ok });
       hype = nextHype(hype, ok);
+      if (silent) { game.classList.remove('flash-ok', 'flash-bad'); void game.offsetWidth; game.classList.add(ok ? 'flash-ok' : 'flash-bad'); }
+      const bad = () => stage.replaceChildren(el('div.club-feedback.bad', el('b', '✗'), el('span', why || 'Raté !'), el('small', GAMES[r.type].concept)));
+      // Mini-jeux sans le son : si c'est raté, la bonne réponse s'affiche un instant sur la grille, le clavier ou le schéma
+      const shown = !ok && roundReveal && stage.querySelector('.club-area');
       if (ok) {
         const pts = roundPoints(combo, left);
         combo++; score += pts;
         buzz(15);
-        const t = now();
-        playSynth(dry('bell'), 84, t, 0.12, WIN_VEL, { send: 0 }); playSynth(dry('bell'), 91, t + 0.08, 0.2, WIN_VEL, { send: 0 });
+        if (!silent) { const t = now(); playSynth(dry('bell'), 84, t, 0.12, WIN_VEL, { send: 0 }); playSynth(dry('bell'), 91, t + 0.08, 0.2, WIN_VEL, { send: 0 }); }
         stage.replaceChildren(el('div.club-feedback.ok', el('b', '✓'), el('span', `+${pts}`), combo >= 3 ? el('small', `Combo ×${combo} 🔥`) : null));
       } else {
         combo = 0; lives--;
         buzz([40, 40, 60]);
-        playSynth(dry('sawlead'), 40, now(), 0.25, 0.4, { send: 0 });
-        stage.replaceChildren(el('div.club-feedback.bad', el('b', '✗'), el('span', why || 'Raté !'), el('small', GAMES[r.type].concept)));
+        if (!silent) playSynth(dry('sawlead'), 40, now(), 0.25, 0.4, { send: 0 });
+        if (shown) { roundReveal(); shown.classList.add('revealed'); shown.prepend(el('p.club-reveal', `${why === '⏰ Trop tard !' ? '⏰ Trop tard' : '✗ Raté'} : la bonne réponse est en vert`)); }
+        else bad();
       }
+      roundReveal = null;
       idx++;
       paintHud();
-      timer = setTimeout(next, ok ? 650 : 1100);
+      if (shown) timer = setTimeout(() => { if (ended) return; bad(); timer = setTimeout(next, 1000); }, 1500);
+      else timer = setTimeout(next, ok ? 650 : 1100);
     }
 
     function finish() {
@@ -227,32 +245,35 @@ export function render(root, params = {}) {
       const stars = starsFor(survived, correct, rounds.length);
       const st = clubState();
       const today = dayKey();
-      const firstDaily = daily && st.daily?.day !== today;
+      const key = starKey(venue.id, silent);
+      const dKey = silent ? 'dailySilent' : 'daily'; // les deux sets du jour se jouent le même jour
+      const firstDaily = daily && st[dKey]?.day !== today;
       const xp = nightXp(results, stars, firstDaily);
-      const vinyl = daily ? pressVinyl({ ...venue, id: 'daily' }, seed, stars) : pressVinyl(venue, seed, stars);
-      const prevBest = st.best[venue.id];
-      const prevStars = totalStars(st.best);
+      const vinyl = pressVinyl(venue, silent ? `${seed}@silent` : seed, stars);
+      const prevBest = st.best[key];
+      const prevStars = totalStars(st.best, silent);
       setClub((c) => {
         c.nights = (c.nights || 0) + 1;
+        if (silent) c.nightsSilent = (c.nightsSilent || 0) + 1;
         if (!daily) {
-          const b = c.best[venue.id] || { stars: 0, score: 0 };
-          c.best = { ...c.best, [venue.id]: { stars: Math.max(b.stars, stars), score: Math.max(b.score, score) } };
+          const b = c.best[key] || { stars: 0, score: 0 };
+          c.best = { ...c.best, [key]: { stars: Math.max(b.stars, stars), score: Math.max(b.score, score) } };
         } else {
           if (firstDaily) c.dailyCount = (c.dailyCount || 0) + 1;
-          c.daily = { day: today, score: Math.max(c.daily?.day === today ? c.daily.score : 0, score) };
+          c[dKey] = { day: today, score: Math.max(c[dKey]?.day === today ? c[dKey].score : 0, score) };
         }
         c.crate = addToCrate(c.crate, vinyl);
       });
-      const res = xp.total ? recordExercise({ key: 'club', title: `Nuit au club · ${venue.name}`, xp: xp.total, skills: xp.skills, score: Math.round((100 * correct) / rounds.length), success: stars >= 1 }) : null;
+      const res = xp.total ? recordExercise({ key: 'club', title: `Nuit au club${silent ? ' sans le son' : ''} · ${venue.name}`, xp: xp.total, skills: xp.skills, score: Math.round((100 * correct) / rounds.length), success: stars >= 1 }) : null;
       if (res) showBadges(res.badges);
       if (stars === 3) confetti();
-      const newlyOpen = VENUES.filter((v) => v.need > prevStars && v.need <= totalStars(clubState().best));
+      const newlyOpen = VENUES.filter((v) => v.need > prevStars && v.need <= totalStars(clubState().best, silent));
       const concepts = nightConcepts(results);
       const record = !daily && (!prevBest || score > prevBest.score);
 
       root.replaceChildren(
         el('div.page-head', el('button.back', { type: 'button', 'aria-label': 'Retour aux salles', onclick: menu }, '‹'),
-          el('div', el('h1', `${venue.emoji} ${venue.name}`), el('p.sub', survived ? 'Fin du set 🎉' : 'La salle s’est vidée… 😅'))),
+          el('div', el('h1', `${venue.emoji} ${venue.name}${silent ? ' · 🔇' : ''}`), el('p.sub', survived ? 'Fin du set 🎉' : 'La salle s’est vidée… 😅'))),
         el('section.card.glow.club-end', { 'aria-label': 'Résultat de la soirée' },
           el('div.rush-stars', { 'aria-label': `${stars} étoiles sur 3` }, starsTxt(stars)),
           el('div.stat-grid',
@@ -262,7 +283,7 @@ export function render(root, params = {}) {
           xp.total ? el('p.small.muted', 'Compétences entraînées : ', Object.entries(xp.skills).map(([k, v]) => `${SKILLS[k].emoji} ${SKILLS[k].name} +${v}`).join(' · ')) : null,
           vinyl ? el('div.club-vinyl-won', el('span.vinyl-disc.' + VINYL[vinyl.kind].cls, { 'aria-hidden': 'true' }, el('span', genreById(vinyl.genre).emoji)),
             el('div', el('b', `🎁 ${VINYL[vinyl.kind].name} : ${genreById(vinyl.genre).name}`), el('small.muted', `${genreById(vinyl.genre).bpm} BPM — ${genreById(vinyl.genre).signature[0]}`))) : el('p.small', 'Termine la soirée (3 erreurs max) pour gagner un vinyle.'),
-          newlyOpen.length ? el('p', el('b', `🔓 Nouvelle salle : ${newlyOpen.map((v) => `${v.emoji} ${v.name}`).join(', ')} !`)) : null,
+          newlyOpen.length ? el('p', el('b', `🔓 Nouvelle salle${silent ? ' sans le son' : ''} : ${newlyOpen.map((v) => `${v.emoji} ${v.name}`).join(', ')} !`)) : null,
           res?.levelUp ? el('div.levelup', `🎉 Niveau ${res.level} !`) : null),
         card(el('h3', '🧠 Ce que tu as travaillé ce soir'),
           concepts.map((c) => {
@@ -273,7 +294,7 @@ export function render(root, params = {}) {
               el('a.small', { href: G.lab.href }, `Approfondir (sur PC) : ${G.lab.name} →`));
           })),
         el('div.row.gap.wrap.center',
-          el('button.btn.primary.big', { 'data-key': 'enter', onclick: () => play(venue, daily ? seed : `${Date.now()}`) }, '↻ Rejouer'),
+          el('button.btn.primary.big', { 'data-key': 'enter', onclick: () => play(venue, daily ? seed : `${Date.now()}`, silent) }, '↻ Rejouer'),
           el('button.btn.big', { onclick: menu }, '🎧 Salles')),
       );
       window.scrollTo(0, 0);
@@ -282,11 +303,14 @@ export function render(root, params = {}) {
     next();
   }
 
-  // Lien direct vers une soirée précise (#/club?venue=berlin&seed=…) : même enchaînement de manches pour tous
+  // #/club?silent=1 (ou 0) : ouvre le club directement dans ce mode (retenu pour la prochaine fois)
+  if (params.silent != null) setClub((c) => { c.silent = params.silent === '1'; });
+  // Lien direct vers une soirée précise (#/club?venue=berlin&seed=…[&silent=1]) : même enchaînement de manches pour tous
   const direct = params.venue && venueById(params.venue);
-  if (direct && isOpen(direct, clubState().best)) play(direct, params.seed || `${Date.now()}`);
+  const silentLink = params.silent === '1';
+  if (direct && isOpen(direct, clubState().best, silentLink)) play(direct, params.seed || `${Date.now()}`, silentLink);
   else menu();
-  return () => { stopGame?.(); restoreFx(); document.body.classList.remove('rush-playing'); };
+  return () => { stopGame?.(); restoreFx(); document.body.classList.remove('rush-playing'); }; // restoreFx : sans effet si l'audio n'a jamais démarré
 }
 
 // ---------------- Les mini-jeux ----------------
@@ -505,4 +529,240 @@ const ROUNDS = {
     area.append(el('p.club-hint', r.q.showUntil < r.q.beats ? `Compte ${r.q.beats} temps (les points s’éteignent à mi-chemin) et tape pile sur le drop.` : `Tape pile sur le drop, juste après le ${r.q.beats}ᵉ temps.`), dotBars(dots), pad);
     return { minTime: r.q.beats * spb + 1.5, cleanup: () => { clearInterval(lit); clearTimeout(late); } };
   },
+
+  // ---------- Sans le son : rien n'est joué, tout se lit et se touche. reveal() montre la solution si c'est raté ----------
+  grid(area, r, api) {
+    const q = r.q;
+    let picked = null;
+    const hint = el('p.club-hint', q.tell ? (q.added ? 'Un coup en trop s’est glissé : touche-le !' : 'Il manque un coup : touche la case vide où il devrait être !') : 'Une case est fausse (coup en trop ou manquant) : touche-la !');
+    const rule = el('p.club-rule', `📏 ${q.rule}`);
+    const half = (h) => el('div.club-grid-half',
+      el('div.club-grid-row.head', { 'aria-hidden': 'true' }, el('span.club-grid-label'), [0, 1].map((b) => el('div.club-grid-beat', el('span', String(h * 2 + b + 1))))),
+      q.rows.map((row, k) => el('div.club-grid-row', { 'data-row': k },
+        el('span.club-grid-label', row.label),
+        [0, 1].map((b) => el('div.club-grid-beat', [0, 1, 2, 3].map((j) => {
+          const i = h * 8 + b * 4 + j;
+          const on = row.cells[i] === 'x';
+          const cell = el('button.club-cell' + (on ? '.on' : ''), {
+            type: 'button', 'data-row': k, 'data-step': i, 'aria-label': `${row.label}, ${stepName(i)} : ${on ? 'coup' : 'vide'}`,
+            onclick: () => { picked = cell; api.done(k === q.row && i === q.step, q.why); },
+          });
+          return cell;
+        }))))));
+    const grid = el('div.club-grid', half(0), half(1));
+    area.append(el('p.club-question', q.name), hint, q.showRule ? rule : null, grid);
+    return {
+      reveal: () => {
+        grid.querySelector(`.club-cell[data-row="${q.row}"][data-step="${q.step}"]`).classList.add('right');
+        if (picked && !picked.classList.contains('right')) picked.classList.add('wrong');
+        if (!q.showRule) hint.after(rule);
+      },
+    };
+  },
+  chordx(area, r, api) {
+    const q = r.q;
+    if (q.mode === 'name') {
+      const { node, reveal } = choices(q, api);
+      area.append(el('p.club-question', 'Quel accord est allumé ?'),
+        el('p.club-hint', q.root != null ? 'Le point marque la fondamentale.' : 'Attention : la fondamentale n’est pas forcément la note la plus grave.'),
+        piano({ lit: q.notes, root: q.root }).node, node);
+      return { reveal };
+    }
+    const sel = new Set();
+    const want = new Set(q.pcs);
+    const count = el('b.club-count', `0/${q.size}`);
+    const kb = piano({
+      labels: q.labels,
+      onKey: (m) => {
+        if (sel.has(m)) sel.delete(m); else sel.add(m);
+        kb.keys[m].classList.toggle('on', sel.has(m));
+        kb.keys[m].setAttribute('aria-pressed', String(sel.has(m)));
+        const got = new Set([...sel].map((x) => x % 12));
+        count.textContent = `${got.size}/${q.size}`;
+        if (got.size >= q.size) api.done([...got].every((p) => want.has(p)), q.why);
+      },
+    });
+    area.append(el('p.club-chord', el('b', q.chord), q.fr ? el('small', q.fr) : null),
+      el('p.club-hint', 'Touche ses notes, dans n’importe quel ordre et n’importe quelle octave · ', count), kb.node);
+    return {
+      cleanup: kb.destroy,
+      reveal: () => {
+        for (let m = 60; m < 72; m++) if (want.has(m % 12)) kb.keys[m].classList.add('right');
+        sel.forEach((m) => { if (!want.has(m % 12)) kb.keys[m].classList.add('wrong'); });
+      },
+    };
+  },
+  calc(area, r, api) {
+    const { node, reveal } = choices(r.q, api);
+    area.append(el('p.club-question', r.q.text), node);
+    return { reveal };
+  },
+  archi(area, r, api) {
+    const q = r.q;
+    if (q.mode === 'curve') {
+      const { node, reveal } = choices(q, api, '.four');
+      const fig = energySvg(q.zones);
+      area.append(el('p.club-question', `${q.style} : où est ${ASK_LABEL[q.ask]} ?`), el('p.club-hint', 'L’énergie du morceau, du début (à gauche) à la fin (à droite).'), el('div.club-figure', fig.node), node);
+      return { reveal: () => { reveal(); fig.show(q.answer); } };
+    }
+    const placed = [];
+    const strip = el('ol.club-strip', { 'aria-label': 'Ton arrangement' });
+    const toggle = (i) => {
+      const k = placed.indexOf(i);
+      if (k >= 0) placed.splice(k, 1); else placed.push(i);
+      paint();
+      if (placed.length === q.blocks.length) api.done(placed.map((j) => q.blocks[j].name).join('|') === q.solution.join('|'), q.why);
+    };
+    const pool = el('div.answers.club-blocks', q.blocks.map((b, i) => el('button.answer.club-opt.club-block', { type: 'button', 'data-i': i, 'data-kind': b.kind, 'aria-pressed': 'false', onclick: () => toggle(i) },
+      el('b', b.name), q.bars ? el('small', ` · ${b.bars}`) : null)));
+    const chip = (b, extra = {}) => el('button.club-chip', { type: 'button', 'data-kind': b.kind, ...extra }, b.name);
+    const paint = () => {
+      strip.replaceChildren(...q.blocks.map((_, k) => el('li', placed[k] == null ? el('span.club-slot', String(k + 1)) : chip(q.blocks[placed[k]], { 'aria-label': `Retirer ${q.blocks[placed[k]].name}`, onclick: () => toggle(placed[k]) }))));
+      [...pool.children].forEach((b, i) => { b.classList.toggle('used', placed.includes(i)); b.setAttribute('aria-pressed', String(placed.includes(i))); });
+    };
+    paint();
+    area.append(el('p.club-question', `${q.style} : remets les parties dans l’ordre`),
+      el('p.club-hint', q.showTip ? `💡 ${q.tip[0].toUpperCase()}${q.tip.slice(1)}` : 'Du début à la fin. Touche un bloc placé pour le retirer.'), strip, pool);
+    return {
+      minTime: q.blocks.length * 1.6,
+      reveal: () => strip.replaceChildren(...q.solution.map((name) => el('li', el('span.club-chip.right', { 'data-kind': q.blocks.find((b) => b.name === name).kind }, name)))),
+    };
+  },
+  reglage(area, r, api) {
+    const q = r.q;
+    const fig = { env: envSvg, wave: waveSvg, filter: filterSvg, eq: eqSvg }[q.kind](q);
+    const { node, reveal } = choices(q, api);
+    area.append(el('p.club-question', q.text), el('div.club-figure', fig),
+      q.kind === 'env' && q.values ? el('p.club-values', `A ${q.env.a} ms · D ${q.env.d} ms · S ${q.env.s} % · R ${q.env.r} ms`) : null, node);
+    return { reveal };
+  },
 };
+
+// ---------------- Dessins et commandes des mini-jeux sans le son ----------------
+
+/** QCM sans le son (touches 1-4 sur PC) : si c'est raté, la bonne réponse s'allume. */
+function choices(q, api, cls = '') {
+  let chosen = -1;
+  const node = answers(q.options, (i) => { chosen = i; api.done(i === q.answer, q.why); }, cls);
+  return { node, reveal: () => { node.children[q.answer]?.classList.add('right'); if (chosen !== q.answer) node.children[chosen]?.classList.add('wrong'); } };
+}
+
+/** Mini-clavier Do4 → Do5. onKey : touches jouables (doigt, souris, clavier A W S E D…), sinon simple affichage. */
+function piano({ labels = false, lit = [], root = null, onKey = null } = {}) {
+  const keys = {};
+  const whites = [];
+  const node = el('div.club-piano' + (onKey ? '' : '.view'), { 'aria-label': onKey ? 'Clavier' : 'Clavier : touches allumées' });
+  for (let m = 60; m <= 72; m++) {
+    const black = [1, 3, 6, 8, 10].includes(m % 12);
+    const cls = '.club-pk' + (black ? '.black' : '') + (lit.includes(m) ? '.lit' : '') + (root != null && lit.includes(m) && m % 12 === root ? '.root' : '');
+    const props = onKey ? { type: 'button', 'data-midi': m, 'aria-label': `${noteNameFr(m)} (${noteNameEn(m)})`, 'aria-pressed': 'false', onclick: () => onKey(m) } : { 'aria-hidden': 'true' };
+    if (black) props.style = { left: `${(whites.length / 8) * 100}%` };
+    const k = el((onKey ? 'button' : 'span') + cls, props,
+      labels ? (black ? el('small', noteNameEn(m).replace('#', '♯')) : [el('b', noteNameEn(m)), el('small', noteNameFr(m))]) : null);
+    keys[m] = k;
+    if (!black) whites.push(k);
+    node.append(k);
+  }
+  const map = 'awsedftgyhujk';
+  const kd = (e) => {
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    const i = map.indexOf(e.key.toLowerCase());
+    if (i >= 0) { e.preventDefault(); onKey(60 + i); }
+  };
+  if (onKey) window.addEventListener('keydown', kd);
+  return { node, keys, destroy: () => window.removeEventListener('keydown', kd) };
+}
+
+const NS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs = {}, ...kids) => {
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  n.append(...kids);
+  return n;
+};
+const svgBox = (W, H, name, ...kids) => svgEl('svg', { viewBox: `0 0 ${W} ${H}`, class: 'club-svg', role: 'img', 'aria-label': name }, ...kids);
+const pathD = (pts) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('');
+const fillD = (pts, base) => `${pathD(pts)}L${pts.at(-1)[0].toFixed(1)},${base}L${pts[0][0].toFixed(1)},${base}Z`;
+const svgText = (x, y, txt, anchor = 'middle') => svgEl('text', { x, y, 'text-anchor': anchor }, txt);
+
+/** Enveloppe ADSR sur 5 secondes (la touche est relâchée au trait pointillé). */
+function envSvg({ env }) {
+  const W = 320, H = 130, P = 10, T = 5000, top = 14, base = H - 18;
+  const x = (ms) => P + (Math.min(ms, T) / T) * (W - 2 * P);
+  const y = (v) => base - v * (base - top);
+  const s = env.s / 100;
+  const off = Math.max(env.a + env.d + 600, 1500);
+  const pts = [[x(0), y(0)], [x(env.a), y(1)]];
+  for (let i = 1; i <= 12; i++) pts.push([x(env.a + (env.d * i) / 12), y(s + (1 - s) * (1 - i / 12) ** 2.2)]);
+  pts.push([x(off), y(s)]);
+  for (let i = 1; i <= 12; i++) pts.push([x(off + (env.r * i) / 12), y(s * (1 - i / 12) ** 2.2)]);
+  pts.push([x(T), y(0)]);
+  return svgBox(W, H, 'Enveloppe ADSR',
+    svgEl('path', { d: fillD(pts, base), class: 'fill' }), svgEl('path', { d: pathD(pts), class: 'stroke' }),
+    svgEl('line', { x1: x(off), x2: x(off), y1: top - 6, y2: base, class: 'mark' }),
+    svgText(x(off) + 4, top, 'touche relâchée', 'start'), svgText(P, H - 4, '0 s', 'start'), svgText(W - P, H - 4, '5 s', 'end'));
+}
+
+/** Forme d'onde : 1 ou 2 cycles. */
+function waveSvg({ id, cycles }) {
+  const W = 320, H = 120, P = 14, mid = H / 2;
+  const f = { sine: (t) => Math.sin(2 * Math.PI * t), saw: (t) => 2 * (t % 1) - 1, square: (t) => (t % 1 < 0.5 ? 1 : -1), triangle: (t) => 1 - 4 * Math.abs(((t + 0.25) % 1) - 0.5) }[id];
+  const N = 240;
+  const pts = Array.from({ length: N + 1 }, (_, i) => [P + (i / N) * (W - 2 * P), mid - f((i / N) * cycles - (i === N ? 1e-6 : 0)) * (mid - P)]);
+  return svgBox(W, H, 'Forme d’onde', svgEl('line', { x1: P, x2: W - P, y1: mid, y2: mid, class: 'axis' }), svgEl('path', { d: pathD(pts), class: 'stroke' }));
+}
+
+/** Axe des fréquences (20 Hz → 20 kHz, logarithmique). */
+const freqX = (W, P) => (f) => P + (Math.log10(f / 20) / 3) * (W - 2 * P);
+const freqTicks = (fx, y) => [[100, '100'], [1000, '1k'], [10000, '10k']].flatMap(([f, t]) => [svgEl('line', { x1: fx(f), x2: fx(f), y1: 8, y2: y - 12, class: 'grid' }), svgText(fx(f), y, t)]);
+const sweep = (fx, fn) => Array.from({ length: 121 }, (_, i) => { const f = 20 * 10 ** ((3 * i) / 120); return [fx(f), fn(f)]; });
+
+/** Courbe de réponse d'un filtre (2 pôles, résonance). */
+function filterSvg({ id, cutoff, res }) {
+  const W = 320, H = 130, P = 12, base = H - 16;
+  const fx = freqX(W, P);
+  const Q = 0.707 + res * 4;
+  const y = (db) => 10 + ((12 - Math.max(-36, Math.min(12, db))) / 48) * (base - 10);
+  const pts = sweep(fx, (f) => {
+    const w = f / cutoff, den = Math.hypot(1 - w * w, w / Q);
+    return y(20 * Math.log10(Math.max(1e-4, { lp: 1, hp: w * w, bp: w / Q, notch: Math.abs(1 - w * w) }[id] / den)));
+  });
+  return svgBox(W, H, 'Courbe de filtre', ...freqTicks(fx, H - 3), svgEl('line', { x1: P, x2: W - P, y1: y(0), y2: y(0), class: 'axis' }),
+    svgEl('path', { d: fillD(pts, base), class: 'fill' }), svgEl('path', { d: pathD(pts), class: 'stroke' }));
+}
+
+/** Spectre d'un mix (analyseur) avec un défaut ; en pointillés, un spectre équilibré pour comparer. */
+function eqSvg({ id, guide }) {
+  const W = 320, H = 130, P = 12, base = H - 16;
+  const fx = freqX(W, P);
+  const ref = (f) => (f < 100 ? -4 * Math.log2(100 / f) : -3 * Math.log2(f / 100));
+  const bell = (f, f0, g, q) => g * Math.exp(-(Math.log2(f / f0) ** 2) * q);
+  const fault = { low: (f) => bell(f, 60, 13, 1.2), mud: (f) => bell(f, 300, 12, 2.2), harsh: (f) => bell(f, 4000, 13, 3), air: (f) => -18 / (1 + (6000 / f) ** 4) }[id];
+  const y = (db) => 16 + ((14 - Math.max(-34, Math.min(14, db))) / 48) * (base - 16);
+  const wig = (f) => 0.8 * Math.sin(Math.log2(f) * 7.3) + 0.5 * Math.sin(Math.log2(f) * 13.1);
+  const pts = sweep(fx, (f) => y(ref(f) + fault(f) + wig(f)));
+  return svgBox(W, H, 'Spectre', ...freqTicks(fx, H - 3), svgEl('path', { d: fillD(pts, base), class: 'fill' }), svgEl('path', { d: pathD(pts), class: 'stroke' }),
+    guide ? svgEl('path', { d: pathD(sweep(fx, (f) => y(ref(f)))), class: 'guide' }) : null,
+    guide ? svgText(W - P, 12, 'pointillés : mix équilibré', 'end') : null);
+}
+
+/** Courbe d'énergie d'un morceau en 4 zones A-D ; show(k) éclaire la zone k et nomme les parties. */
+function energySvg(zones) {
+  const W = 320, H = 150, top = 42, base = H - 8;
+  const { pts, cuts } = energyCurve(zones);
+  const p = pts.map(([x, v]) => [x * W, base - v * (base - top)]);
+  const hl = svgEl('rect', { x: 0, y: 0, width: 0, height: H, class: 'zone-hl' });
+  const names = svgEl('g', { class: 'zone-names' });
+  const node = svgBox(W, H, 'Courbe d’énergie du morceau', hl,
+    svgEl('path', { d: fillD(p, base), class: 'fill' }), svgEl('path', { d: pathD(p), class: 'stroke' }),
+    ...cuts.slice(1, -1).map((c) => svgEl('line', { x1: c * W, x2: c * W, y1: 4, y2: base, class: 'mark' })),
+    ...zones.map((_, k) => svgEl('text', { x: ((cuts[k] + cuts[k + 1]) / 2) * W, y: 16, 'text-anchor': 'middle', class: 'zone-letter' }, 'ABCD'[k])),
+    names);
+  return {
+    node,
+    show: (k) => {
+      hl.setAttribute('x', cuts[k] * W); hl.setAttribute('width', (cuts[k + 1] - cuts[k]) * W);
+      names.replaceChildren(...zones.map((z, i) => svgText(((cuts[i] + cuts[i + 1]) / 2) * W, 32, z.name)));
+    },
+  };
+}

@@ -1,5 +1,5 @@
 // Piano Rush : les notes tombent, on les joue en rythme (touches, clavier PC, MPC). Chaque niveau = théorie + pratique.
-import { el, header, segmented, confetti, showBadges, landscapeBtn } from '../ui.js';
+import { el, header, segmented, confetti, showBadges, landscapeBtn, plural } from '../ui.js';
 import { getState, update, recordExercise, recordGameReview } from '../store.js';
 import { inputLatency } from '../core/latency.js';
 import { ensureAudio, now, playSynth, playClick, outputLatency, scheduleAhead } from '../core/audio.js';
@@ -31,52 +31,64 @@ export function render(root, params = {}) {
   let mode = params.mode === 'libre' ? 'libre' : 'parcours';
   let stopGame = null;
 
+  // Le temps de la visite : options et chapitres gardent leur état ouvert / fermé entre deux passages au menu.
+  let optsOpen = false;
+  const chOpen = {};
+
   // ---------- Menu ----------
   function menu() {
     stopGame?.(); stopGame = null;
     const st = rushState();
     root.replaceChildren(
-      header('🎹 Piano Rush', 'Les notes tombent : joue-les en rythme. Chaque niveau = une notion de théorie + sa pratique.'),
-      el('div.row.gap.wrap', { style: { marginBottom: '10px' } },
-        segmented([{ value: 'parcours', label: '🧭 Parcours' }, { value: 'libre', label: '🎮 Mode libre' }], mode, (v) => { mode = v; menu(); })),
-      settingsCard(),
-      mode === 'parcours' ? parcours(st) : libre(st),
+      header('🎹 Piano Rush', 'Les notes tombent, joue-les en rythme : une notion de théorie par niveau.'),
+      modeSwitch(mode, (v) => { mode = v; menu(); }),
+      ...(mode === 'parcours' ? parcours(st) : libre(st)),
     );
   }
 
-  function settingsCard() {
+  function options() {
     const st = rushState();
-    const toggle = (key, label) => el('button.btn.small' + (st[key] ? '.primary' : ''), { onclick: () => { setRush((r) => { r[key] = !r[key]; }); menu(); } }, `${st[key] ? '✓' : '○'} ${label}`);
-    return el('div.card.rush-settings',
-      el('div.row.gap.wrap',
-        el('span.small.muted', 'Noms des notes'),
-        segmented([{ value: 'fr', label: 'Do Ré Mi' }, { value: 'en', label: 'C D E' }, { value: 'both', label: 'Les deux' }], st.lang, (v) => setRush((r) => { r.lang = v; })),
-        toggle('metro', 'Métronome'), toggle('guide', 'Guide audio')),
-      el('p.small.muted', { style: { margin: '8px 0 0' } }, inputHint()),
-    );
+    const LANG = { fr: 'Do Ré Mi', en: 'C D E', both: 'Do Ré Mi + C D E' };
+    const summary = () => { const r = rushState(); return [LANG[r.lang], r.metro && 'métronome', r.guide && 'guide audio'].filter(Boolean).join(' · '); };
+    const set = (fn) => { setRush(fn); box.setSummary(summary()); };
+    const box = optionsBox(optsOpen, (o) => { optsOpen = o; }, summary(),
+      el('div.opt-line', el('span.small.muted', 'Noms des notes'),
+        segmented([{ value: 'fr', label: 'Do Ré Mi' }, { value: 'en', label: 'C D E' }, { value: 'both', label: 'Les deux' }], st.lang, (v) => set((r) => { r.lang = v; }))),
+      el('div.opt-line',
+        optToggle(st.metro, 'Métronome', (on) => set((r) => { r.metro = on; })),
+        optToggle(st.guide, 'Guide audio', (on) => set((r) => { r.guide = on; }), 'L’app joue chaque note au bon moment pour te guider')),
+      el('p.small.muted.opt-hint', inputHint()));
+    return box;
   }
 
   function parcours(st) {
-    const done = LEVELS.filter((l) => (st.best[l.id]?.stars || 0) >= 1).length;
-    const stars = LEVELS.reduce((a, l) => a + (st.best[l.id]?.stars || 0), 0);
-    const nextIdx = LEVELS.findIndex((l, i) => isUnlocked(i) && !(st.best[l.id]?.stars >= 1));
-    return el('div',
-      el('div.card.glow', el('div.row.between',
-        el('div', el('b', `${done}/${LEVELS.length} niveaux`), el('div.small.muted', `${stars}/${LEVELS.length * 3} ★ · du plus simple au plus complexe, 60 % pour débloquer la suite`)),
-        nextIdx >= 0 ? el('button.btn.primary', { onclick: () => intro(LEVELS[nextIdx], { mode: 'parcours', diff: 'normal' }) }, '▶ Continuer') : el('span.tag', '🏆 Terminé'))),
-      CHAPTERS.map((c) => el('div',
-        el('div.fam-head', el('h3.fam-title', `${c.emoji} ${c.id}. ${c.name}`), el('span.small.muted', c.desc)),
-        el('div.rush-levels', LEVELS.map((l, i) => [l, i]).filter(([l]) => l.ch === c.id).map(([l, i]) => {
-          const open = isUnlocked(i);
-          const b = st.best[l.id];
-          return el('button.rush-level' + (open ? '' : '.locked') + (i === nextIdx ? '.next' : ''), {
-            type: 'button', disabled: !open, onclick: () => intro(l, { mode: 'parcours', diff: 'normal' }),
-          },
-          el('span.rl-emoji', open ? l.emoji : '🔒'),
-          el('span.rl-txt', el('b', `${i + 1}. ${l.title}`), el('small', l.concept)),
-          el('span.rl-stars' + (b?.stars ? '.on' : ''), b ? `${starsTxt(b.stars)}` : skillTag(l)));
-        })))),
-    );
+    const best = (l) => st.best[l.id];
+    const done = LEVELS.filter((l) => (best(l)?.stars || 0) >= 1).length;
+    const stars = LEVELS.reduce((a, l) => a + (best(l)?.stars || 0), 0);
+    const nextIdx = LEVELS.findIndex((l, i) => isUnlocked(i) && !(best(l)?.stars >= 1));
+    // Bandeau : le prochain niveau à réussir ; parcours terminé → le premier sous 3 étoiles.
+    const target = nextIdx >= 0 ? nextIdx : LEVELS.findIndex((l) => (best(l)?.stars || 0) < 3);
+    const go = (i) => intro(LEVELS[i], { mode: 'parcours', diff: 'normal' });
+    const tl = LEVELS[target];
+    const hero = gameHero(tl ? {
+      label: nextIdx < 0 ? '🏆 Parcours terminé · vise les 3 ★' : LEVELS.some(best) ? 'Prochain niveau' : 'Premier niveau',
+      emoji: tl.emoji, title: `${target + 1}. ${tl.title}`, sub: `Chapitre ${tl.ch} · ${chapterOf(tl).name} — ${tl.concept}`,
+      cta: nextIdx < 0 ? '⭐ Améliorer mon score' : LEVELS.some(best) ? '▶ Continuer' : '▶ Commencer', onPlay: () => go(target),
+      done, total: LEVELS.length, stars, hint: nextIdx >= 0 ? 'Réussis un niveau à 60 % pour ouvrir le suivant.' : null,
+    } : {
+      label: '🏆 Parcours parfait', emoji: '🏆', title: `${LEVELS.length} niveaux à 3 ★`, sub: 'Bravo ! Le mode libre t’attend : difficile, expert, rythmes aléatoires.',
+      cta: '🎮 Mode libre', onPlay: () => { mode = 'libre'; menu(); }, done, total: LEVELS.length, stars,
+    });
+    return [hero, options(), ...CHAPTERS.map((c) => {
+      const list = LEVELS.map((l, i) => [l, i]).filter(([l]) => l.ch === c.id);
+      const nDone = list.filter(([l]) => (best(l)?.stars || 0) >= 1).length;
+      const key = `parcours:${c.id}`;
+      return chapterBox({
+        c, done: nDone, total: list.length, stars: list.reduce((a, [l]) => a + (best(l)?.stars || 0), 0),
+        locked: !list.some(([, i]) => isUnlocked(i)), current: c.id === tl?.ch,
+        open: chOpen[key] ?? (c.id === tl?.ch || (nDone > 0 && nDone < list.length)), onToggle: (o) => { chOpen[key] = o; },
+      }, list.map(([l, i]) => levelButton(l, { num: i + 1, locked: !isUnlocked(i), next: i === nextIdx, best: best(l), onclick: () => go(i) })));
+    })];
   }
 
   function libre(st) {
@@ -84,22 +96,23 @@ export function render(root, params = {}) {
       facile: 'Tempo ×0,75, grande tolérance : pour apprendre.', normal: 'Tempo d’origine.',
       difficile: 'Tempo ×1,15, fenêtre plus serrée.', expert: 'Tempo ×1,3, timing strict, sans noms sur les tuiles.',
     };
-    const descEl = el('p.small.muted', diffDesc[st.diff]);
-    return el('div',
-      el('div.card',
+    const best = (l) => st.best[`${l.id}@${st.diff}`];
+    return [
+      el('div.card.glow.game-free',
         el('b', 'Difficulté'),
-        segmented(Object.values(DIFFS).map((d) => ({ value: d.id, label: `${d.emoji} ${d.name}` })), st.diff, (v) => { setRush((r) => { r.diff = v; }); descEl.textContent = diffDesc[v]; }),
-        descEl,
-        el('button.btn.primary.wide', { onclick: () => intro(randomLevel(rushState().diff), { mode: 'libre', diff: rushState().diff }) }, '🎲 Rythmes aléatoires (niveau selon la difficulté)')),
-      CHAPTERS.map((c) => el('div',
-        el('h3.fam-title', `${c.emoji} ${c.name}`),
-        el('div.rush-levels', LEVELS.filter((l) => l.ch === c.id).map((l) => {
-          const b = st.best[`${l.id}@${st.diff}`];
-          return el('button.rush-level', { type: 'button', onclick: () => intro(l, { mode: 'libre', diff: rushState().diff }) },
-            el('span.rl-emoji', l.emoji), el('span.rl-txt', el('b', l.title), el('small', l.concept)),
-            el('span.rl-stars' + (b?.stars ? '.on' : ''), b ? starsTxt(b.stars) : skillTag(l)));
-        })))),
-    );
+        segmented(Object.values(DIFFS).map((d) => ({ value: d.id, label: `${d.emoji} ${d.name}` })), st.diff, (v) => { setRush((r) => { r.diff = v; }); menu(); }),
+        el('p.small.muted', diffDesc[st.diff], ' Les étoiles des niveaux sont celles de cette difficulté.'),
+        el('button.btn.primary.big.wide', { onclick: () => intro(randomLevel(rushState().diff), { mode: 'libre', diff: rushState().diff }) }, '🎲 Rythmes aléatoires')),
+      options(),
+      ...CHAPTERS.map((c, k) => {
+        const list = LEVELS.filter((l) => l.ch === c.id);
+        const key = `libre:${c.id}`;
+        return chapterBox({
+          c, done: list.filter((l) => (best(l)?.stars || 0) >= 1).length, total: list.length, stars: list.reduce((a, l) => a + (best(l)?.stars || 0), 0),
+          open: chOpen[key] ?? k === 0, onToggle: (o) => { chOpen[key] = o; },
+        }, list.map((l) => levelButton(l, { best: best(l), onclick: () => intro(l, { mode: 'libre', diff: rushState().diff }) })));
+      }),
+    ];
   }
 
   // ---------- Introduction (théorie) ----------
@@ -115,7 +128,7 @@ export function render(root, params = {}) {
         el('button.back', { type: 'button', 'aria-label': 'Retour', onclick: menu }, '‹'),
         el('div', el('h1', `${l.emoji} ${l.title}`), el('p.sub', ch ? `Chapitre ${ch.id} · ${ch.name}` : 'Mode libre'))),
       el('div.card.glow',
-        el('div.row.gap.wrap', el('span.tag', `🎯 ${l.concept}`), l.source ? el('span.tag', `📜 ${l.source}`) : null, skillTag(l, true)),
+        el('div.row.gap.wrap', el('span.tag', `🎯 ${l.concept}`), l.source ? el('span.tag', `📜 ${l.source}`) : null, skillTag(l)),
         el('h3', '📖 Ce qu’on travaille'),
         el('p', l.intro),
         el('div.lesson', el('div.lesson-title', '🧠 À retenir'), el('ul.rush-points', l.points.map((p) => el('li', p)))),
@@ -131,7 +144,7 @@ export function render(root, params = {}) {
           el('button.btn', { onclick: () => play(l, ctx, { learn: true }) }, '🎓 Apprentissage'),
           el('button.btn.primary', { style: { flex: 1 }, onclick: () => play(l, ctx) }, '▶ Jouer')),
         el('p.small.muted', { style: { margin: '8px 0 0' } }, '🎓 Apprentissage : les notes dans l’ordre, à ton rythme, sans chrono. La suivante s’allume quand tu as joué la bonne.',
-          learnCount(l) ? ` Déjà ${learnCount(l)} répétition${learnCount(l) > 1 ? 's' : ''}.` : ''),
+          learnCount(l) ? ` Déjà ${plural(learnCount(l), 'répétition')}.` : ''),
         el('p.small.muted', { style: { margin: '8px 0 0' } }, '🟦 taper · 🟪 tenir jusqu’au bout de la tuile · 🟧 accord (toutes les notes ensemble)'),
       ),
     );
@@ -686,9 +699,67 @@ export function render(root, params = {}) {
   return () => { stopGame?.(); document.body.classList.remove('rush-playing'); };
 }
 
-function skillTag(l, big = false) {
-  const t = l.skill === 'harmonie' ? '🎼 Accords' : '🥁 Rythme';
-  return big ? el('span.tag', t) : el('small.muted', t);
+function skillTag(l) {
+  return el('span.tag', l.skill === 'harmonie' ? '🎼 Accords' : '🥁 Rythme');
+}
+
+// ---------- Menus des jeux (partagés avec Pad Rush) ----------
+
+/** Parcours / Mode libre. */
+export function modeSwitch(mode, onChange) {
+  return el('div.game-modes', segmented([{ value: 'parcours', label: '🧭 Parcours' }, { value: 'libre', label: '🎮 Mode libre' }], mode, onChange));
+}
+
+/** Bandeau du haut : le niveau à jouer maintenant, le bouton principal et l'avancement du parcours. */
+export function gameHero({ label, emoji, title, sub, cta, onPlay, done, total, stars, hint = null }) {
+  return el('section.card.glow.game-hero',
+    el('div.gh-top',
+      el('span.gh-emoji', { 'aria-hidden': 'true' }, emoji),
+      el('div.gh-txt', el('span.gh-label', label), el('b.gh-title', title), sub ? el('span.gh-sub', sub) : null)),
+    el('button.btn.primary.big.gh-cta', { type: 'button', onclick: onPlay }, cta),
+    el('div.gh-prog',
+      el('div.bar', el('div.bar-fill', { style: { width: `${Math.round((100 * done) / Math.max(1, total))}%` } })),
+      el('div.row.between.small', el('span', `${done}/${total} niveaux réussis`), el('span.gh-stars', `${stars}/${total * 3} ★`))),
+    hint ? el('p.small.muted.gh-hint', hint) : null);
+}
+
+/** Options repliées : le résumé rappelle les réglages en cours (mis à jour par box.setSummary). */
+export function optionsBox(open, onToggle, summary, ...body) {
+  const sum = el('span.opt-sum', summary);
+  const box = el('details.card.game-opts', { open, ontoggle: () => onToggle(box.open) },
+    el('summary', el('b', '⚙️ Options'), sum), el('div.opt-body', ...body));
+  box.setSummary = (t) => { sum.textContent = t; };
+  return box;
+}
+
+/** Interrupteur d'option : état dans aria-pressed, style d'interrupteur (pas le violet du bouton principal). */
+export function optToggle(on, label, onChange, title) {
+  const b = el('button.btn.small.opt-toggle', {
+    type: 'button', title, 'aria-label': label, 'aria-pressed': String(!!on),
+    onclick: () => { on = !on; b.setAttribute('aria-pressed', String(on)); onChange(on); },
+  }, label);
+  return b;
+}
+
+/** Chapitre repliable : « 🔒 Chapitre 3 · Nom », la description sur sa propre ligne, les étoiles à droite. */
+export function chapterBox({ c, done, total, stars, locked = false, current = false, open, onToggle }, rows) {
+  const box = el('details.game-ch' + (current ? '.current' : '') + (locked ? '.locked' : ''), { open, ontoggle: () => onToggle(box.open) },
+    el('summary',
+      el('span.gc-emoji', { 'aria-hidden': 'true' }, locked ? '🔒' : c.emoji),
+      el('span.gc-txt', el('b', `Chapitre ${c.id} · ${c.name}`), el('small', c.desc)),
+      el('span.gc-score' + (done >= total ? '.done' : ''), el('b', `${stars}/${total * 3} ★`),
+        el('small', locked ? plural(total, 'niveau') : done >= total ? '✓ terminé' : `${done}/${total} réussis`))),
+    el('div.rush-levels', rows));
+  return box;
+}
+
+/** Ligne de niveau : verrouillé, prochain (▶), ou meilleures étoiles ; `extra` quand rien d'autre à afficher. */
+export function levelButton(l, { num = null, locked = false, next = false, best = null, extra = null, onclick }) {
+  return el('button.rush-level' + (locked ? '.locked' : '') + (next ? '.next' : ''), { type: 'button', disabled: locked, onclick },
+    el('span.rl-emoji', { 'aria-hidden': 'true' }, locked ? '🔒' : l.emoji),
+    el('span.rl-txt', el('b', `${num != null ? `${num}. ` : ''}${l.title}`), el('small', l.concept)),
+    best ? el('span.rl-stars' + (best.stars ? '.on' : ''), { title: `${plural(best.stars, 'étoile')} sur 3` }, starsTxt(best.stars))
+      : next ? el('span.rl-play', { 'aria-hidden': 'true' }, '▶') : extra);
 }
 
 function inputHint() {

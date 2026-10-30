@@ -1,4 +1,5 @@
-import { el, card, header, segmented, finishExercise, toast, hintBox } from '../ui.js';
+// Missions studio : gestes concrets à refaire sur Live 12, le MPC Key 37 et Serum 2 (liste, mission, dé à idées).
+import { el, card, header, segmented, select, finishExercise, toast, hintBox, htile, plural } from '../ui.js';
 import { getState, update } from '../store.js';
 import { MISSIONS, TOOLS, CATEGORIES, DICE, missionById } from '../data/missions.js';
 import { GENRES } from '../data/genres.js';
@@ -14,29 +15,50 @@ function toolTags(m) {
   return m.tools.map((t) => el('span.tag.tool-' + t, `${TOOLS[t].emoji} ${TOOLS[t].short}`));
 }
 
+const stars = (lv) => '★'.repeat(lv) + '☆'.repeat(Math.max(0, 3 - lv));
+
+/** Ligne compacte d'une mission (2 lignes) : titre, durée et niveau ; objectif et outils (✅ quand elle a déjà été faite). */
+function missionRow(m, done = 0) {
+  return el('a.mission-row' + (done ? '.done' : ''), { href: `#/studio?mission=${m.id}` },
+    el('span.mr-emoji', { 'aria-hidden': 'true' }, done ? '✅' : CATEGORIES[m.cat].emoji),
+    el('span.mr-text',
+      el('span.mr-line', el('b', m.title), el('span.mr-meta', `${m.min} min`, el('span.mr-stars', { title: `Niveau ${m.level} sur 3` }, stars(m.level)))),
+      el('span.mr-line', el('span.mr-goal', m.goal),
+        el('span.mr-tools', m.tools.map((t) => el('span', { title: TOOLS[t].name }, TOOLS[t].emoji, el('span.sr-only', ` ${TOOLS[t].name}`))))),
+      done ? el('span.sr-only', `Mission faite ${done} fois`) : null));
+}
+
 function listView(root, params) {
-  let tool = params.tool || 'all';
-  let cat = params.cat || 'all';
+  let tool = TOOLS[params.tool] ? params.tool : 'all';
+  let cat = CATEGORIES[params.cat] ? params.cat : 'all';
   const s = getState();
   const list = el('div');
+  const count = el('p.small.muted.mission-count', { 'aria-live': 'polite' });
   const draw = () => {
     const items = MISSIONS.filter((m) => (tool === 'all' || m.tools.includes(tool)) && (cat === 'all' || m.cat === cat));
-    list.replaceChildren(...items.map((m) => {
-      const done = s.missions[m.id] || 0;
-      return el('a.tile', { href: `#/studio?mission=${m.id}`, style: { marginBottom: '8px' } },
-        el('div.row.between', el('b', `${CATEGORIES[m.cat].emoji} ${m.title}`), el('span.small.muted', `${m.min} min · ${'★'.repeat(m.level)}`)),
-        el('span', m.goal), el('div', toolTags(m), done ? el('span.tag', `✓ ×${done}`) : null));
+    count.textContent = `${plural(items.length, 'mission')}${tool === 'all' && cat === 'all' ? ', rangées par thème' : ''}`;
+    const groups = cat === 'all' ? Object.keys(CATEGORIES) : [cat];
+    list.replaceChildren(...groups.map((c) => {
+      const ms = items.filter((m) => m.cat === c);
+      if (!ms.length) return null;
+      return el('section.mission-group', { 'aria-label': CATEGORIES[c].name },
+        cat === 'all' ? el('h3.mission-cat', `${CATEGORIES[c].emoji} ${CATEGORIES[c].name}`, el('span', String(ms.length))) : null,
+        el('div.mission-list', ms.map((m) => missionRow(m, s.missions[m.id] || 0))));
     }));
+    if (!items.length) list.replaceChildren(card(el('p.small.muted', 'Aucune mission pour ce filtre : choisis un autre outil ou un autre thème.')));
   };
+  const toolSeg = segmented([{ value: 'all', label: 'Tous les outils' }, ...Object.entries(TOOLS).map(([k, t]) => ({ value: k, label: `${t.emoji} ${t.short}` }))], tool, (v) => { tool = v; draw(); });
+  const catSel = select([{ value: 'all', label: 'Tous les thèmes' }, ...Object.entries(CATEGORIES).map(([k, c]) => ({ value: k, label: `${c.emoji} ${c.name}` }))], cat, (v) => { cat = v; draw(); });
+  catSel.setAttribute('aria-label', 'Thème des missions');
   const later = (s.later || []).map(missionById).filter(Boolean);
   root.append(
-    header('Studio', 'Missions de 5-10 min à faire sur tes vrais outils. C’est ici que tu deviens autonome.', null),
-    el('div.grid2', { style: { marginBottom: '12px' } },
-      el('a.tile', { href: '#/studio?dice=1' }, el('div.tile-emoji', '🎲'), el('b', 'Dé à idées'), el('span', 'Point de départ + contrainte + twist : impossible de rester bloqué')),
-      el('a.tile', { href: `#/studio?mission=${MISSIONS[Math.floor(Math.random() * MISSIONS.length)].id}` }, el('div.tile-emoji', '🎯'), el('b', 'Mission surprise'), el('span', 'Laisse le hasard choisir'))),
-    later.length ? card(el('h3', `⏳ Plus tard (${later.length})`), el('ul.clean', later.map((m) => el('li', el('a', { href: `#/studio?mission=${m.id}` }, m.title))))) : null,
-    el('div.ctrl-row', segmented([{ value: 'all', label: 'Tous' }, ...Object.entries(TOOLS).map(([k, t]) => ({ value: k, label: `${t.emoji} ${t.short}` }))], tool, (v) => { tool = v; draw(); })),
-    el('div.ctrl-row', segmented([{ value: 'all', label: 'Tout' }, ...Object.entries(CATEGORIES).map(([k, c]) => ({ value: k, label: `${c.emoji} ${c.name}` }))], cat, (v) => { cat = v; draw(); })),
+    header('🎯 Missions studio', 'Des missions de 5-10 min à faire sur tes vrais outils. C’est ici que tu deviens autonome.'),
+    el('div.home-tiles.studio-tiles',
+      htile('#/studio?dice=1', '🎲', 'Dé à idées', 'Point de départ + contrainte + twist : impossible de rester bloqué.'),
+      htile(`#/studio?mission=${MISSIONS[Math.floor(Math.random() * MISSIONS.length)].id}`, '🔀', 'Mission surprise', 'Laisse le hasard choisir.')),
+    later.length ? card(el('h3', `⏳ Plus tard · ${later.length}`), el('div.mission-list', later.map((m) => missionRow(m, s.missions[m.id] || 0)))) : null,
+    el('div.mission-filters', toolSeg, catSel),
+    count,
     list,
   );
   draw();
@@ -74,7 +96,7 @@ function missionView(root, m) {
   }));
   const inLater = (getState().later || []).includes(m.id);
   root.append(
-    header(m.title, `${CATEGORIES[m.cat].emoji} ${CATEGORIES[m.cat].name} · ${m.min} min · ${'★'.repeat(m.level)}`, '#/studio'),
+    header(`${CATEGORIES[m.cat].emoji} ${m.title}`, `${CATEGORIES[m.cat].name} · ${m.min} min · niveau ${stars(m.level)}`, '#/studio'),
     card(el('div', toolTags(m)), el('p', el('b', '🎯 Objectif : '), m.goal), steps, el('p.small.muted', 'Touche une étape pour la cocher.'),
       null),
     card(timer.node),
@@ -155,7 +177,7 @@ function diceView(root) {
           toast('Contrainte ajoutée au dé ✨', 'good');
         },
       }, 'Ajouter')),
-      custom.length ? el('p.small.muted', `${custom.length} contrainte(s) perso dans le dé.`) : null),
+      custom.length ? el('p.small.muted', `${plural(custom.length, 'contrainte perso', 'contraintes perso')} dans le dé.`) : null),
     el('button.btn.primary.wide', {
       onclick: () => {
         timer.stop();

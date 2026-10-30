@@ -12,6 +12,8 @@ const KEY_NAMES = {
   'beat': '🥁 Beat', 'chords': '🎼 Accords', 'melody': '🎵 Mélodie', 'synth': '🔊 Synthé', 'ear': '👂 Oreille', 'cr': '🔁 Call & Response',
   'arr': '🧱 Arrangement', 'analyze': '🎧 Analyse', 'recreate': '🎛️ Recréation Serum', 'mission': '🎛️ Missions studio', 'dice': '🎲 Dé à idées',
   'hum': '🎤 Fredonne', 'bass': '🎸 Labo de basse', 'mix': '🎚️ Mixdown', 'remix': '🧬 Remix', 'program': '📅 Programme',
+  'rush': '🎹 Piano Rush', 'pads': '🔲 Pad Rush', 'club': '🪩 Nuit au club', 'project': '🏁 Projet', 'placement': '🧪 Test de la semaine',
+  'critique': '🩺 Critique', 'challenge': '🏆 Défi',
 };
 const dayFr = (d) => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -27,18 +29,29 @@ export function render(root, params) {
   const untried = GENRES.filter((g) => !s.genres[g.id]);
   const coach = coachPlan(cur, prev, { review: s.review, programNext, untriedGenre: untried[Math.floor(Date.now() / 6048e5) % Math.max(1, untried.length)] || null });
 
-  root.append(header('📈 Bilan de la semaine', `Du ${dayFr(start)} au ${dayFr(addDays(start, 6))}`, '#/profile'));
-  root.append(el('div.row.gap', { style: { marginBottom: '10px' } },
+  const thisWeek = start >= weekStart(today);
+  root.append(header('📈 Bilan & coach', `Du ${dayFr(start)} au ${dayFr(addDays(start, 6))}`));
+  root.append(el('div.row.gap.bilan-nav',
     el('a.btn.small', { href: `#/bilan?w=${addDays(start, -7)}` }, '◀ Semaine précédente'),
-    start < weekStart(today) ? el('a.btn.small', { href: `#/bilan?w=${addDays(start, 7)}` }, 'Semaine suivante ▶') : null));
+    thisWeek ? null : el('a.btn.small', { href: `#/bilan?w=${addDays(start, 7)}` }, 'Semaine suivante ▶')));
 
   // ---------- Chiffres ----------
-  const delta = (a, b) => (b ? el('span.small', { style: { color: a >= b ? 'var(--good)' : 'var(--warn)' } }, ` ${a >= b ? '▲' : '▼'} ${Math.abs(a - b)}`) : null);
+  const delta = (a, b) => (b && a !== b ? el('span.small', { style: { color: a >= b ? 'var(--good)' : 'var(--warn)' } }, ` ${a >= b ? '▲' : '▼'} ${Math.abs(a - b)}`) : null);
   const earPct = cur.ear.total ? Math.round((100 * cur.ear.ok) / cur.ear.total) : null;
   const maxDay = Math.max(1, ...cur.perDay);
   const maxSk = Math.max(1, ...Object.values(cur.skills), ...Object.values(prev.skills));
 
-  root.append(
+  // Semaine sans XP : une seule carte d'encouragement au lieu de graphiques vides.
+  if (!cur.xp) root.append(card(el('div.bilan-blank',
+    el('span.bb-emoji', { 'aria-hidden': 'true' }, thisWeek ? '🌱' : '😴'),
+    el('h3', thisWeek ? 'Semaine blanche… pour l’instant' : 'Semaine blanche'),
+    el('p', thisWeek
+      ? 'Rien au compteur depuis lundi. Une session express de 5 minutes suffit pour lancer ta semaine : ton bilan se remplira au fil des jours.'
+      : 'Aucun exercice cette semaine-là. Ce n’est pas grave : l’important, c’est de reprendre. Vise 3 sessions de 5 minutes.'),
+    el('div.row.gap.wrap.center',
+      el('a.btn.primary', { href: '#/home?start=1' }, '⚡ Session express'),
+      el('a.btn', { href: '#/play' }, '🎮 Jouer')))));
+  else root.append(
     card(
       el('div.stat-grid',
         el('div', el('b', cur.xp, delta(cur.xp, prev.xp)), el('span', 'XP')),
@@ -46,7 +59,7 @@ export function render(root, params) {
         el('div', el('b', cur.sessions), el('span', 'sessions')),
         el('div', el('b', cur.exercises), el('span', 'exercices')),
         el('div', el('b', earPct != null ? `${earPct}%` : '—'), el('span', 'oreille')),
-        el('div', el('b', cur.ideas.length), el('span', 'idées au Carnet'))),
+        el('div', el('b', cur.ideas.length), el('span', cur.ideas.length > 1 ? 'idées au Carnet' : 'idée au Carnet'))),
       el('div.week-bars', cur.perDay.map((x, i) => el('div', { title: `${dayFr(cur.days[i])} : ${x} XP` },
         el('span', { style: { height: `${Math.round((100 * x) / maxDay)}%` } }), el('small', ['L', 'M', 'M', 'J', 'V', 'S', 'D'][i])))),
     ),
@@ -87,16 +100,18 @@ export function render(root, params) {
     };
     next();
   };
-  root.append(card(el('h3', `🎧 Tes idées de la semaine (${cur.ideas.length})`),
+  if (cur.xp || cur.ideas.length) root.append(card(el('h3', `🎧 Tes idées de la semaine (${cur.ideas.length})`),
     playable.length ? el('button.btn.small.primary', { onclick: playlist }, '▶ Écouter la playlist (4 mesures chacune)') : el('p.muted', 'Sauve tes beats et idées dans le Carnet pour les retrouver ici.'),
     listEl,
     cur.ideas.length ? el('p.small.muted', 'Rituel du dimanche : réécoute, garde UNE idée, et développe-la (Remix ou Live).') : null));
 
   // ---------- Coach ----------
-  root.append(card(el('h3', '🧑‍🏫 Ton coach'),
-    coach.msgs.map((m) => el('p', m)),
-    el('h3', { style: { marginTop: '10px' } }, '📋 Plan pour la semaine prochaine'),
-    el('ol.mission-steps', coach.plan.map((x) => el('li', el('a', { href: x.route }, x.title), el('div.small.muted', x.why))))));
+  // Semaine blanche : la carte du dessus dit déjà l'essentiel, le coach donne seulement son plan.
+  const msgs = cur.xp ? coach.msgs : [];
+  root.append(card(
+    msgs.length ? [el('h3', '🧑‍🏫 Ton coach'), msgs.map((m) => el('p', m)), el('h3', { style: { marginTop: '10px' } }, '📋 Plan pour la semaine prochaine')]
+      : el('h3', thisWeek ? '🧑‍🏫 Par où commencer' : '🧑‍🏫 Le plan du coach pour la suite'),
+    el('ol.mission-steps', coach.plan.map((x) => el('li', el('a', { href: x.route }, x.title), x.why ? el('div.small.muted', x.why) : null)))));
 
   // ---------- Export ----------
   const text = () => [
@@ -107,7 +122,7 @@ export function render(root, params) {
     ...coach.msgs,
     'Plan : ' + coach.plan.map((x) => x.title).join(' / '),
   ].filter(Boolean).join('\n');
-  root.append(card(el('h3', '📤 Garder une trace'),
+  if (cur.xp) root.append(card(el('h3', '📤 Garder une trace'),
     el('div.row.gap.wrap',
       el('button.btn.small', { onclick: () => download(`bilan-beatforge-${start}.png`, renderImage(cur, coach, start)) }, '📸 Image du bilan'),
       el('button.btn.small', { onclick: async () => { try { await navigator.clipboard.writeText(text()); toast('Bilan copié 📋', 'good'); } catch { download(`bilan-beatforge-${start}.txt`, text(), 'text/plain'); } } }, '📋 Copier le texte')),

@@ -1,7 +1,8 @@
 // Labo de basse : écris ta ligne, l'app la critique comme un prof et propose 3 variantes argumentées.
 import { el, card, header, segmented, finishExercise, toast, downloadMidi, select } from '../ui.js';
 import { getState, update } from '../store.js';
-import { critiqueBass, bassVariants, lineToNotes, notesToLine, BASS_LOW, BASS_HIGH } from '../core/basscritic.js';
+import { genreById } from '../data/genres.js';
+import { critiqueBass, bassVariants, lineToNotes, notesToLine, groupIssues, BASS_LOW, BASS_HIGH } from '../core/basscritic.js';
 import { voiceProgression, eventsAt, MELODY_STEPS } from '../core/arrange.js';
 import { scaleNotes, midiToName, NOTE_NAMES, SCALES, mod } from '../core/theory.js';
 import { transport, playSynth, playDrum, ensureAudio } from '../core/audio.js';
@@ -45,7 +46,7 @@ export function render(root) {
 
   const drawRoll = () => {
     const c = crit();
-    const issueSteps = new Set(c.issues.map((i) => i.s));
+    const issueSteps = new Set(c.issues.filter((i) => !i.global).map((i) => i.s));
     const owner = new Array(MELODY_STEPS).fill(-1);
     line.forEach((m, i) => { if (m) for (let k = 0; k < m.len && i + k < MELODY_STEPS; k++) owner[i + k] = i; });
     const pcs = voiced[bar]?.pcs || [];
@@ -85,8 +86,10 @@ export function render(root) {
     critEl.replaceChildren(
       el('div.row.between', el('h3', '🧑‍🏫 Critique'), el('b', { style: { color } }, `${c.score}/100`)),
       el('div.meter', el('div', { style: { width: `${c.score}%`, background: color } })),
-      c.issues.length ? el('ul.clean', c.issues.slice(0, 6).map((i) => el('li', el('a', { href: 'javascript:void 0', onclick: () => { bar = Math.floor(i.s / 16); drawTabs(); drawRoll(); } }, `M${Math.floor(i.s / 16) + 1}`), ' — ', i.msg))) : el('p', '✅ Aucun problème relevé.'),
-      c.goods.length ? el('ul.clean.small', { style: { color: 'var(--good)' } }, c.goods.slice(0, 4).map((g) => el('li', g))) : null,
+      c.issues.length ? el('ul.clean.bass-issues', groupIssues(c.issues).slice(0, 6).map((g) => el('li',
+        g.label ? [el('button.linkish', { type: 'button', title: 'Afficher la mesure', onclick: () => { bar = g.bars[0]; drawTabs(); drawRoll(); } }, g.label), ' : '] : null,
+        g.msg, g.notes.length ? el('span.muted', ` (${g.notes.join(' · ')})`) : null))) : el('p', '✅ Aucun problème relevé.'),
+      c.goods.length ? el('ul.clean.small.bass-goods', c.goods.slice(0, 4).map((g) => el('li', g))) : null,
       el('p.small.muted', 'Cases teintées = notes de l’accord · contour rouge = note qui pose problème · colonnes marquées = kicks.'),
     );
   }
@@ -109,6 +112,7 @@ export function render(root) {
 
   const showVariants = () => {
     variants = bassVariants(voiced, kick, p0.rootPc, p0.scale);
+    varBtn.textContent = '🔀 Revoir les variantes';
     varEl.replaceChildren(card(el('h3', '🔀 3 variantes à comparer'),
       el('p.small.muted', 'Écoute chacune sur la boucle, puis ta version : laquelle sert le mieux le morceau, et pourquoi ?'),
       variants.map((v) => {
@@ -119,41 +123,50 @@ export function render(root) {
           el('p.small', v.why),
           el('div.row.gap.wrap',
             el('button.btn.small', { onclick: () => play(() => vl) }, '▶ Écouter'),
-            el('button.btn.small', { onclick: () => { line = vl.map((x) => (x ? { ...x } : null)); stop(); toast(`Variante « ${v.name} » chargée : modifie-la à ta sauce`, 'good'); } }, '✎ Partir de celle-ci')));
+            el('button.btn.small', { onclick: () => { line = vl.map((x) => (x ? { ...x } : null)); bar = 0; drawTabs(); stop(); mainCard.scrollIntoView({ behavior: 'smooth', block: 'start' }); toast(`Variante « ${v.name} » chargée : modifie-la à ta sauce`, 'good'); } }, '✎ Partir de celle-ci')));
       })));
+    requestAnimationFrame(() => varEl.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
+  const varBtn = el('button.btn.small', { title: 'Trois lignes argumentées (groovy, mélodique, minimale) à écouter et comparer à la tienne', onclick: showVariants }, '🔀 Proposer 3 variantes');
 
-  root.append(
-    card(
-      el('div.ctrl-row',
-        el('button.btn.play', { onclick: (e) => { if (transport.playing) { stop(); e.target.textContent = '▶ Ma basse'; } else { play(() => line); e.target.textContent = '■ Stop'; } } }, '▶ Ma basse'),
-        select(presetOptions((x) => x.role === 'bass'), p0.sounds.bass, (v) => update((s) => { s.project.sounds.bass = v; })),
-        el('span.small.muted', `${NOTE_NAMES[p0.rootPc]} ${SCALES[p0.scale].name} · ${p0.bpm} BPM`)),
-      el('div.ctrl-row', el('label', 'Durée'), segmented([{ value: 1, label: '1/16' }, { value: 2, label: '1/8' }, { value: 4, label: '1/4' }, { value: 8, label: '1/2' }], dur, (v) => { dur = v; }),
-        el('button.btn.small.ghost', { onclick: () => { line = new Array(MELODY_STEPS).fill(null); drawRoll(); } }, '🗑 Vider')),
-      tabs,
-      el('div.roll-wrap', rollEl),
-    ),
-    card(critEl),
-    el('div.row.gap.wrap', { style: { margin: '0 0 12px' } },
-      el('button.btn', { onclick: showVariants }, '🔀 Proposer 3 variantes'),
-      el('button.btn', { onclick: () => downloadMidi(`basse-${p0.genre}-${p0.bpm}bpm`, { bpm: p0.bpm, tracks: [{ name: 'Basse', notes: lineToNotes(line).map((x) => ({ pitch: x.n, start: x.s / 4, dur: x.len / 4, vel: 100 })) }] }) }, '⬇ MIDI'),
-      el('button.btn.primary', {
+  const bassSel = select(presetOptions((x) => x.role === 'bass'), p0.sounds.bass, (v) => update((s) => { s.project.sounds.bass = v; }));
+  bassSel.setAttribute('aria-label', 'Son de basse');
+  const mainCard = card(
+    el('div.ctrl-row.lab-top',
+      el('button.btn.play', { onclick: (e) => { if (transport.playing) { stop(); e.target.textContent = '▶ Ma basse'; } else { play(() => line); e.target.textContent = '■ Stop'; } } }, '▶ Ma basse'),
+      bassSel,
+      el('span.small.muted', `${NOTE_NAMES[p0.rootPc]} ${SCALES[p0.scale].name} · ${p0.bpm} BPM`)),
+    el('div.ctrl-row', el('div.field', el('span', 'Durée'), segmented([{ value: 1, label: '1/16', title: 'Double-croche' }, { value: 2, label: '1/8', title: 'Croche' }, { value: 4, label: '1/4', title: 'Noire' }, { value: 8, label: '1/2', title: 'Blanche' }], dur, (v) => { dur = v; })),
+      el('button.btn.small.ghost', { title: 'Vide les 4 mesures', onclick: () => { line = new Array(MELODY_STEPS).fill(null); drawRoll(); } }, '🗑 Tout effacer')),
+    tabs,
+    el('div.roll-wrap', rollEl),
+    el('div.action-bar',
+      varBtn,
+      el('button.btn.small', { onclick: () => downloadMidi(`basse-${p0.genre}-${p0.bpm}bpm`, { bpm: p0.bpm, tracks: [{ name: 'Basse', notes: lineToNotes(line).map((x) => ({ pitch: x.n, start: x.s / 4, dur: x.len / 4, vel: 100 })) }] }) }, '⬇ MIDI'),
+      el('button.btn.small', {
+        onclick: () => {
+          if (!lineToNotes(line).length) return toast('Écris d’abord quelques notes', 'bad');
+          update((s) => { s.notebook.unshift({ id: Date.now(), type: 'idea', title: `Basse ${genreById(s.project.genre).name}`, note: `Critique ${crit().score}/100`, date: Date.now(), genre: s.project.genre, project: { ...JSON.parse(JSON.stringify(s.project)), bassLine: line.map((x) => (x ? { ...x } : null)) } }); });
+          toast('Idée avec ta basse rangée dans le Carnet 📓', 'good');
+        },
+      }, '📓 Au Carnet'),
+      el('button.btn.small.primary', {
+        title: 'Garde cette basse dans ton idée et valide l’exercice',
         onclick: () => {
           const c = crit();
           if (lineToNotes(line).length < 3) return toast('Écris au moins 3 notes', 'bad');
           stop();
           update((s) => { s.project.bassLine = line.map((x) => (x ? { ...x } : null)); });
-          if (rewarded) return toast('Basse enregistrée dans ton idée ✓', 'good');
+          if (rewarded) return toast('Basse mise à jour dans ton idée ✓', 'good');
           rewarded = true;
           finishExercise({ key: 'bass:critique', title: 'Ligne de basse', score: c.score, xp: 15 + c.score / 4, skill: 'harmonie', genre: p0.genre, success: c.score >= 70,
+            details: el('p.small.muted', '🎸 Cette basse remplace celle du style dans ton idée (mini-lecteur, exports MIDI).'),
             lesson: 'Une bonne basse ancre l’accord (fondamentale sur le 1), laisse de la place au kick et « marche » vers l’accord suivant. Le reste est une question de style.',
             transfer: 'Dans Live : joue ta basse au MPC Key 37 avec Scale activé, puis compare deux versions (fondamentales seules / avec notes d’approche) sur le même groove.' });
         },
-      }, '✓ Utiliser dans mon idée'),
-    ),
-    varEl,
+      }, '✓ Valider')),
   );
+  root.append(mainCard, card(critEl), varEl);
   drawTabs();
   drawRoll();
   viewKeys({ left: () => { bar = (bar + 3) % 4; drawRoll(); drawTabs(); }, right: () => { bar = (bar + 1) % 4; drawRoll(); drawTabs(); } });

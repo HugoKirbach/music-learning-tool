@@ -23,23 +23,23 @@ export const tests = {
   'réinitialiser puis restaurer la copie de secours': async (t) => {
     const page = await t.open();
     await page.store('s.xp = 321;');
-    await page.go('#/profile');
+    await page.go('#/settings');
     page.on('dialog', (d) => d.accept());
     await page.clickC('text=♻️ Réinitialiser'); await page.waitForTimeout(800);
     t.assert.equal((await page.state()).xp, 0);
     await page.click('text=C’est parti'); await page.waitForTimeout(200); // l'accueil réapparaît après une réinitialisation
-    await page.go('#/profile');
+    await page.go('#/settings');
     await page.clickC('.card:has-text("Sauvegarde en fichier") >> text=Restaurer'); await page.waitForTimeout(400);
     t.assert.equal((await page.state()).xp, 321);
   },
   'export puis import d’un fichier de sauvegarde': async (t) => {
     const page = await t.open();
     await page.store('s.xp = 55;');
-    await page.go('#/profile');
+    await page.go('#/settings');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('text=⬇ Exporter')]);
     const path = await dl.path();
     await page.store('s.xp = 1;');
-    await page.go('#/profile');
+    await page.go('#/settings');
     await page.setInputFiles('input[type=file]', path); await page.waitForTimeout(500);
     t.assert.equal((await page.state()).xp, 55);
   },

@@ -4,7 +4,7 @@ import { PRESETS, makePreset, presetOptions } from '../data/presets.js';
 import { PARAMS, paramById, getPath, setPath, normalizeParams, norm, fromNorm, similarity, formatParam, CHALLENGE_VALUES } from '../core/synthparams.js';
 import { playSynth, ensureAudio, now, transport } from '../core/audio.js';
 import { midiToName } from '../core/theory.js';
-import { onMidi } from '../midiin.js';
+import { onMidi, midiStatus, onMidiStatus } from '../midiin.js';
 
 export const INIT = makePreset({
   osc: [{ wave: 'sawtooth', semi: 0, voices: 1, detune: 10, level: 0.8 }, { wave: 'sawtooth', semi: 12, voices: 1, detune: 0, level: 0 }],
@@ -73,8 +73,8 @@ export function keyboard({ base = 48, octaves = 2, onDown, onUp, inScale }) {
 
 export function paramControl(def, getP, onChange) {
   if (def.options) {
-    return el('div.ctrl-row', { 'data-param': def.id }, el('label', { style: { width: '92px' } }, def.label),
-      segmented(def.options, getPath(getP(), def.path), (v) => { setPath(getP(), def.path, v); onChange(def); }));
+    return el('div.param-opt', { 'data-param': def.id }, el('span.slider-label', def.label),
+      segmented(def.options, getPath(getP(), def.path), (v) => { setPath(getP(), def.path, v); onChange(def); }, 'lab-wrap'));
   }
   const v = getPath(getP(), def.path);
   const sl = slider({
@@ -86,12 +86,15 @@ export function paramControl(def, getP, onChange) {
   return sl;
 }
 
+/** Bouton bascule : état visible (.on) et annoncé (aria-pressed). */
+const setOn = (btn, on) => { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', String(on)); };
+
 // Potards par défaut (CC standards) ; tout est réassignable par « MIDI learn ».
 const DEFAULT_CC = { 74: 'cutoff', 71: 'q', 73: 'attack', 72: 'release', 1: 'lfoDepth' };
 
 export function render(root, params) {
   const mode = params.mode || 'free';
-  root.append(header('Lab Synthé', mode === 'match' ? 'Reproduis le son mystère' : 'Sound design soustractif, traduit pour Serum 2'));
+  root.append(header('🔊 Lab Synthé', mode === 'match' ? 'Reproduis le son mystère' : 'Sound design soustractif, traduit pour Serum 2'));
   root.append(el('div.row.gap.wrap', { style: { marginBottom: '10px' } },
     segmented([{ value: 'free', label: '🎨 Libre' }, { value: 'match', label: '🎯 Son mystère' }], mode, (v) => { location.hash = `#/synth?mode=${v}`; }),
     el('a.btn.small.ghost', { href: '#/ear?mode=sound&n=6' }, '👂 Quiz A/B')));
@@ -138,7 +141,8 @@ function freeMode(root, params) {
     );
   };
   const learnBtn = el('button.btn.small', {
-    onclick: () => { learning = !learning; learnParam = null; learnBtn.classList.toggle('primary', learning); paintLearn(); },
+    'aria-pressed': 'false',
+    onclick: () => { learning = !learning; learnParam = null; setOn(learnBtn, learning); paintLearn(); },
   }, '🎛️ Assigner un potard');
   const applyCc = (id, v) => {
     const def = paramById(id);
@@ -162,7 +166,7 @@ function freeMode(root, params) {
       if (learning && learnParam) {
         update((s) => { s.settings.ccMap = { ...(s.settings.ccMap || {}), [cc]: learnParam }; });
         toast(`CC${cc} → ${paramById(learnParam).label} 🎛️`, 'good');
-        learnParam = null; learning = false; learnBtn.classList.remove('primary'); paintLearn();
+        learnParam = null; learning = false; setOn(learnBtn, false); paintLearn();
         return;
       }
       const id = ccMap()[cc];
@@ -172,9 +176,10 @@ function freeMode(root, params) {
 
   let looping = false;
   const loopBtn = el('button.btn.small', {
+    'aria-pressed': 'false', title: 'Boucle un petit riff pour entendre chaque réglage en temps réel',
     onclick: () => {
       looping = !looping;
-      loopBtn.classList.toggle('primary', looping);
+      setOn(loopBtn, looping);
       if (looping) {
         transport.start((step, time, sd) => {
           const riff = [0, null, 12, null, 7, null, 10, 12, 0, null, 12, 7, null, 3, null, 5];
@@ -189,33 +194,40 @@ function freeMode(root, params) {
     presetId = v; p = normalizeParams(PRESETS[v].params); renderControls(); renderSerum(); phrase(p, 0.05, PRESETS[v].role === 'bass' ? 36 : 48);
   });
 
+  // Potards MIDI : repliés tant qu'aucun clavier n'est branché
+  const midiBox = el('details.midi-box', { open: midiStatus().state === 'connected' },
+    el('summary', el('b', '🎛️ Potards MIDI')),
+    el('p.small.muted', 'Pilote les réglages avec les Q-Links de ton MPC Key 37 (ou tout potard MIDI). Lance « 🔁 Riff test » et tourne-les pour entendre chaque réglage en direct.'),
+    el('div.ctrl-row', learnBtn, el('button.btn.small.ghost', { onclick: () => { update((s) => { s.settings.ccMap = {}; }); paintLearn(); toast('Potards remis par défaut'); } }, '↺ Réinitialiser')),
+    learnBox);
+  const offStatus = onMidiStatus((st) => { if (st.state === 'connected') midiBox.open = true; });
+
   root.append(
     el('div.cols',
       el('div',
-        card(el('div.ctrl-row', presetSel, el('button.btn.small', { onclick: () => { presetId = null; p = normalizeParams(INIT); renderControls(); renderSerum(); } }, 'Init'), loopBtn),
+        card(el('div.ctrl-row.lab-top', presetSel,
+          el('button.btn.small', { title: 'Repartir d’un son neutre (comme « Init Preset » dans Serum 2)', onclick: () => { presetId = null; p = normalizeParams(INIT); renderControls(); renderSerum(); } }, '↺ Init'), loopBtn),
           kb.node,
-          el('div.ctrl-row', el('label', 'Octave'), segmented([{ value: -1, label: '−1' }, { value: 0, label: '0' }, { value: 1, label: '+1' }], 0, (v) => { octave = v; }),
-            el('span.small.muted', 'PC : touches A W S E D F T G Y H U J K')),
-          el('div.ctrl-row', learnBtn, el('button.btn.small.ghost', { onclick: () => { update((s) => { s.settings.ccMap = {}; }); paintLearn(); } }, 'Réinitialiser')),
-          learnBox,
-          el('p.small.muted', 'Astuce : lance « 🔁 Riff test » et tourne les potards pour entendre chaque réglage en temps réel.'),
-          explain),
+          el('div.ctrl-row', el('div.field', el('span', 'Octave'), segmented([{ value: -1, label: '−1' }, { value: 0, label: '0' }, { value: 1, label: '+1' }], 0, (v) => { octave = v; })),
+            el('span.small.muted.lab-pc-only', 'Clavier d’ordinateur : touches A W S E D F T G Y H U J K')),
+          explain,
+          midiBox),
         card(serumBox),
       ),
       el('div', card(controlsEl,
-        el('div.row.gap.wrap', { style: { marginTop: '8px' } },
+        el('div.action-bar',
           el('button.btn.small', {
             onclick: () => {
               update((s) => { s.notebook.unshift({ id: Date.now(), type: 'sound', title: `Son ${presetId ? PRESETS[presetId]?.name + ' modifié' : 'perso'}`, date: Date.now(), params: JSON.parse(JSON.stringify(p)) }); });
-              toast('Son sauvé dans le Carnet 📓', 'good');
+              toast('Son rangé dans le Carnet 📓', 'good');
             },
-          }, '📓 Sauver le son'),
+          }, '📓 Au Carnet'),
           el('button.btn.small', { onclick: () => showSerumSheet(p) }, '🌊 Fiche Serum 2'),
           el('button.btn.small.primary', {
             onclick: () => finishExercise({ key: 'synth:free', title: 'Exploration synthé', xp: 12, skill: 'sound', success: true,
               lesson: 'Change un seul paramètre à la fois, joue, écoute. Puis remets-le : ton oreille apprend ce que fait chaque bouton.',
               transfer: 'Ouvre Serum 2 en Init et refais ce son avec la fiche. Nomme le preset avec ce que tu as appris.' }),
-          }, '✓ J’ai exploré')),
+          }, '✓ Valider')),
       )),
     ),
   );
@@ -226,7 +238,7 @@ function freeMode(root, params) {
   renderControls();
   renderSerum();
   paintLearn();
-  return () => { kb.destroy(); offMidi(); transport.stop(); held.forEach((v) => v.release()); };
+  return () => { kb.destroy(); offMidi(); offStatus(); transport.stop(); held.forEach((v) => v.release()); };
 }
 
 function showSerumSheet(p) {
@@ -259,7 +271,7 @@ function matchMode(root) {
   const shown = [...chosen, decoy].sort(() => Math.random() - 0.5);
   let hintUsed = false;
   const getP = () => mine;
-  const scoreEl = el('b');
+  const scoreEl = el('b', '—');
 
   root.append(card(
     el('div.lesson', el('div.lesson-title', '🎯 Son mystère'), el('p', `Le son mystère a été créé à partir de « Init » en modifiant ${n} paramètres parmi ceux ci-dessous (un des réglages est un leurre). Écoute, compare, ajuste.`)),
@@ -270,10 +282,10 @@ function matchMode(root) {
     ),
     el('div', { style: { marginTop: '10px' } }, shown.map((id) => paramControl(paramById(id), getP, () => {}))),
     hintBox(el('div', el('p', 'Écoute dans cet ordre : 1) la forme d’onde (timbre de base), 2) la brillance (cutoff), 3) l’attaque et la fin de la note (enveloppe), 4) le mouvement (LFO).'), el('p', 'Astuce : exagère un réglage pour entendre ce qu’il fait, puis reviens en arrière.')), () => { hintUsed = true; }),
-    el('div.row.between', el('span.muted', 'Score'), scoreEl),
-    el('div.row.gap.wrap',
-      el('button.btn', {
-        onclick: () => { const r = similarity(target, mine, chosen); scoreEl.textContent = `${r.score}%`; toast(`${r.score}% de ressemblance`); },
+    el('div.action-bar',
+      el('span.muted', 'Ressemblance : ', scoreEl),
+      el('button.btn.small', {
+        onclick: () => { const r = similarity(target, mine, chosen); scoreEl.textContent = `${r.score} %`; toast(`${r.score} % de ressemblance`); },
       }, '🔍 Comparer'),
       el('button.btn.primary', {
         onclick: () => {
@@ -285,7 +297,7 @@ function matchMode(root) {
             transfer: `Dans Serum 2, Init Preset puis règle : ${chosen.map((id) => paramById(id).serum).join(' ; ')}. Compare avec ce que tu entends ici.`,
             onRetry: () => { location.hash = `#/synth?mode=match&r=${Date.now()}`; } });
         },
-      }, 'Terminer'),
+      }, '✓ Valider'),
     ),
   ));
   return () => transport.stop();

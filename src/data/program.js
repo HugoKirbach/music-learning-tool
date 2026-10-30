@@ -37,7 +37,7 @@ export const PROGRAM = [
       [cr('rhythm', 'repeat', 'trap'), beatC('trap'), mis('m-genreswap')],
     ],
     project: {
-      title: 'Mini-projet : ton groove signature',
+      label: 'Mini-projet', title: 'Ton groove signature',
       goal: 'Un beat de 8 mesures qui pourrait être reconnu comme « le tien ».',
       checklist: [
         'Choisis un style de l’Atlas que tu n’as jamais produit.',
@@ -61,7 +61,7 @@ export const PROGRAM = [
       [ear('progressions', 5), recipe('techno'), mis('m-onechord')],
     ],
     project: {
-      title: 'Mini-projet : progression + basse',
+      label: 'Mini-projet', title: 'Progression + basse',
       goal: 'Une boucle de 8 mesures accords + basse qui donne une émotion précise.',
       checklist: [
         'Choisis une émotion (nostalgie, euphorie, tension…) et le mode qui va avec.',
@@ -85,7 +85,7 @@ export const PROGRAM = [
       [cr('melody', 'improv', 'trance'), hook('disco'), mis('i-hum')],
     ],
     project: {
-      title: 'Mini-projet : un hook complet',
+      label: 'Mini-projet', title: 'Un hook complet',
       goal: 'Un hook de 4 mesures qui reste en tête, posé sur ta boucle de la semaine 2.',
       checklist: [
         'Trouve le rythme sur une seule note (fredonné ou aux pads).',
@@ -109,7 +109,7 @@ export const PROGRAM = [
       [arr('subtractive'), match(), mis('a-subtract')],
     ],
     project: {
-      title: 'Projet final : ton premier morceau de 64 mesures',
+      label: 'Projet final', title: 'Ton premier morceau de 64 mesures',
       goal: 'Réunir groove, harmonie, hook et sons dans un arrangement complet.',
       checklist: [
         'Reprends tes mini-projets des semaines 1 à 3 dans un même set Live.',
@@ -124,6 +124,9 @@ export const PROGRAM = [
 ];
 
 export const PROGRAM_DAYS = PROGRAM.length * 7;
+
+/** Nom complet du projet d'une semaine (ex. « Mini-projet : Ton groove signature »). */
+export const projectName = (w) => `${w.project.label} : ${w.project.title}`;
 
 /** Index plat d'un jour → {week, day, isProject}. */
 export function dayInfo(i) {

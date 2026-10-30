@@ -2,9 +2,9 @@
 export const tests = {
   'sortie MIDI : canaux par instrument, son de l’app coupé': async (t) => {
     const page = await t.open({ midi: true });
-    await page.go('#/profile', 600);
+    await page.go('#/settings', 600);
     await page.clickC('.card:has-text("Studio : jouer avec tes vrais sons") >> text=Activer'); await page.waitForTimeout(500);
-    t.assert.match(await page.locator('.card:has-text("Studio : jouer")').innerText(), /Envoi vers « loopMIDI BeatForge »/);
+    t.assert.match(await page.locator('.card:has-text("Studio : jouer")').innerText(), /Envoi vers «\sloopMIDI BeatForge\s»/);
     await page.clickC('text=Couper (seulement Live)'); await page.waitForTimeout(300);
     await page.go('#/melody');
     await page.store('s.project.melody[0] = { n: 72, len: 4 }; s.project.melody[16] = { n: 74, len: 4 };');
@@ -21,7 +21,7 @@ export const tests = {
   },
   'suivre le tempo de Live : horloge, Start, Stop': async (t) => {
     const page = await t.open({ midi: true });
-    await page.go('#/profile', 600);
+    await page.go('#/settings', 600);
     await page.clickC('text=Suivre l’horloge MIDI'); await page.waitForTimeout(200);
     await page.go('#/beat');
     await page.evaluate(() => new Promise((res) => {

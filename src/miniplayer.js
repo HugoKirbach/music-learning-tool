@@ -9,7 +9,7 @@ import { GENRES, genreById } from './data/genres.js';
 
 const LAYERS = [['drums', '🥁', 'Batterie'], ['bass', '🎸', 'Basse'], ['chords', '🎼', 'Accords'], ['melody', '🎵', 'Mélodie']];
 // Écrans où la boucle peut continuer (édition de l'idée) ; ailleurs (exercices) elle s'arrête et la barre se cache.
-export const MINI_ROUTES = ['home', 'labs', 'beat', 'chords', 'melody', 'basslab', 'synth', 'atlas', 'studio', 'notebook', 'profile', 'program', 'bilan', 'remix', 'arrange'];
+export const MINI_ROUTES = ['home', 'create', 'labs', 'beat', 'chords', 'melody', 'basslab', 'synth', 'atlas', 'studio', 'notebook', 'program', 'remix', 'arrange'];
 
 export function isMiniPlaying() {
   return transport.playing && transport.owner === 'mini';

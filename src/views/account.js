@@ -2,7 +2,7 @@
 import { el, card, toast } from '../ui.js';
 import { onCloud, cloudStatus, signInGoogle, signInEmail, signUpEmail, resetPassword, signOutCloud, sync, listBackups, restoreBackup } from '../cloud.js';
 import { getMyProfile, onSocial } from '../social.js';
-import { askPseudo } from './friends.js';
+import { askPseudo, cloudErrorText } from './friends.js';
 
 const STATE_TXT = {
   loading: '⏳ Connexion au compte…',
@@ -19,6 +19,9 @@ function ago(t) {
   return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : `il y a ${Math.round(m / 60)} h`;
 }
 
+/** Les messages techniques de la synchro (règles ou console Firestore) ne s'adressent pas au joueur. */
+const statusError = (t) => (/firestore|firebase/i.test(t || '') ? 'Service momentanément indisponible, réessaie plus tard.' : t);
+
 function offlineNote(st) {
   return el('p.small.muted', st.pending
     ? 'Tes nouveaux progrès sont bien enregistrés sur cet appareil : ils partiront tout seuls dès que le réseau revient (et seront fusionnés avec tes autres appareils).'
@@ -34,7 +37,7 @@ export function accountCard() {
   const act = async (fn, okMsg) => {
     if (busy) return;
     busy = true; errMsg = ''; paint();
-    try { await fn(); if (okMsg) toast(okMsg, 'good'); } catch (e) { errMsg = e.message; }
+    try { await fn(); if (okMsg) toast(okMsg, 'good'); } catch (e) { errMsg = cloudErrorText(e); }
     busy = false; paint();
   };
 
@@ -51,7 +54,7 @@ export function accountCard() {
           el('button.btn.small', { onclick: () => askPseudo({ current: getMyProfile()?.pseudo || '' }) }, getMyProfile()?.pseudo ? '✏️ Pseudo' : '✏️ Choisir mon pseudo')),
         el('p.acct-status.' + st.state, STATE_TXT[st.state] || '', st.state === 'synced' && st.lastSync ? ` · ${ago(st.lastSync)}` : ''),
         st.state === 'offline' ? offlineNote(st) : null,
-        st.error ? el('p.small.bad', st.error) : null,
+        st.error ? el('p.small.bad', statusError(st.error)) : null,
         el('p.small.muted', 'Ta progression est sauvegardée en ligne et reste aussi sur cet appareil (hors-ligne compris). Connecte-toi avec le même compte sur ton téléphone et ton PC.'),
         el('div.row.gap.wrap',
           el('button.btn.small', { disabled: busy, onclick: () => act(() => sync(), 'Synchronisé ✅') }, '🔄 Synchroniser maintenant'),
@@ -80,7 +83,7 @@ export function accountCard() {
           el('button.btn.primary', { type: 'submit', disabled: busy }, 'Se connecter'),
           el('button.btn', { type: 'button', disabled: busy, onclick: () => act(async () => { need(); await signUpEmail(email.value, pw.value); }, 'Compte créé ✅') }, 'Créer un compte'),
           el('button.btn.small.ghost', { type: 'button', disabled: busy, onclick: () => act(async () => { need(); await resetPassword(email.value); }, 'E-mail de réinitialisation envoyé 📬') }, 'Mot de passe oublié ?'))),
-      errMsg || st.error ? el('p.small.bad', errMsg || st.error) : null,
+      errMsg || st.error ? el('p.small.bad', errMsg || statusError(st.error)) : null,
     );
   }
 
@@ -100,7 +103,7 @@ export function accountCard() {
               act(() => restoreBackup(b.id), 'Sauvegarde restaurée ✅');
             },
           }, 'Restaurer'))) : [el('p.small.muted', 'Aucune sauvegarde pour l’instant : la première est créée aujourd’hui à la prochaine synchro.')]));
-      } catch (x) { backupsList.replaceChildren(el('p.small.bad', x.code === 'permission-denied' ? 'Règles Firestore à mettre à jour (voir README).' : x.message)); }
+      } catch (x) { backupsList.replaceChildren(el('p.small.bad', cloudErrorText(x))); }
     },
   }, el('summary', '🕘 Sauvegardes en ligne (7 derniers jours)'), backupsList);
 

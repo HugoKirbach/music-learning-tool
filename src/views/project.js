@@ -12,7 +12,7 @@ import { exportStems, stemsSupported, exportLivePack } from '../stems.js';
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 export function render(root) {
-  root.append(header('🏁 Projet de la semaine', 'Un seul morceau, construit un peu chaque jour : beat, accords, basse, hook, arrangement, son, puis export vers Live.', '#/home'));
+  root.append(header('🏁 Projet de la semaine', 'Un seul morceau, construit un peu chaque jour : beat, accords, basse, hook, arrangement, son, puis export vers Live.'));
   const body = el('div');
   root.append(body);
   const week = weekId();
@@ -30,7 +30,7 @@ export function render(root) {
         el('div.row.between', el('div', el('b', `${g.emoji} ${p.title}`), el('div.small.muted', `${g.name} · semaine du ${new Date(`${week}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`)),
           el('b.big-val', `${prog.count}/${prog.total}`)),
         el('div.bar', el('div.bar-fill', { style: { width: `${(prog.count / prog.total) * 100}%` } })),
-        el('p.small.muted', 'Les étapes se valident en faisant l’exercice correspondant (dans l’ordre que tu veux). Ton idée en cours = ton projet : tout ce que tu fais dans les Labs s’y ajoute.')),
+        el('p.small.muted', 'Les étapes se valident en faisant l’exercice correspondant (dans l’ordre que tu veux). Ton idée en cours = ton projet : tout ce que tu fais dans les ateliers s’y ajoute.')),
       el('div.project-steps', PROJECT_STEPS.map((st) => {
         const done = prog.done[st.id];
         const isToday = st.day === today;

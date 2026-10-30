@@ -28,19 +28,30 @@ export function critiqueBass(notes, chords, kick, rootPc, scale) {
   const steps = SCALES[scale]?.steps || [];
   const chordAt = (s) => chords[Math.floor(s / 16) % 4] || { pcs: [], rootPc };
   let points = 100;
-  const hit = (s, type, msg, cost) => { issues.push({ s, type, msg }); points -= cost; };
+  // `global` : remarque sur toute la ligne (pas sur une note précise) ; `note` : détail propre à la mesure (fondamentale)
+  const hit = (s, type, msg, cost, extra = {}) => { issues.push({ s, type, msg, ...extra }); points -= cost; };
+  const pcName = (pc) => midiToName(36 + pc).replace(/-?\d+$/, '');
 
-  if (!notes.length) return { score: 0, issues: [{ s: 0, type: 'empty', msg: 'Aucune note : pose au moins une fondamentale par mesure.' }], goods, stats: {} };
+  if (!notes.length) return { score: 0, issues: [{ s: 0, type: 'empty', msg: 'Aucune note : pose au moins une fondamentale par mesure.', global: true }], goods, stats: {} };
 
-  // 1. Premier temps de chaque mesure : la fondamentale (ou au moins une note de l'accord)
+  // 1. Premier temps de chaque mesure : la fondamentale (ou au moins une note de l'accord).
+  // Idiome house / techno : le kick prend le 1 et la basse répond juste après (contretemps, rolling bass) → pas un défaut.
+  const kickOn1 = !!kick[0];
+  const rootBars = [], answerBars = [];
   for (let bar = 0; bar < 4; bar++) {
-    const c = chordAt(bar * 16);
-    const first = notes.find((n) => n.s <= bar * 16 && n.s + n.len > bar * 16) || notes.find((n) => n.s === bar * 16);
-    if (!first) { hit(bar * 16, 'downbeat', `Mesure ${bar + 1} : rien sur le premier temps. La basse ancre l’accord : pose la fondamentale (${midiToName(36 + c.rootPc).replace(/-?\d+$/, '')}).`, 6); continue; }
-    if (mod(first.n, 12) === c.rootPc) goods.push(`Mesure ${bar + 1} : fondamentale sur le 1 ✓`);
-    else if (!c.pcs.includes(mod(first.n, 12))) hit(first.s, 'downbeat', `Mesure ${bar + 1} : la note du premier temps n’est pas dans l’accord → ça « frotte ». Vise la fondamentale.`, 10);
-    else hit(first.s, 'inversion', `Mesure ${bar + 1} : tierce/quinte au premier temps (renversement). Possible, mais l’accord sonne moins stable.`, 3);
+    const c = chordAt(bar * 16), b0 = bar * 16;
+    let first = notes.find((n) => n.s <= b0 && n.s + n.len > b0);
+    if (!first && kickOn1) {
+      first = notes.find((n) => n.s > b0 && n.s < b0 + 4);
+      if (first) answerBars.push(bar);
+    }
+    if (!first) { hit(b0, 'downbeat', 'Rien sur le 1er temps → pose la fondamentale : la basse ancre l’accord.', 6, { note: pcName(c.rootPc) }); continue; }
+    if (mod(first.n, 12) === c.rootPc) rootBars.push(bar);
+    else if (!c.pcs.includes(mod(first.n, 12))) hit(first.s, 'downbeat', 'Note du 1er temps hors de l’accord → ça « frotte ». Vise la fondamentale.', 10, { note: pcName(c.rootPc) });
+    else hit(first.s, 'inversion', 'Tierce ou quinte au 1er temps (renversement) : possible, mais l’accord sonne moins stable.', 3);
   }
+  if (rootBars.length) goods.push(`Fondamentale en début de mesure (${barsLabel(rootBars)}) ✓`);
+  if (answerBars.length >= 2) goods.push('Le kick garde le 1, la basse lui répond juste après : le groove house / techno ✓');
 
   // 2. Hors gamme et frottements sur les temps
   for (const n of notes) {
@@ -69,23 +80,50 @@ export function critiqueBass(notes, chords, kick, rootPc, scale) {
   const longOverKick = notes.filter((n) => [...Array(n.len).keys()].some((k) => k > 0 && kickSteps.has(n.s + k))).length;
   const stats = { onKickRatio: notes.length ? onKick / notes.length : 0, longOverKick };
   if (kickSteps.size && notes.length >= 6 && stats.onKickRatio > 0.75) {
-    hit(notes[0].s, 'kick', 'Presque toutes tes notes tombent sur le kick : kick et basse se masquent. Décale quelques notes sur les contretemps (ou sidechain).', 6);
+    hit(notes[0].s, 'kick', 'Presque toutes tes notes tombent sur le kick : kick et basse se masquent. Décale quelques notes sur les contretemps (ou sidechain).', 6, { global: true });
   } else if (stats.onKickRatio < 0.75 && notes.length >= 4) goods.push('La basse laisse respirer le kick ✓');
-  if (longOverKick > notes.length * 0.6 && notes.length >= 3) hit(notes[0].s, 'sustain', 'Notes longues qui chevauchent plusieurs kicks : pense au sidechain, ou raccourcis-les.', 4);
+  if (longOverKick > notes.length * 0.6 && notes.length >= 3) hit(notes[0].s, 'sustain', 'Notes longues qui chevauchent plusieurs kicks : pense au sidechain, ou raccourcis-les.', 4, { global: true });
 
   // 5. Rythme et mouvement
   const sync = notes.filter((n) => n.s % 4 !== 0).length / notes.length;
   stats.syncopation = sync;
-  if (sync === 0 && notes.length >= 4) hit(notes[0].s, 'rhythm', 'Toutes les notes sont sur les temps : essaie une anticipation (une note juste avant le 1) pour le groove.', 4);
+  if (sync === 0 && notes.length >= 4) hit(notes[0].s, 'rhythm', 'Toutes les notes sont sur les temps : essaie une anticipation (une note juste avant le 1) pour le groove.', 4, { global: true });
   else if (sync > 0.2) goods.push('Syncopes présentes : la basse groove ✓');
   const approach = notes.filter((n, i) => {
     const next = notes[i + 1];
     return next && next.s % 16 === 0 && n.s % 16 !== 0 && Math.abs(next.n - n.n) <= 2 && mod(next.n, 12) === chordAt(next.s).rootPc;
   }).length;
-  if (approach) goods.push(`${approach} note(s) d’approche vers la fondamentale suivante ✓ (technique de bassiste)`);
-  if (notes.length > 40) hit(notes[0].s, 'density', 'Ligne très chargée : en électro, la basse gagne souvent à jouer moins.', 4);
+  if (approach) goods.push(`${approach} note${approach > 1 ? 's' : ''} d’approche vers la fondamentale suivante ✓ (technique de bassiste)`);
+  // Une ligne dense qui évite le kick (rolling bass) est un choix de style ; dense ET sur le kick, elle encombre
+  if (notes.length > 40 && stats.onKickRatio > 0.1) hit(notes[0].s, 'density', 'Ligne très chargée : en électro, la basse gagne souvent à jouer moins.', 4, { global: true });
 
   return { score: Math.max(0, Math.min(100, points)), issues, goods, stats };
+}
+
+/** Mesures (0-3) → « M1–M4 », « M1, M3 », « M2–M4 ». */
+export function barsLabel(bars) {
+  const b = [...new Set(bars)].sort((x, y) => x - y);
+  const out = [];
+  for (let i = 0; i < b.length;) {
+    let j = i;
+    while (j + 1 < b.length && b[j + 1] === b[j] + 1) j++;
+    out.push(j - i >= 2 ? `M${b[i] + 1}–M${b[j] + 1}` : b.slice(i, j + 1).map((x) => `M${x + 1}`).join(', '));
+    i = j + 1;
+  }
+  return out.join(', ');
+}
+
+/** Regroupe les remarques identiques : une ligne par problème, avec les mesures concernées. */
+export function groupIssues(issues) {
+  const groups = [];
+  for (const i of issues) {
+    let g = groups.find((x) => x.type === i.type && x.msg === i.msg);
+    if (!g) groups.push((g = { type: i.type, msg: i.msg, global: !!i.global, s: i.s, bars: [], notes: [] }));
+    const bar = Math.floor(i.s / 16);
+    if (!g.bars.includes(bar)) g.bars.push(bar);
+    if (i.note && !g.notes.includes(i.note)) g.notes.push(i.note);
+  }
+  return groups.map((g) => ({ ...g, label: g.global ? '' : barsLabel(g.bars) }));
 }
 
 /** Note de basse confortable (E1–D#2 env.) pour une classe de hauteur. */

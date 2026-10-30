@@ -1,5 +1,5 @@
 // Service worker : app utilisable hors-ligne (stale-while-revalidate sur les fichiers de l'app).
-const CACHE = 'beatforge-v30';
+const CACHE = 'beatforge-v31';
 // Module de compte (Firebase, versionné dans l'URL) : gardé en cache pour retrouver sa session hors-ligne
 const SDK_CACHE = 'beatforge-sdk-10.12.2';
 const SHELL = [
@@ -26,7 +26,7 @@ const SHELL = [
   './src/core/audio.js', './src/core/theory.js', './src/core/rhythm.js', './src/core/midi.js', './src/core/arrange.js',
   './src/core/catchy.js', './src/core/audioanalysis.js', './src/core/phrase.js', './src/core/srs.js', './src/core/arrangement.js', './src/core/extract.js', './src/core/hum.js', './src/core/basscritic.js', './src/core/mixdown.js', './src/core/variations.js', './src/core/weekly.js', './src/core/progress.js', './src/core/daily.js', './src/core/synthparams.js',
   './src/data/genres.js', './src/data/presets.js', './src/data/missions.js', './src/data/program.js',
-  './src/views/home.js', './src/views/labs.js', './src/views/beat.js', './src/views/chords.js', './src/views/melody.js',
+  './src/views/home.js', './src/views/play.js', './src/views/create.js', './src/views/settings.js', './src/views/tools.js', './src/core/toolbox.js', './src/search.js', './src/core/search.js', './src/views/beat.js', './src/views/chords.js', './src/views/melody.js',
   './src/views/synth.js', './src/views/ear.js', './src/views/atlas.js', './src/views/studio.js', './src/views/notebook.js', './src/views/profile.js', './src/views/callresponse.js', './src/views/arrange.js', './src/views/analyze.js', './src/views/program.js', './src/views/recreate.js', './src/views/hum.js', './src/views/basslab.js', './src/views/mixdown.js', './src/views/remix.js', './src/views/bilan.js',
 ];
 

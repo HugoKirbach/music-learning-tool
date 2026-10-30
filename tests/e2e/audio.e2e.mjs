@@ -18,7 +18,7 @@ export const tests = {
   },
   'profil : mode audio et diagnostic': async (t) => {
     const page = await t.open();
-    await page.go('#/profile');
+    await page.go('#/settings');
     await page.click('text=🔧 Diagnostic en direct'); await page.waitForTimeout(600);
     t.assert.ok(await page.locator('.diag-row').count() >= 6);
     await page.click('.card:has-text("Moteur audio") >> text=🛡️ Stable'); await page.waitForTimeout(200);

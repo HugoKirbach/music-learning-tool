@@ -1,5 +1,5 @@
 // Tous les écrans s'affichent sans erreur, sur PC et mobile, sans débordement horizontal.
-export const ROUTES = ['home', 'labs', 'beat', 'beat?mode=ear&genre=dnb', 'beat?mode=constraint&genre=trap', 'chords', 'chords?mode=recipe&genre=lofi',
+export const ROUTES = ['home', 'play', 'create', 'labs', 'settings', 'settings?sec=midi', 'tools', 'beat', 'beat?mode=ear&genre=dnb', 'beat?mode=constraint&genre=trap', 'chords', 'chords?mode=recipe&genre=lofi',
   'melody?genre=house&load=1', 'melody?mode=challenge&genre=ukg', 'melody?mode=dictation&genre=trance', 'synth', 'synth?mode=match',
   'ear', 'ear?mode=intervals', 'ear?mode=chords', 'ear?mode=progressions', 'ear?mode=genre', 'ear?mode=sound', 'ear?mode=review',
   'atlas', 'atlas?g=afrohouse', 'atlas?g=hardtrance', 'atlas?g=hardhouse', 'studio', 'studio?mission=m-euclid', 'studio?dice=1', 'notebook', 'profile', 'callresponse',

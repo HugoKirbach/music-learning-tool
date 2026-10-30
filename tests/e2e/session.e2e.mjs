@@ -28,7 +28,7 @@ export const tests = {
     t.assert.ok(await page.locator('.xp-gain').count());
     await page.click('.modal-card >> text=Continuer');
     await page.go('#/melody');
-    await page.click('text=🌱 Graine'); await page.click('text=AABA');
+    await page.click('text=🌱 Graine'); await page.click('text=🧬 Transformer la mesure'); await page.click('button:has-text("AABA")');
     await page.click('text=✓ Valider'); await page.waitForTimeout(300);
     t.assert.ok(await page.locator('.result-score').count());
   },

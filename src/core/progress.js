@@ -36,6 +36,15 @@ export function titleFor(level) {
   return t;
 }
 
+/**
+ * Certificats obtenus (niveaux, du plus petit au plus grand) : ceux enregistrés à la montée de niveau
+ * et ceux des niveaux déjà atteints (XP importée, synchro, ancien profil). Seule source de vérité pour les compter.
+ */
+export function earnedCerts(s) {
+  const lv = levelFromXp(s?.xp || 0).level;
+  return CERT_LEVELS.filter((L) => s?.certs?.[L] || L <= lv);
+}
+
 export function dayKey(d = new Date()) {
   const z = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
@@ -47,12 +56,25 @@ export function daysBetween(a, b) {
 }
 
 /** Met à jour la série de jours consécutifs. */
+/** Jokers de série : 1 gagné tous les 7 jours d'affilée, 2 au maximum. */
+export const MAX_FREEZES = 2;
+
+/**
+ * Série de jours. Un jour manqué est rattrapé automatiquement par un joker 🧊 (s'il en reste assez) :
+ * la série continue et `saved` indique combien de jours ont été sauvés aujourd'hui.
+ */
 export function updateStreak(streak, today) {
-  if (!streak.last) return { count: 1, last: today, best: Math.max(1, streak.best || 0) };
+  const freezes = streak.freezes || 0;
+  if (!streak.last) return { count: 1, last: today, best: Math.max(1, streak.best || 0), freezes };
   const gap = daysBetween(streak.last, today);
   if (gap === 0) return streak;
-  const count = gap === 1 ? streak.count + 1 : 1;
-  return { count, last: today, best: Math.max(count, streak.best || 0) };
+  const missed = gap - 1;
+  const kept = gap === 1 || (streak.count >= 1 && missed <= freezes);
+  const count = kept ? streak.count + 1 : 1;
+  const left = kept ? freezes - missed : freezes;
+  const out = { count, last: today, best: Math.max(count, streak.best || 0), freezes: Math.min(MAX_FREEZES, left + (count % 7 === 0 ? 1 : 0)) };
+  if (kept && missed) out.saved = missed;
+  return out;
 }
 
 /** Indices visibles par défaut tant que l'utilisateur est débutant : on retire les « petites roues » avec le niveau. */
