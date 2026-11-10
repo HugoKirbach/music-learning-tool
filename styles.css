@@ -1550,6 +1550,9 @@ body[data-route="lesson"] .view { padding: 0 !important; max-width: none; }
 .lesson-body.enter .ex { animation: ex-in .28s ease-out; }
 @keyframes ex-in { from { opacity: 0; transform: translateX(26px); } }
 .ex-head { margin-bottom: 12px; }
+.ex-headrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ex-report { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 6px; border-radius: 8px; opacity: .75; }
+.ex-report:hover { opacity: 1; background: var(--card); }
 .ex-type { display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .5px; color: var(--uc); margin-bottom: 4px; }
 .ex.retry .ex-type { color: var(--hot); }
 .ex-q { font-size: 21px; line-height: 1.25; margin: 2px 0 0; }

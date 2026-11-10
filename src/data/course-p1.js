@@ -122,10 +122,10 @@ export const U3 = unit('u3', {
   guide: [
     ['Le MIDI', 'Des messages, pas du son : « note 60 enfoncée, vélocité 100 ». Le son vient de l’instrument dans Live.'],
     ['Note On / Off', 'Touche enfoncée / relâchée. Vélocité de 0 à 127 = force de frappe.'],
-    ['Dans Live', 'Préférences › Link, Tempo & MIDI : active Track (et Remote) sur ton clavier, puis arme une piste MIDI.'],
+    ['Dans Live', 'Settings (Ctrl/Cmd+,) › Link, Tempo & MIDI : active Track (et Remote) sur ton clavier, puis arme une piste MIDI.'],
     ['Octave − / +', 'Décale le clavier de 12 demi-tons. Transpose : d’un demi-ton.'],
     ['Commandes', 'Pitch bend (revient au centre), mod wheel = CC 1, sustain = CC 64, potards = CC 0-127, pads = notes.'],
-    ['Sans clavier', 'Touche M : le clavier de l’ordinateur joue les notes. Z / X : octave, C / V : vélocité.'],
+    ['Sans clavier', 'Touche M : le clavier de l’ordinateur joue les notes. Z / X : octave, C / V : vélocité (par pas de 20).'],
   ],
 }, [
   lesson('l1', 'Le MIDI, c’est quoi ?', '📡', [
@@ -138,9 +138,9 @@ export const U3 = unit('u3', {
     Q('Un clip MIDI dans Live contient…', ['Des notes (hauteur, position, durée, vélocité)', 'Un enregistrement audio', 'Un fichier MP3']),
   ]),
   lesson('l2', 'Brancher et configurer', '🔌', [
-    card('Dans les Préférences de Live', ['Branche le clavier en USB, puis ouvre les Préférences (Ctrl+, sur PC, Cmd+, sur Mac).', 'Onglet « Link, Tempo & MIDI » : si ton clavier est reconnu, choisis-le dans Control Surface.', 'Dans la liste des ports d’entrée, active « Track » pour jouer des notes (et « Remote » pour que ses potards pilotent Live).'], { tip: 'Sur Mac, les Préférences s’appellent Settings dans le menu Live.' }),
+    card('Dans les réglages de Live', ['Branche le clavier en USB, puis ouvre la fenêtre Settings de Live (Ctrl+, sur PC, Cmd+, sur Mac).', 'Onglet « Link, Tempo & MIDI » : si ton clavier est reconnu, choisis-le dans Control Surface.', 'Dans la liste des ports d’entrée, active « Track » pour jouer des notes et « Remote » pour que ses potards pilotent Live. (« Sync » sert à l’horloge MIDI.)'], { tip: 'Les anciennes versions de Live appelaient cette fenêtre « Preferences ».' }),
     gen('shortcut', { ids: ['prefs'], n: 1 }),
-    O('Remets les étapes dans l’ordre', ['Brancher le clavier en USB', 'Ouvrir les Préférences', 'Onglet Link, Tempo & MIDI', 'Activer « Track » sur le clavier', 'Armer une piste MIDI', 'Jouer']),
+    O('Remets les étapes dans l’ordre', ['Brancher le clavier en USB', 'Ouvrir les réglages (Settings)', 'Onglet Link, Tempo & MIDI', 'Activer « Track » sur le clavier', 'Armer une piste MIDI', 'Jouer']),
     card('Armer la piste', ['Pour entendre ton clavier, la piste MIDI doit recevoir ses notes : clique son bouton d’armement (le rond).', 'Monitor sur « Auto » : la piste fait entendre ton jeu seulement quand elle est armée.'], { visual: { k: 'live', show: ['session'], hl: 'arm' } }),
     L('Arme la piste pour jouer dessus avec ton clavier', 'arm', ['session']),
     Q('Tu joues sur ton clavier mais rien ne sonne. Premier réflexe ?', ['Vérifier que la piste MIDI est armée et contient un instrument', 'Changer de clavier', 'Monter le tempo'], 'Piste pas armée, pas d’instrument, Monitor sur Off : les trois causes les plus fréquentes.'),
@@ -170,7 +170,7 @@ export const U3 = unit('u3', {
     Q('Le pitch bend, quand tu le lâches…', ['Revient tout seul au centre', 'Reste où tu l’as laissé', 'Coupe le son'], 'Il est monté sur ressort, contrairement à la mod wheel qui reste en place.'),
   ]),
   lesson('l6', 'Le clavier de l’ordinateur', '⌨️', [
-    card('Pas de clavier MIDI sous la main ?', ['Dans Live, la touche M active le clavier de l’ordinateur : la rangée du milieu joue les notes (A en QWERTY, Q en AZERTY = Do), la rangée du dessus les touches noires.', 'Z et X (W et X en AZERTY) : octave − et +. C et V : vélocité − et +.', 'Ici aussi, le clavier de l’ordinateur joue le piano de l’écran.'], { visual: { k: 'keycaps', keys: ['A', 'W', 'S', 'E', 'D', 'F', 'T', 'G'] } }),
+    card('Pas de clavier MIDI sous la main ?', ['Dans Live, la touche M active le clavier MIDI de l’ordinateur : la rangée du milieu (A S D F… sur un clavier QWERTY américain) joue les touches blanches, la rangée du dessus les touches noires.', 'Z et X : octave − et +. C et V : vélocité − et +, par pas de 20.', 'Le manuel de Live ne décrit que le clavier américain : sur un AZERTY, essaie pour repérer quelle touche joue le Do. Dans l’app, c’est la touche à l’emplacement du A américain (Q sur un AZERTY).'], { visual: { k: 'keycaps', keys: ['A', 'W', 'S', 'E', 'D', 'F', 'T', 'G'] }, tip: 'Pendant que le clavier de l’ordinateur joue des notes, les raccourcis à une lettre restent possibles avec Maj (Maj+S pour le solo, par exemple).' }),
     gen('shortcut', { ids: ['computerKeys', 'octDown', 'octUp', 'velUp'], n: 3 }),
     K('Joue Do, Mi, Sol (au clavier de l’ordinateur : A, D, G en QWERTY)', 'seq', [0, 4, 7]),
     Q('Avec le clavier de l’ordinateur, comment jouer une octave plus grave ?', ['Touche Z (octave −)', 'Touche X', 'Touche M', 'Flèche bas']),
@@ -178,7 +178,7 @@ export const U3 = unit('u3', {
   lab('lab-backbeat', 'Pad Rush : le backbeat', '🔲', '#/pads?level=backbeat', { pads: 'backbeat' }, 'Kick, snare et hats sur les pads de ton clavier (ou à l’écran).'),
   studio('st', 'Branche ton clavier dans Live', '🔌', [
     'Branche ton clavier en USB et ouvre Live.',
-    'Préférences › Link, Tempo & MIDI : active Track et Remote sur l’entrée de ton clavier.',
+    'Settings (Ctrl/Cmd+,) › Link, Tempo & MIDI : active Track et Remote sur l’entrée de ton clavier.',
     'Crée une piste MIDI (Ctrl/Cmd+Shift+T) et glisse un instrument dessus : Drift, ou un preset de la catégorie Sounds.',
     'Arme la piste et joue : le vumètre de la piste doit bouger.',
     'Joue en bougeant la mod wheel et le pitch bend.',
@@ -201,7 +201,7 @@ export const U4 = unit('u4', {
     card('Session et Arrangement', ['Live a deux vues principales.', 'Session : une grille de clips à lancer en boucle, idéale pour chercher des idées et jouer en live.', 'Arrangement : une ligne du temps, de gauche à droite, pour construire le morceau final.', 'La touche Tab bascule de l’une à l’autre.'], { visual: { k: 'live', show: ['control', 'session'], hl: 'view-switch' } }),
     L('Clique sur le sélecteur de vue', 'view-switch', ['control']),
     gen('shortcut', { ids: ['tab'], n: 1 }),
-    Q('Tu veux essayer des boucles et les combiner, sans ligne du temps. Quelle vue ?', ['Session', 'Arrangement', 'Préférences']),
+    Q('Tu veux essayer des boucles et les combiner, sans ligne du temps. Quelle vue ?', ['Session', 'Arrangement', 'Settings']),
     Q('Tu montes ton morceau du début à la fin. Quelle vue ?', ['Arrangement', 'Session', 'Navigateur']),
     P('Associe', [['Vue Session', 'Grille de clips en boucle'], ['Vue Arrangement', 'Ligne du temps'], ['Tab', 'Passer de l’une à l’autre'], ['Scène', 'Une rangée de clips']]),
   ]),
@@ -238,7 +238,7 @@ export const U4 = unit('u4', {
     L('Où sont les notes du clip ?', 'note-editor', ['clip']),
     L('Où est l’instrument de la piste ?', 'instrument', ['device']),
     gen('shortcut', { ids: ['shifttab', 'clipView', 'deviceView'], n: 2 }),
-    Q('Tu double-cliques un clip MIDI. Que s’ouvre-t-il ?', ['Ses notes, dans la vue Clip', 'Le navigateur', 'Les Préférences']),
+    Q('Tu double-cliques un clip MIDI. Que s’ouvre-t-il ?', ['Ses notes, dans la vue Clip', 'Le navigateur', 'Les réglages (Settings)']),
   ]),
   studio('st', 'Visite guidée de Live', '🧭', [
     'Ouvre un nouveau set (Ctrl/Cmd+N).',

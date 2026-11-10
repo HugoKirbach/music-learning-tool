@@ -79,6 +79,8 @@ Un chemin sinueux d'unités, comme Duolingo : chaque leçon débloque la suivant
 - 🎛️ **Synthé à régler** : un vrai petit synthé (forme d'onde, unison, filtre, enveloppes, LFO, glide, FM) avec dessins en direct, à régler d'après une consigne ou **à l'oreille** d'après un son cible.
 - 👂 Écoute (accords, gammes, intervalles, formes d'onde, filtre, enveloppes, contour), 🔗 paires, 🔢 remettre dans l'ordre, ✍️ phrases à compléter, 🧮 calculs de producteur (ms, Hz, mesures).
 
+**Contenu vérifié** : les raccourcis et les fonctions de Live 12 citées viennent du manuel officiel d'Ableton. Un bouton **⚑ Signaler** sur chaque exercice range un signalement d'erreur dans ton Carnet.
+
 **Comme Duolingo** : barre de progression, « Vérifier » puis bandeau vert ou rouge avec l'explication, les questions ratées reviennent en fin de leçon, série 🔥, XP, couronnes (sans faute 👑), **⏩ Sauter ici** (un test pour aller directement à une unité), **🏋️ S'entraîner** (révision des leçons où tu as hésité). À l'ouverture, l'app te demande ton niveau et peut te faire passer directement le test de l'unité 4 ou 7.
 
 ---
@@ -140,7 +142,7 @@ Une boucle qui te suit d'un atelier à l'autre : style, tempo, tonalité, batter
 
 - **Carnet** : idées complètes, beats, accords, sons et notes ; filtres avec compteurs, recherche, rouvrir dans le bon atelier, export MIDI, partage par lien. Ce que tu gardes sur le téléphone est marqué **📲 à finir sur PC** et t'attend sur l'accueil du PC.
 - **Profil** : niveau, série et jokers, activité des 28 derniers jours, compétences, **3 styles préférés**, derniers succès, passeport des styles ; accès à *Mes progrès*, *Compétences*, *Bilan & coach*, *Collection*, *Amis*, *Test de la semaine*.
-- **Réglages** (rubriques en haut de l'écran) : **Compte & synchro**, **Général** (volume, objectif du jour, indices, thème clair / sombre, animations, ateliers progressifs, mode gaucher, latence), **MIDI**, **Audio** (moteur *Auto / Performance / Stable* + diagnostic en direct), **Live** (sortie MIDI, horloge), **Rappels**, **Sauvegarde** (fichier, copie de secours), **App** (installation, nouveautés, visite guidée).
+- **Réglages** (rubriques en haut de l'écran) : **Compte & synchro**, **Général** (volume, sons de validation, objectif du jour, indices, thème clair / sombre, animations, ateliers progressifs, mode gaucher, latence), **MIDI**, **Audio** (moteur *Auto / Performance / Stable* + diagnostic en direct), **Live** (sortie MIDI, horloge), **Rappels**, **Sauvegarde** (fichier, copie de secours), **App** (installation, nouveautés, visite guidée).
 
 ---
 

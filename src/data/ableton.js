@@ -9,7 +9,7 @@ export const LIVE_ZONES = {
   tap: { name: 'Bouton TAP', part: 'control', desc: 'Tape-le en rythme : Live calcule le tempo.' },
   tempo: { name: 'Tempo', part: 'control', desc: 'Le tempo du set en BPM : glisse vers le haut/bas ou double-clique pour taper une valeur.' },
   timesig: { name: 'Signature rythmique', part: 'control', desc: '4/4 par défaut : 4 temps par mesure.' },
-  metronome: { name: 'Métronome', part: 'control', desc: 'Active le clic. Son menu règle le décompte (Count-In) avant l’enregistrement.' },
+  metronome: { name: 'Métronome', part: 'control', desc: 'Active le clic. Le menu juste à côté règle le décompte (Count-In) avant l’enregistrement.' },
   quantize: { name: 'Quantification globale', part: 'control', desc: '« 1 Bar » : un clip lancé démarre au début de la mesure suivante, toujours en rythme.' },
   play: { name: 'Lecture', part: 'control', desc: 'Lance la lecture (barre d’espace).' },
   stop: { name: 'Stop', part: 'control', desc: 'Arrête la lecture. Deux fois : retour au début.' },
@@ -27,7 +27,7 @@ export const LIVE_ZONES = {
   'br-search': { name: 'Recherche du navigateur', part: 'browser', desc: 'Tape un nom (Ctrl/Cmd+F) : sons, effets, samples.' },
   'br-sounds': { name: 'Sounds', part: 'browser', desc: 'Presets d’instruments classés par type de son (Bass, Pad, Lead…).' },
   'br-drums': { name: 'Drums', part: 'browser', desc: 'Kits de batterie prêts (Drum Racks) et sons de batterie.' },
-  'br-instruments': { name: 'Instruments', part: 'browser', desc: 'Les instruments de Live : Drift, Wavetable, Operator, Simpler, Drum Rack…' },
+  'br-instruments': { name: 'Instruments', part: 'browser', desc: 'Les instruments de Live : Drift, Simpler, Drum Rack dans toutes les éditions ; Wavetable, Operator… dans Suite.' },
   'br-audiofx': { name: 'Audio Effects', part: 'browser', desc: 'EQ Eight, Compressor, Reverb, Delay, Saturator, Auto Filter, Utility…' },
   'br-midifx': { name: 'MIDI Effects', part: 'browser', desc: 'Arpeggiator, Chord, Scale, Note Length… : ils transforment les notes avant l’instrument.' },
   'br-plugins': { name: 'Plug-ins', part: 'browser', desc: 'Tes plugins VST/AU, comme Serum 2.' },
@@ -62,8 +62,8 @@ export const LIVE_ZONES = {
   // Vue détail : clip
   'note-editor': { name: 'Éditeur de notes (piano roll)', part: 'clip', desc: 'Les notes du clip : hauteur à la verticale, temps à l’horizontale.' },
   'velocity-lane': { name: 'Couloir de vélocité', part: 'clip', desc: 'Sous les notes : une tige par note, sa hauteur = la vélocité (force).' },
-  fold: { name: 'Fold', part: 'clip', desc: 'N’affiche que les lignes qui contiennent des notes (ou la gamme choisie).' },
-  scale: { name: 'Scale (gamme du clip)', part: 'clip', desc: 'Live 12 : choisis la tonique et la gamme, le piano roll surligne les bonnes notes.' },
+  fold: { name: 'Fold', part: 'clip', desc: 'N’affiche que les lignes qui contiennent des notes. Avec une gamme active, l’option Fold to Scale ne garde que les notes de la gamme.' },
+  scale: { name: 'Scale Mode (gamme du clip)', part: 'clip', desc: 'Live 12 : active Scale Mode, choisis Root Note et Scale Name ; le piano roll surligne les notes de la gamme.' },
   'clip-loop': { name: 'Réglages de boucle du clip', part: 'clip', desc: 'Start, End, Loop et Length : la longueur de la boucle du clip.' },
   'piano-keys': { name: 'Mini-clavier', part: 'clip', desc: 'Le clavier vertical à gauche des notes : clique une touche pour l’entendre.' },
   // Vue détail : devices

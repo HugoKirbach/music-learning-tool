@@ -17,7 +17,7 @@ export const U10 = unit('u10', {
     ['Accorder', 'Oct = 12 demi-tons, Semi = 1 demi-ton, Fine en cents (100 cents = 1 demi-ton).'],
     ['Unison', 'Plusieurs voix désaccordées (detune) = son épais et large. Peu ou pas sur les basses.'],
     ['Sub et bruit', 'Sub : sinus une octave plus bas pour le poids. Bruit : souffle, attaque, air.'],
-    ['Dans Live', 'Drift (simple et chaleureux), Wavetable, Operator… et Serum 2 en plugin.'],
+    ['Dans Live', 'Drift (dans toutes les éditions de Live), Wavetable et Operator (édition Suite)… et Serum 2 en plugin.'],
   ],
 }, [
   lesson('l1', 'La forme d’onde', '〰️', [
@@ -177,7 +177,7 @@ export const U13 = unit('u13', {
     L('Où sont les macros d’un Rack ?', 'macros', ['device']),
   ]),
   lesson('l5', 'FM et wavetable', '🔔', [
-    card('Deux autres synthèses', ['FM : un oscillateur module la fréquence d’un autre. Ratio entier = harmonique (e-piano, orgue) ; ratio non entier = métallique (cloches).', 'Wavetable : l’oscillateur lit une table de formes d’onde ; déplacer la « position » fait évoluer le son.', 'Dans Live : Operator (FM), Wavetable. Et Serum 2, bien sûr.'], { demo: [{ label: '▶ Cloche FM', play: synth('bell', [[72, 0, 2], [79, 2, 2]]) }] }),
+    card('Deux autres synthèses', ['FM : un oscillateur module la fréquence d’un autre. Ratio entier = harmonique (e-piano, orgue) ; ratio non entier = métallique (cloches).', 'Wavetable : l’oscillateur lit une table de formes d’onde ; déplacer la « position » fait évoluer le son.', 'Dans Live : Operator (FM) et Wavetable, fournis avec l’édition Suite. Et Serum 2, bien sûr.'], { demo: [{ label: '▶ Cloche FM', play: synth('bell', [[72, 0, 2], [79, 2, 2]]) }] }),
     S('Fais une cloche FM : quantité FM 1,5 ou plus et ratio non entier (3,5)', ['fmIndex', 'fmRatio'], { base: { osc: [{ wave: 'sine' }], amp: { a: 0.002, d: 1.5, s: 0, r: 1 }, filter: { cutoff: 12000 } }, ranges: { fmIndex: [1.5, 6], fmRatio: [3.5, 3.5] }, phrase: [[72, 0, 2], [79, 2, 2]] }),
     P('Instrument de Live ↔ type de synthèse', [['Operator', 'FM'], ['Wavetable', 'Table d’ondes'], ['Drift', 'Soustractive'], ['Simpler', 'Sampler']]),
     Q('Un ratio FM non entier donne un son…', ['Métallique, de cloche', 'Plus grave', 'Parfaitement harmonique']),

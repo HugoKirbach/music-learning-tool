@@ -104,7 +104,7 @@ function clipView() {
     el('div.lm-props',
       el('b.lm-ptitle', 'Clip'),
       z('clip-loop', 'span.lm-pbox', {}, el('small', 'Start  1.1.1'), el('small', 'End  2.1.1'), el('small', 'Loop ✓  Length 1.0.0')),
-      z('scale', 'span.lm-pbox.scale', {}, el('small', 'Scale ✓'), el('small', 'A  Minor'))),
+      z('scale', 'span.lm-pbox.scale', {}, el('small', 'Scale Mode ✓'), el('small', 'A  Minor'))),
     el('div.lm-editor',
       el('div.lm-etop', z('fold', 'span.lm-btn.txt', {}, 'Fold'), el('small', 'Notes')),
       el('div.lm-erow',

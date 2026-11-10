@@ -11,7 +11,7 @@ export const U7 = unit('u7', {
     ['Gamme mineure', 'Ton, ½, Ton, Ton, ½, Ton, Ton. La mineur = toutes les blanches depuis A.'],
     ['Relatifs', 'Chaque gamme majeure a un relatif mineur avec les mêmes notes, sur sa 6e note (C ↔ Am).'],
     ['Pentatonique', '5 notes sans frottement. Penta mineure de La : A C D E G.'],
-    ['Live 12', 'Scale dans le clip (tonique + gamme), Fold pour n’afficher que la gamme, MIDI Effect Scale pour corriger ce que tu joues.'],
+    ['Live 12', 'Scale Mode dans le clip (Root Note + Scale Name), Fold to Scale pour n’afficher que la gamme, Fit to Scale pour y ramener des notes, MIDI Effect Scale pour corriger ce que tu joues.'],
   ],
 }, [
   lesson('l1', 'La gamme majeure', '☀️', [
@@ -44,20 +44,20 @@ export const U7 = unit('u7', {
     R('Écris au moins 6 notes de la gamme de Do majeur (sans aide visuelle)', { rules: [{ k: 'count', min: 6, max: 32, why: 'Il faut au moins 6 notes.' }, { k: 'inScale', root: 0, scale: 'major', why: 'Une note n’est pas dans Do majeur : seulement les touches blanches.' }], hl: false }),
   ]),
   lesson('l5', 'Le mode Scale de Live 12', '🧩', [
-    card('Live connaît ta gamme', ['Live 12 : dans les réglages du clip, active Scale et choisis la tonique et la gamme.', 'Le piano roll surligne les notes de la gamme ; Fold n’affiche plus qu’elles.', 'Les outils de génération et de transformation de Live 12 respectent cette gamme.'], { visual: { k: 'live', show: ['clip'], hl: 'scale' } }),
+    card('Live connaît ta gamme', ['Live 12 : dans les propriétés du clip, active le bouton Scale Mode, puis choisis la tonique (Root Note) et la gamme (Scale Name).', 'Le piano roll surligne les notes de la gamme ; l’option Fold to Scale cache toutes les autres lignes, et Fit to Scale ramène des notes égarées dans la gamme.', 'Les outils des panneaux Transform et Generate respectent cette gamme.'], { visual: { k: 'live', show: ['clip'], hl: 'scale' } }),
     L('Active la gamme du clip', 'scale', ['clip']),
     L('Où n’afficher que les notes utiles ?', 'fold', ['clip']),
-    Q('Scale réglé sur La mineur et Fold activé : combien de lignes de notes par octave ?', ['7', '12', '5', '8']),
-    Q('Tu veux être sûr que tout ce que tu joues tombe dans la gamme. Quel MIDI Effect ?', ['Scale', 'Arpeggiator', 'Chord', 'Velocity'], 'Le MIDI Effect Scale ramène chaque note jouée dans la gamme choisie.'),
+    Q('Scale Mode sur La mineur et Fold to Scale activé : combien de lignes de notes par octave ?', ['7', '12', '5', '8']),
+    Q('Tu veux être sûr que tout ce que tu joues tombe dans la gamme. Quel MIDI Effect ?', ['Scale', 'Arpeggiator', 'Chord', 'Velocity'], 'Le MIDI Effect Scale ramène chaque note jouée dans la gamme choisie ; son option « Use Current Scale » reprend la gamme du clip.'),
   ]),
   lab('lab-gamme', 'Pad Rush : la gamme sur les pads', '🎼', '#/pads?level=gamme', { pads: 'gamme' }, 'Joue la gamme sur les pads : la même logique que le mode Note des pads d’un MPC ou de Live.'),
   studio('st', 'Ta gamme dans Live', '🧩', [
     'Crée un clip MIDI de 2 mesures sur une piste avec un piano.',
-    'Dans le clip : active Scale, tonique A, gamme Minor.',
-    'Active Fold : il ne reste que 7 lignes par octave.',
+    'Dans le clip : active Scale Mode, Root Note A, Scale Name Minor.',
+    'Active Fold to Scale : il ne reste que 7 lignes par octave.',
     'Dessine une mélodie de 8 notes sans réfléchir : tout est juste !',
-    'Ajoute le MIDI Effect Scale sur la piste et joue au clavier n’importe quelles touches.',
-  ], 'Le mode Scale est une aide, pas une prison : coupe-le pour ajouter une note de passage hors gamme.'),
+    'Ajoute le MIDI Effect Scale (option Use Current Scale) sur la piste et joue au clavier n’importe quelles touches.',
+  ], 'Scale Mode est une aide, pas une prison : coupe-le pour ajouter une note de passage hors gamme.'),
 ]);
 
 export const U8 = unit('u8', {
@@ -115,7 +115,7 @@ export const U8 = unit('u8', {
   studio('st', 'Des accords dans Live', '🎹', [
     'Piste MIDI + un pad (Sounds › Pad).',
     'Clip de 4 mesures : dessine C – G – Am – F, un accord par mesure.',
-    'Active Scale (Do majeur) dans le clip : tout doit être surligné.',
+    'Active Scale Mode (Root Note C, Scale Name Major) : tout doit être surligné.',
     'Renverse G et F pour que les notes bougent le moins possible.',
     'Dans le panneau Transform du clip (Live 12), essaie Strum puis Arpeggiate.',
     'Ajoute le MIDI Effect Chord sur une autre piste et joue un accord d’un seul doigt.',
@@ -172,6 +172,6 @@ export const U9 = unit('u9', {
     'Nouvelle piste MIDI avec une basse (Sounds › Bass) : la fondamentale de chaque accord en noires.',
     'Change-la en basse offbeat (sur les contretemps) : compare.',
     'Nouvelle piste avec un pluck : écris un motif de 2 temps, répète-le, change la fin à la 4e mesure.',
-    'Active Scale dans chaque clip pour rester dans la tonalité.',
+    'Active Scale Mode dans chaque clip pour rester dans la tonalité.',
   ], 'Accords + basse + hook : tu as les trois couches mélodiques d’un morceau.'),
 ]);

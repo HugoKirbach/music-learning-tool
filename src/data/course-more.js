@@ -31,7 +31,7 @@ export const MORE = {
   ],
   'u7-l5': [
     gen('notInScale', { roots: ['A'], scale: 'minor', n: 1 }),
-    Q('Scale activé dans un clip : peux-tu encore jouer une note hors gamme au clavier ?', ['Oui : Scale surligne la gamme ; c’est le MIDI Effect Scale qui corrige', 'Non, c’est impossible']),
+    Q('Scale Mode activé dans un clip : peux-tu encore jouer une note hors gamme au clavier ?', ['Oui : Scale Mode surligne la gamme ; c’est le MIDI Effect Scale qui corrige', 'Non, c’est impossible']),
   ],
   'u8-l5': [
     K('Joue Sol majeur avec Ré en bas (G/D)', 'chord', [7, 11, 2], { bass: 2 }),
@@ -157,7 +157,7 @@ export const MORE = {
     Q('Une piste gelée (Freeze) : peut-on encore modifier ses notes ?', ['Non, il faut d’abord la dégeler (Unfreeze)', 'Oui, librement']),
   ],
   'u18-l4': [
-    Q('Un groove « MPC Swing 58 % » signifie…', ['Les contretemps sont légèrement retardés', 'Le tempo baisse de 58 %', '58 % des notes sont supprimées']),
+    Q('Un swing réglé à 58 % (au lieu de 50 %) signifie…', ['Les contretemps sont légèrement retardés', 'Le tempo baisse de 58 %', '58 % des notes sont supprimées']),
   ],
   'u18-l5': [
     Q('Le meilleur moment pour exporter un morceau ?', ['Quand il est fini, même imparfait : le suivant sera meilleur', 'Jamais', 'Après un an de retouches']),

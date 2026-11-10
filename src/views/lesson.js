@@ -1,6 +1,6 @@
 // Lecteur de leçon (façon Duolingo) : une consigne à la fois, « Vérifier », retour vert / rouge avec l'explication,
 // les erreurs reviennent en fin de leçon, cœurs pour les contrôles et les tests de saut, écran de fin avec XP.
-import { el, modal, confetti, showBadges } from '../ui.js';
+import { el, modal, confetti, showBadges, toast } from '../ui.js';
 import { getState, update, recordExercise } from '../store.js';
 import { buildLesson, buildCheckpoint, buildJump, buildPractice, checkAnswer, completeNode, applyJump, addMisses, xpFor, courseOf, nodeStates, unitById, unitIndex, nodeById } from '../core/course.js';
 import { UNITS } from '../data/course.js';
@@ -87,7 +87,9 @@ export function render(root, params = {}) {
     const api = { setReady: (b) => { if (phase === 'answer') btn.disabled = !b; }, submit: () => { if (phase === 'answer') check(); }, enter: () => { if (!btn.disabled) btn.click(); } };
     try { cur = renderItem(it, api); } catch (e) { console.error(e); pos++; settled++; show(); return; }
     body.replaceChildren(el('div.ex' + (queue[pos].retry ? '.retry' : ''),
-      el('div.ex-head', el('span.ex-type', queue[pos].retry ? '🔁 On y revient' : typeLabel(it)), it.t !== 'card' ? el('h2.ex-q', it.q) : null),
+      el('div.ex-head', el('div.ex-headrow', el('span.ex-type', queue[pos].retry ? '🔁 On y revient' : typeLabel(it)),
+        el('button.ex-report', { type: 'button', title: 'Signaler une erreur dans cet exercice', onclick: () => report(it) }, '⚑ Signaler')),
+      it.t !== 'card' ? el('h2.ex-q', it.q) : null),
       el('div.ex-content', cur.node)));
     btn.textContent = it.t === 'card' ? 'Continuer' : 'Vérifier';
     btn.disabled = it.t !== 'card' && cur.ready !== true;
@@ -136,6 +138,26 @@ export function render(root, params = {}) {
     btn.disabled = false;
     btn.textContent = hearts === 0 ? 'Voir le résultat' : 'Continuer';
     paintTop();
+  }
+
+  /** Signaler une erreur : rangée dans le Carnet (avec la leçon et la consigne) pour pouvoir la transmettre. */
+  function report(it) {
+    const txt = el('textarea', { rows: 4, placeholder: 'Ce qui ne va pas : réponse fausse, mot ambigu, son qui ne marche pas, info sur Live inexacte…', style: { width: '100%' } });
+    const close = modal(el('div',
+      el('h2', '⚑ Signaler une erreur'),
+      el('p.small.muted', `${title} · ${it.t === 'card' ? it.title : it.q}`),
+      txt,
+      el('p.small.muted', 'Ton signalement est gardé dans ton Carnet (📓) : tu pourras le recopier pour le transmettre.'),
+      el('div.row.gap.wrap',
+        el('button.btn3d.primary', { type: 'button', onclick: () => {
+          const where = `${run.node?.id || run.kind} · ${it.src || ''} · ${it.t}`;
+          const what = it.t === 'card' ? it.title : it.q;
+          update((s) => { s.notebook.unshift({ id: Date.now(), type: 'note', title: `⚑ Erreur signalée : ${what}`.slice(0, 120), note: `${txt.value.trim() || '(sans détail)'}\n\nLeçon : ${title}\nExercice : ${what}\nRéférence : ${where}`, date: Date.now() }); });
+          close();
+          toast('Merci ! Signalement gardé dans ton Carnet 📓', 'good');
+        } }, 'Envoyer au Carnet'),
+        el('button.btn3d.ghost', { type: 'button', onclick: () => close() }, 'Annuler'))));
+    setTimeout(() => txt.focus(), 50);
   }
 
   function skipItem() {

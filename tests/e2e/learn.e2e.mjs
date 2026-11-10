@@ -238,5 +238,19 @@ export const tests = {
     await page.go('#/lesson?practice=1');
     t.assert.ok(await item(page), 'un exercice d’entraînement');
     t.assert.match(await page.locator('.lsn-title').innerText(), /Entraînement/i);
+    // Signaler une erreur : rangé dans le Carnet
+    await page.locator('.ex-report').click();
+    await page.fill('.modal-card textarea', 'La réponse attendue me semble fausse');
+    await page.locator('.modal-card button', { hasText: 'Envoyer au Carnet' }).click();
+    await page.waitForTimeout(200);
+    const note = (await page.state()).notebook[0];
+    t.assert.match(note.title, /Erreur signalée/);
+    t.assert.match(note.note, /me semble fausse[\s\S]*Référence : /);
+    // Bulle « Commencer » : elle reste centrée sur son nœud (l'animation ne la déplace que verticalement)
+    await page.go('#/learn');
+    const xs = [];
+    for (let i = 0; i < 6; i++) { xs.push(await page.locator('.pnode-wrap.current .pn-bubble').evaluate((b) => { const r = b.getBoundingClientRect(); return Math.round(r.left + r.width / 2); })); await page.waitForTimeout(150); }
+    const nodeX = await page.locator('.pnode-wrap.current .pnode').evaluate((b) => { const r = b.getBoundingClientRect(); return Math.round(r.left + r.width / 2); });
+    t.assert.ok(xs.every((x) => Math.abs(x - nodeX) <= 2), `bulle décentrée : ${xs} / nœud ${nodeX}`);
   },
 };

@@ -147,7 +147,7 @@ export const U17 = unit('u17', {
     Q('Les plateformes de streaming visent environ…', ['−14 LUFS', '0 LUFS', '−40 LUFS']),
   ]),
   lesson('l4', 'Exporter', '📦', [
-    card('Sortir le morceau de Live', ['Ctrl/Cmd+Shift+R : Export Audio/Video.', 'WAV, 24 bits, 44,1 ou 48 kHz pour le master. Choisis la portion (Render Start / Length).', 'Pistes séparées (stems) : « All Individual Tracks ». Un clip MIDI : clic droit › Export MIDI Clip.']),
+    card('Sortir le morceau de Live', ['Ctrl/Cmd+Maj+R : Export Audio/Video.', 'WAV, 24 bits, 44,1 ou 48 kHz pour le master. Choisis la portion (Render Start / Length).', 'Rendered Track : « Main » pour le morceau, « All Individual Tracks » pour les pistes séparées (stems), « Selected Tracks Only » pour quelques pistes. Pour le MIDI : Ctrl/Cmd+Maj+E (Export MIDI File).']),
     gen('shortcut', { ids: ['export', 'save'], n: 2 }),
     O('Exporter ton morceau', ['Sélectionner la piste Main', 'Ctrl/Cmd+Shift+R', 'Choisir WAV 24 bits', 'Régler le début et la longueur', 'Exporter']),
     Q('Pour envoyer les pistes séparées à un ami ou un ingé son ?', ['Exporter « All Individual Tracks » (stems)', 'Exporter seulement le Main', 'Envoyer le fichier .als seul']),
@@ -171,12 +171,12 @@ export const U18 = unit('u18', {
     ['Warp', 'Cale un sample sur le tempo. Beats : batterie. Complex : mix complet. Tones : voix, instrument seul. Re-Pitch : comme un vinyle.'],
     ['Freeze / Flatten', 'Freeze calcule l’audio d’une piste pour soulager le processeur ; Flatten la transforme en audio.'],
     ['Resampling', 'Une piste audio avec l’entrée « Resampling » enregistre ce que sort Live : idéal pour créer des sons.'],
-    ['Groove Pool', 'Applique le swing d’un groove (MPC, SP…) à tes clips.'],
+    ['Groove Pool', 'Les grooves (.agr) du navigateur s’appliquent à tes clips ; le Groove Pool (Ctrl/Cmd+Alt+6) règle leur dosage.'],
     ['Finir', 'Un modèle de set, une deadline, une référence, et on exporte même imparfait.'],
   ],
 }, [
   lesson('l1', 'L’audio et le warping', '🎧', [
-    card('Caler un sample au tempo', ['Le Warp étire l’audio pour qu’il suive le tempo du set, sans changer sa hauteur.', 'Des marqueurs (warp markers) calent les temps forts au bon endroit.', 'Le mode compte : Beats pour la batterie, Complex pour un mix complet, Tones pour une voix ou un instrument seul, Re-Pitch pour un effet vinyle.']),
+    card('Caler un sample au tempo', ['Le Warp étire l’audio pour qu’il suive le tempo du set, sans changer sa hauteur.', 'Des marqueurs (warp markers) calent les temps forts au bon endroit.', 'Six modes : Beats pour la batterie, Tones pour une voix ou un instrument seul, Texture pour les nappes et sons sans hauteur nette, Re-Pitch pour un effet vinyle, Complex et Complex Pro pour un morceau complet.']),
     P('Associe le mode de warp à son usage', [['Beats', 'Boucles de batterie'], ['Complex', 'Morceau complet'], ['Tones', 'Voix, instrument seul'], ['Re-Pitch', 'Effet vinyle (hauteur + vitesse)']]),
     Q('Tu accélères un sample en mode Re-Pitch. Que se passe-t-il ?', ['Il devient plus aigu, comme un vinyle accéléré', 'Sa hauteur ne change pas', 'Il s’arrête']),
   ]),
@@ -192,9 +192,9 @@ export const U18 = unit('u18', {
     gen('shortcut', { n: 3, reverse: true }),
   ]),
   lesson('l4', 'Groove et humanisation', '🌀', [
-    card('Rendre le MIDI vivant', ['Groove Pool : glisse un groove (par exemple MPC 16 Swing-58) sur un clip pour lui donner du swing.', 'Varie les vélocités, décale très légèrement certaines notes, ajoute des ghost notes.', 'Live 12 : le panneau Transform du clip propose des outils pour varier la vélocité et le timing.']),
+    card('Rendre le MIDI vivant', ['Les grooves sont des fichiers .agr du navigateur : glisse-en un sur un clip pour lui donner du swing, puis règle-le dans le Groove Pool (Ctrl/Cmd+Alt+6).', 'Varie les vélocités, décale très légèrement certaines notes, ajoute des ghost notes.', 'Live 12 : le panneau Transform du clip propose des outils pour varier la vélocité et le timing.']),
     Q('Le swing décale…', ['Les notes paires (les contretemps) légèrement en retard', 'Toutes les notes en avance', 'Le tempo du morceau']),
-    Q('Où trouves-tu les grooves de type « MPC Swing » ?', ['Dans le Groove Pool (catégorie Grooves du navigateur)', 'Dans les Préférences', 'Dans le Limiter']),
+    Q('Où trouves-tu les grooves de Live ?', ['Dans le navigateur (fichiers .agr), puis dans le Groove Pool pour les régler', 'Dans les réglages (Settings)', 'Dans le Limiter']),
     G('Humanise ces hats : coups forts sur les temps, ghost notes sur les doubles croches entre', { rows: ['kick', 'hat'], target: { kick: 'x...x...x...x...', hat: 'xgggxgggxgggxggg' }, start: { kick: 'x...x...x...x...', hat: 'xxxxxxxxxxxxxxxx' }, vel: true, bpm: 118 }),
   ]),
   lesson('l5', 'Finir ses morceaux', '🏁', [
