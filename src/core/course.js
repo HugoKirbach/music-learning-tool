@@ -145,7 +145,7 @@ export function buildPractice(course, seed = Date.now()) {
   const miss = course.miss || {};
   const ranked = shuffle(r, done).sort((a, b) => (miss[b.id] || 0) - (miss[a.id] || 0));
   const chosen = ranked.slice(0, 5);
-  return { kind: 'practice', hearts: null, items: tag(roundRobin(chosen.map((n) => lessonPool(n, seed)), 10, r), 'practice') };
+  return { kind: 'practice', hearts: null, lessons: chosen.map((n) => n.id), items: tag(roundRobin(chosen.map((n) => lessonPool(n, seed)), 10, r), 'practice') };
 }
 
 // ---------- Vérification des réponses ----------
@@ -338,6 +338,31 @@ export function applyJump(course = {}, unitId, day) {
 export function addMisses(course = {}, lessonId, n) {
   if (!n || !lessonId) return course;
   return { ...course, miss: { ...(course.miss || {}), [lessonId]: (course.miss?.[lessonId] || 0) + n } };
+}
+
+// ---------- Révisions du parcours : une leçon où l'on a hésité revient après 1, 3, 7 puis 14 jours ----------
+const REV_GAPS = [1, 3, 7, 14];
+const daysBetween = (a, b) => Math.round((Date.parse(`${b}T12:00:00`) - Date.parse(`${a}T12:00:00`)) / 86400000);
+/** Leçons à réviser aujourd'hui (au moins 2 erreurs, et l'intervalle depuis la dernière révision est écoulé). */
+export function dueLessons(course = {}, day) {
+  const miss = course.miss || {}, rev = course.rev || {};
+  return NODES.filter((n) => {
+    const done = course.done?.[n.id];
+    if (n.type !== 'lesson' || !done || (miss[n.id] || 0) < 2) return false;
+    const r = rev[n.id];
+    const gap = daysBetween(r?.d || done.d || day, day);
+    return Number.isFinite(gap) && gap >= REV_GAPS[Math.min(r?.n || 0, REV_GAPS.length - 1)];
+  }).map((n) => n.id);
+}
+/** Entraînement terminé : les leçons révisées sont datées, et leur compteur d'erreurs diminue de moitié. */
+export function markPracticed(course = {}, ids = [], day) {
+  if (!ids.length) return course;
+  const miss = { ...(course.miss || {}) }, rev = { ...(course.rev || {}) };
+  for (const id of ids) {
+    if (miss[id]) miss[id] = Math.floor(miss[id] / 2);
+    rev[id] = { d: day, n: rev[id]?.d === day ? rev[id].n : (rev[id]?.n || 0) + 1 };
+  }
+  return { ...course, miss, rev };
 }
 
 /** Atelier ou mission bonus validé(e) d'après ce que l'élève a fait dans l'app depuis son lancement. */

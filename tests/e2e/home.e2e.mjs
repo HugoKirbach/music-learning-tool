@@ -13,7 +13,7 @@ export const tests = {
     t.assert.match(await page.locator('.htile:has-text("Nuit au club")').innerText(), /2\/\d+ ★/);
     await page.click('.htile:has-text("Pad Rush")'); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/pads$/);
-    t.assert.equal(await page.locator('.nav-item.active .nav-label').innerText(), 'Jouer', 'onglet Jouer allumé dans un jeu');
+    t.assert.equal(await page.locator('.nav-item.active .nav-label').innerText(), 'Extras', 'onglet Extras allumé dans un jeu');
     await page.click('.page-head .back'); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/play$/, 'le retour mène à l’onglet du jeu');
     await page.go('#/home', 400);
@@ -29,7 +29,7 @@ export const tests = {
     t.assert.ok(await page.locator('text=⚡ Lancer une session').count());
     await page.click('text=Tous les ateliers →'); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/create$/);
-    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Apprendre', 'Jouer', 'Créer', 'Carnet', 'Profil', 'Rechercher', 'Raccourcis']);
+    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Apprendre', 'Extras', 'Profil', 'Rechercher', 'Raccourcis']);
   },
 
   'onglets : Jouer, Créer, Profil et Réglages bien rangés': async (t) => {
@@ -40,7 +40,7 @@ export const tests = {
     await page.go('#/create', 400);
     await page.click('.idea-step:has-text("Accords")'); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/chords$/);
-    t.assert.equal(await page.locator('.nav-item.active .nav-label').innerText(), 'Créer');
+    t.assert.equal(await page.locator('.nav-item.active .nav-label').innerText(), 'Extras');
     await page.go('#/profile', 400);
     t.assert.equal(await page.locator('text=Diagnostic en direct').count(), 0, 'les réglages ne sont plus dans le profil');
     await page.click('.profile-link:has-text("Réglages")'); await page.waitForTimeout(400);

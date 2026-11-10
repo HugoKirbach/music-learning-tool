@@ -107,7 +107,7 @@ export function render(root, params = {}) {
     ))));
   };
   root.append(
-    header('📓 Carnet d’idées', 'Tout ce que tu crées, prêt à être rouvert ou exporté en MIDI vers Ableton ou le MPC.', null),
+    header('📓 Carnet d’idées', 'Tout ce que tu crées, prêt à être rouvert ou exporté en MIDI vers Ableton ou le MPC.', '#/home'),
     el('div.row.gap.wrap.nb-actions',
       el('button.btn.small.primary', { onclick: () => editNote(null, draw) }, '📝 Note rapide'),
       el('button.btn.small', { onclick: () => { saveCurrentIdea(); draw(); } }, '💡 Garder mon idée en cours')),

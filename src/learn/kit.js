@@ -6,7 +6,8 @@ import { presetParams } from '../player.js';
 import { resolvePatch } from '../core/course.js';
 import { liveName, frName, enName } from '../core/coursegen.js';
 import { liveMock } from './livemock.js';
-import { getState } from '../store.js';
+import { stopJam } from './jam.js';
+import { measure, levelOf, levelingOn } from './level.js';
 
 export const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 export const touchOnly = () => matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches;
@@ -20,6 +21,7 @@ export function stopSpec() {
 /** events : [{ t: secondes depuis le début, fn(time) }]. Programmé par petits bouts : on peut l'arrêter à tout moment. */
 export function runEvents(events, dur, done) {
   stopSpec();
+  stopJam();
   ensureAudio();
   const t0 = now() + 0.08;
   const evs = [...events].sort((a, b) => a.t - b.t);
@@ -37,12 +39,12 @@ export function runEvents(events, dur, done) {
 }
 
 const DRUM_IDS = { kick: 'kick', snare: 'snare', clap: 'clap', hat: 'hat', ohat: 'ohat', perc: 'perc', rim: 'rim', shaker: 'shaker' };
+const gained = (p, k) => (k === 1 ? p : { ...p, gain: p.gain * k });
 
-/** Joue un son décrit par un exercice. Renvoie la durée (s). */
-export function playSpec(spec, { onEnd } = {}) {
-  if (!spec) return 0;
+/** Événements d'un son décrit par un exercice, avec le gain k (volume égalisé). Renvoie { evs, dur, pump }. */
+export function specEvents(spec, k = 1) {
   const evs = [];
-  let dur = 1;
+  let dur = 1, pump = 0;
   switch (spec.k) {
     case 'click': {
       const sp = 60 / spec.bpm;
@@ -53,7 +55,7 @@ export function playSpec(spec, { onEnd } = {}) {
     case 'notes': case 'chord': {
       const sp = 60 / (spec.bpm || 110);
       const layer = (s) => {
-        const pr = presetParams(s.p || 'pluck');
+        const pr = gained(presetParams(s.p || 'pluck'), k);
         const list = s.k === 'chord' || (!s.k && s.chord) ? s.notes.map((m) => [m, 0, 2.5]) : s.notes;
         for (const [m, b, d, v] of list) { evs.push({ t: b * sp, fn: (t) => playSynth(pr, m, t, d * sp, v ?? 0.75, { send: 0.2 }) }); dur = Math.max(dur, (b + d) * sp + 0.6); }
       };
@@ -62,7 +64,7 @@ export function playSpec(spec, { onEnd } = {}) {
       break;
     }
     case 'synth': {
-      const p = resolvePatch(spec.preset || spec.over);
+      const p = gained(resolvePatch(spec.preset || spec.over), k);
       const sp = 60 / (spec.bpm || 100);
       let prev = null;
       for (const [m, b, d, v] of spec.notes || [[48, 0, 1], [55, 1, 1], [60, 2, 2]]) {
@@ -78,34 +80,75 @@ export function playSpec(spec, { onEnd } = {}) {
       const bars = spec.bars || 2;
       for (let bar = 0; bar < bars; bar++) {
         for (const [row, pat] of Object.entries(spec.grid)) {
-          [...pat].forEach((c, s) => { if (c === 'x' || c === 'g') evs.push({ t: (bar * 16 + s) * sp, fn: (t) => playDrum(DRUM_IDS[row] || row, t, c === 'g' ? 0.3 : 1, spec.kit || 'club') }); });
+          [...pat].forEach((c, s) => { if (c === 'x' || c === 'g') evs.push({ t: (bar * 16 + s) * sp, fn: (t) => playDrum(DRUM_IDS[row] || row, t, (c === 'g' ? 0.3 : 1) * k, spec.kit || 'club') }); });
         }
         if (spec.pad) {
-          const pr = presetParams(spec.pad.p);
+          const pr = gained(presetParams(spec.pad.p), k);
           for (const [m, b, d] of spec.pad.notes) evs.push({ t: (bar * 16 + b * 4) * sp, fn: (t) => playSynth(pr, m, t, d * 4 * sp, 0.6, { send: 0.15 }) });
         }
       }
       dur = bars * 16 * sp + 0.4;
-      setPump(spec.pump || 0);
-      const end = onEnd;
-      onEnd = () => { setPump(0); end?.(); };
+      pump = spec.pump || 0;
       break;
     }
     case 'sweep': {
       const sp = 60 / spec.bpm / 2;
       const n = spec.beats * 2;
-      for (let i = 0; i < n; i++) {
-        const cutoff = spec.from * Math.pow(spec.to / spec.from, i / (n - 1));
-        const p = resolvePatch({ osc: [{ wave: 'sawtooth', voices: 3, detune: 15 }], filter: { cutoff, q: 3 }, amp: { a: 0.003, d: 0.2, s: 0.3, r: 0.1 }, reverb: 0.1 });
+      const hold = spec.hold || 0;
+      for (let i = 0; i < n + hold; i++) {
+        const cutoff = spec.from * Math.pow(spec.to / spec.from, Math.min(1, i / (n - 1)));
+        const p = gained(resolvePatch({ osc: [{ wave: 'sawtooth', voices: 3, detune: 15 }], filter: { type: spec.type || 'lowpass', cutoff, q: spec.q ?? 3 }, amp: { a: 0.003, d: 0.2, s: 0.3, r: 0.1 }, reverb: 0.1 }), k);
         evs.push({ t: i * sp, fn: (t) => [45, 57].forEach((m) => playSynth(p, m, t, sp * 0.8, 0.7)) });
       }
-      dur = n * sp + 0.4;
+      dur = (n + hold) * sp + 0.4;
       break;
     }
-    default: return 0;
+    default: return null;
   }
-  runEvents(evs, dur, onEnd);
-  return dur;
+  return { evs, dur, pump };
+}
+
+const LEVELED = ['notes', 'chord', 'synth', 'drums', 'sweep'];
+/** Mesure à l'avance le niveau d'un son (volume égalisé). `ref` : son dont on reprend le niveau (cible d'un exercice de synthé). */
+export function prepareSpec(spec) {
+  if (!spec || !LEVELED.includes(spec.k) || !levelingOn()) return;
+  const ref = spec.ref || spec;
+  measure(ref, (t0) => specEvents(ref, 1)?.evs.forEach((e) => { if (e.t < 1.5) e.fn(t0 + e.t); }));
+}
+/** Parcourt un exercice et prépare tous les sons qu'il peut jouer. */
+export function prepareItem(item) {
+  const seen = new Set();
+  const walk = (o, depth) => {
+    if (!o || typeof o !== 'object' || depth > 5 || seen.has(o)) return;
+    seen.add(o);
+    if (!Array.isArray(o) && LEVELED.includes(o.k)) { prepareSpec(o); return; }
+    for (const v of Array.isArray(o) ? o : Object.values(o)) walk(v, depth + 1);
+  };
+  walk(item, 0);
+}
+
+/** Joue un son décrit par un exercice. Renvoie la durée (s). */
+export function playSpec(spec, { onEnd } = {}) {
+  if (!spec) return 0;
+  const lvl = LEVELED.includes(spec.k) ? levelOf(spec.ref || spec) : 1;
+  const r = specEvents(spec, lvl);
+  if (!r) return 0;
+  if (LEVELED.includes(spec.k)) prepareSpec(spec);
+  let done = onEnd;
+  if (spec.k === 'drums') { setPump(r.pump); done = () => { setPump(0); onEnd?.(); }; }
+  runEvents(r.evs, r.dur, done);
+  return r.dur;
+}
+
+/** Preset d'un exercice joué en direct (clavier, piano roll…), ramené au niveau commun. */
+const lvCache = new Map();
+export function lvPreset(id) {
+  const spec = { k: 'notes', p: id, notes: [[60, 0, 1]] };
+  prepareSpec(spec);
+  const k = levelOf(spec);
+  const key = `${id}:${k}`;
+  if (!lvCache.has(key)) lvCache.set(key, gained(presetParams(id), k));
+  return lvCache.get(key);
 }
 
 /** Bouton d'écoute : ▶ / ■ */
@@ -118,21 +161,6 @@ export function playBtn(spec, label = '▶ Écouter', cls = '') {
   } }, label);
   b.reset = () => b.classList.remove('on');
   return b;
-}
-
-// ---------- Sons de l'interface ----------
-/** Niveau des sons de validation par rapport aux exercices (Réglages › Général). */
-export const SFX_LEVELS = { soft: 0.3, normal: 0.6, off: 0 };
-const sfxPatch = (id, k) => { const p = JSON.parse(JSON.stringify(presetParams(id))); p.gain *= k; p.delay = 0; p.reverb = Math.min(p.reverb ?? 0.2, 0.12); return p; };
-export function sfx(kind) {
-  const st = getState().settings;
-  const k = SFX_LEVELS[st.sfx || 'soft'] ?? SFX_LEVELS.soft;
-  if ((st.volume ?? 0.8) <= 0 || !k) return;
-  ensureAudio();
-  const t = now() + 0.02;
-  if (kind === 'ok') { const p = sfxPatch('marimba', k); playSynth(p, 76, t, 0.12, 0.45, { send: 0.05 }); playSynth(p, 83, t + 0.08, 0.18, 0.45, { send: 0.05 }); }
-  else if (kind === 'bad') { const p = sfxPatch('pluckbass', k * 0.9); playSynth(p, 43, t, 0.16, 0.4, { send: 0 }); playSynth(p, 42, t + 0.11, 0.22, 0.35, { send: 0 }); }
-  else if (kind === 'end') { const p = sfxPatch('marimba', k); [72, 76, 79, 84].forEach((m, i) => playSynth(p, m, t + i * 0.1, 0.3, 0.45, { send: 0.08 })); }
 }
 
 // ---------- Clavier de piano (3D) ----------
@@ -272,9 +300,117 @@ export const chain = (items) => el('div.lchain', items.map((t, i) => [i ? el('sp
 /** Touches de clavier en relief. */
 export const keycaps = (keys) => el('span.keycaps', keys.map((k, i) => [i ? el('span.kc-plus', '+') : null, el('kbd.kc', k)]));
 
-/** Dessin d'un exercice ou d'une fiche. */
-export function visual(v) {
+// ---------- Schémas animés (fiches) : l'onde oscille, le filtre s'ouvre, l'enveloppe se dessine avec la note ----------
+const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'reduce';
+/** Boucle d'animation (≈ 30 images/s) qui s'arrête toute seule quand le dessin quitte la page. */
+function animate(node, frame) {
+  if (still()) return node;
+  const t0 = performance.now();
+  let seen = false, last = 0;
+  const tick = (ts) => {
+    if (node.isConnected) { seen = true; if (ts - last > 30) { last = ts; frame((ts - t0) / 1000); } }
+    else if (seen || ts - t0 > 4000) return;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  return node;
+}
+const hearBtn = (fn) => el('button.btn.lbtn.vis-play', { type: 'button', onclick: fn }, '🔊 Voir et entendre');
+
+/** Onde qui défile comme sur un oscilloscope, avec un point qui monte et descend. */
+export function waveAnim(wave, { W = 320, H = 110, cycles = 2 } = {}) {
+  const svg = waveSvg(wave, { W, H, cycles });
+  const path = svg.querySelector('path.stroke');
+  const P = 12, mid = H / 2, N = 240, f = WAVES[wave] || WAVES.sine;
+  const dot = svgEl('circle', { r: W < 200 ? 3.5 : 5, cx: W / 2, cy: mid, class: 'dot' });
+  svg.append(dot);
+  svg.classList.add('anim');
+  return animate(svg, (t) => {
+    const ph = t * 0.5;
+    path.setAttribute('d', pathD(Array.from({ length: N + 1 }, (_, i) => [P + (i / N) * (W - 2 * P), mid - f((i / N) * cycles + ph) * (mid - P)])));
+    dot.setAttribute('cy', (mid - f(cycles / 2 + ph) * (mid - P)).toFixed(1));
+  });
+}
+
+let uid = 0;
+/** Enveloppe qui se dessine en temps réel, au rythme de la note (touche enfoncée, puis relâchée). */
+export function adsrAnim(env, { W = 320, H = 120 } = {}) {
+  const { a, d, s, r } = env;
+  const svg = adsrSvg(env, { W, H });
+  if (still()) return { node: svg, play: null };
+  const P = 12, top = 14, base = H - 18, hold = 0.5;
+  const total = Math.max(1.2, a + d + hold + r);
+  const x = (t) => P + (t / total) * (W - 2 * P);
+  const y = (v) => base - v * (base - top);
+  const val = (t) => (t < a ? t / Math.max(a, 1e-4) : t < a + d ? s + (1 - s) * (1 - (t - a) / d) ** 2 : t < a + d + hold ? s : t < a + d + hold + r ? s * (1 - (t - a - d - hold) / r) ** 2 : 0);
+  const id = `adsr-clip-${++uid}`;
+  const clip = svgEl('rect', { x: 0, y: 0, width: 0, height: H });
+  const stroke = svg.querySelector('path.stroke'), fill = svg.querySelector('path.fill');
+  const trace = stroke.cloneNode();
+  trace.setAttribute('class', 'stroke trace'); trace.setAttribute('clip-path', `url(#${id})`);
+  fill.setAttribute('clip-path', `url(#${id})`);
+  const dot = svgEl('circle', { r: 5, class: 'dot' });
+  svg.append(svgEl('defs', {}, svgEl('clipPath', { id }, clip)), trace, dot);
+  svg.classList.add('anim');
+  const loop = total + 0.8;
+  let origin = 0, cur = 0;
+  animate(svg, (t) => {
+    cur = t;
+    const tt = Math.min(total, (t - origin) % loop);
+    clip.setAttribute('width', x(tt).toFixed(1));
+    dot.setAttribute('cx', x(tt).toFixed(1)); dot.setAttribute('cy', y(val(tt)).toFixed(1));
+  });
+  const play = () => {
+    origin = cur;
+    playSpec({ k: 'synth', over: { osc: [{ wave: 'sawtooth', voices: 2, detune: 8 }], filter: { cutoff: 2600, q: 1 }, amp: { a, d, s, r }, reverb: 0.1 }, notes: [[57, 0, a + d + hold]], bpm: 60 });
+  };
+  return { node: svg, play };
+}
+
+const BIQUAD = { lp: 'lowpass', hp: 'highpass', bp: 'bandpass' };
+/** Courbe de filtre qui s'ouvre jusqu'à son réglage, puis y reste (et le son suit quand on l'écoute). */
+export function filterAnim(v, { W = 320, H = 120 } = {}) {
+  const type = { lowpass: 'lp', highpass: 'hp', bandpass: 'bp' }[v.type] || v.type || 'lp';
+  const to = v.cutoff ?? 1000, res = v.res ?? 0.2;
+  const svg = filterSvg({ type, cutoff: to, res }, { W, H });
+  if (still()) return { node: svg, play: null };
+  const from = type === 'lp' ? Math.min(80, to / 4) : type === 'hp' ? 25 : Math.max(60, to / 8);
+  const OPEN = 1.5, HOLD = 1.6, loop = OPEN + HOLD;
+  let origin = 0, cur = 0, shown = -1;
+  svg.classList.add('anim');
+  animate(svg, (t) => {
+    cur = t;
+    const tt = (t - origin) % loop;
+    const x = Math.min(1, tt / OPEN);
+    const e = x * x * (3 - 2 * x);
+    const c = Math.round(from * Math.pow(to / from, e));
+    if (c === shown) return;
+    shown = c;
+    svg.replaceChildren(...filterSvg({ type, cutoff: c, res }, { W, H }).childNodes);
+  });
+  const play = () => {
+    origin = cur;
+    playSpec({ k: 'sweep', type: BIQUAD[type], q: 0.707 + res * 6, from, to, bpm: 120, beats: 3, hold: 5 });
+  };
+  return { node: svg, play };
+}
+
+/** Dessin animé d'une fiche (les exercices gardent des dessins fixes : on y compare des formes). */
+function liveVisual(v) {
+  switch (v.k) {
+    case 'wave': return el('div.lvis.live', waveAnim(v.wave));
+    case 'waves': return el('div.lvis.waves.live', ['sine', 'triangle', 'square', 'sawtooth'].map((w) => el('figure', { title: 'Touche pour entendre', onclick: () => playSpec({ k: 'synth', over: { osc: [{ wave: w }], filter: { cutoff: 9000 }, amp: { a: 0.01, d: 0.2, s: 0.8, r: 0.15 } }, notes: [[57, 0, 1]], bpm: 60 }) },
+      waveAnim(w, { W: 160, H: 70, cycles: 2 }), el('figcaption', '🔊 ', { sine: 'Sinus', triangle: 'Triangle', square: 'Carré', sawtooth: 'Dent de scie' }[w]))));
+    case 'adsr': { const r = adsrAnim(v); return el('div.lvis.live', r.node, r.play ? hearBtn(r.play) : null); }
+    case 'filter': { const r = filterAnim(v); return el('div.lvis.live', r.node, r.play ? hearBtn(r.play) : null); }
+    default: return null;
+  }
+}
+
+/** Dessin d'un exercice ou d'une fiche. `live` : version animée (fiches). */
+export function visual(v, { live = false } = {}) {
   if (!v) return null;
+  if (live) { const n = liveVisual(v); if (n) return n; }
   switch (v.k) {
     case 'keyboard': return piano({ lo: v.lo ?? 48, hi: v.hi ?? 71, labels: v.labels ?? 'none', lit: v.lit || [] }).node;
     case 'wave': return el('div.lvis', waveSvg(v.wave));
@@ -292,20 +428,34 @@ export function visual(v) {
   }
 }
 
-// ---------- Mascotte : « Bip », un petit module de synthé ----------
-export function mascot(mood = 'happy', size = 72) {
-  const mouth = { happy: 'M25 39 Q32 45 39 39', wow: 'M29 40 Q32 45 35 40 Q32 36 29 40', sad: 'M25 42 Q32 37 39 42', cool: 'M25 40 L39 40' }[mood] || 'M25 39 Q32 45 39 39';
-  const svg = svgEl('svg', { viewBox: '0 0 64 64', width: size, height: size, class: `mascot mood-${mood}`, 'aria-hidden': 'true' },
+// ---------- Mascotte : « Bip », un petit module de synthé qui réagit ----------
+// Humeurs : happy, wow, sad (une larme), cool, party (yeux rieurs, étincelles), sleepy (série en danger).
+// anim : hop (petit saut), jump (fête), droop (déçu), shake (non de la tête).
+const MOUTHS = { happy: 'M25 39 Q32 45 39 39', wow: 'M29 40 Q32 45 35 40 Q32 36 29 40', sad: 'M25 42 Q32 37 39 42', cool: 'M25 40 L39 40', party: 'M24 37 Q32 48 40 37 Z', sleepy: 'M28 41 Q32 43 36 41' };
+export function mascot(mood = 'happy', size = 72, { anim = '' } = {}) {
+  const mouth = MOUTHS[mood] || MOUTHS.happy;
+  const c = '#5ce1e6';
+  const eyes = mood === 'party'
+    ? [svgEl('path', { d: 'M21 33 Q25 27 29 33', stroke: c, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round' }), svgEl('path', { d: 'M35 33 Q39 27 43 33', stroke: c, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round' })]
+    : mood === 'sleepy'
+      ? [svgEl('path', { d: 'M21 32 L29 32', stroke: c, 'stroke-width': 2.6, 'stroke-linecap': 'round' }), svgEl('path', { d: 'M35 32 L43 32', stroke: c, 'stroke-width': 2.6, 'stroke-linecap': 'round' })]
+      : [svgEl('circle', { cx: 25, cy: mood === 'sad' ? 33 : 32, r: 3.6, fill: c, class: 'eye' }), svgEl('circle', { cx: 39, cy: mood === 'sad' ? 33 : 32, r: 3.6, fill: c, class: 'eye' })];
+  const extra = mood === 'party'
+    ? [svgEl('path', { d: 'M5 14 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6z', fill: '#ffe066', class: 'spark s1' }), svgEl('path', { d: 'M58 8 l1.3 3.2 3.2 1.3 -3.2 1.3 -1.3 3.2 -1.3 -3.2 -3.2 -1.3 3.2 -1.3z', fill: '#ff8ad1', class: 'spark s2' }), svgEl('path', { d: 'M59 34 l1 2.6 2.6 1 -2.6 1 -1 2.6 -1 -2.6 -2.6 -1 2.6 -1z', fill: '#5ce1e6', class: 'spark s3' })]
+    : mood === 'sad' ? [svgEl('path', { d: 'M24 38 q-2.4 4 0 5.2 q2.4 -1.2 0 -5.2z', fill: '#8fd3ff', class: 'tear' })]
+      : mood === 'sleepy' ? [txt(52, 12, 'z', 'middle', 'zzz')] : [];
+  const svg = svgEl('svg', { viewBox: '0 0 64 64', width: size, height: size, class: `mascot mood-${mood}${anim ? ` anim-${anim}` : ''}`, 'aria-hidden': 'true' },
     svgEl('defs', {}, svgEl('linearGradient', { id: 'bipBody', x1: 0, y1: 0, x2: 0, y2: 1 }, svgEl('stop', { offset: 0, 'stop-color': '#c4a1ff' }), svgEl('stop', { offset: 1, 'stop-color': '#7c4dff' }))),
-    svgEl('line', { x1: 32, y1: 4, x2: 32, y2: 13, stroke: '#7c4dff', 'stroke-width': 3, 'stroke-linecap': 'round' }),
-    svgEl('circle', { cx: 32, cy: 5, r: 4, fill: '#ffb84d' }),
-    svgEl('rect', { x: 8, y: 16, width: 48, height: 44, rx: 13, fill: '#4b2a99' }),
-    svgEl('rect', { x: 8, y: 12, width: 48, height: 44, rx: 13, fill: 'url(#bipBody)' }),
-    svgEl('rect', { x: 15, y: 20, width: 34, height: 26, rx: 8, fill: '#16122b' }),
-    svgEl('circle', { cx: 25, cy: 32, r: 3.6, fill: '#5ce1e6', class: 'eye' }),
-    svgEl('circle', { cx: 39, cy: 32, r: 3.6, fill: '#5ce1e6', class: 'eye' }),
-    svgEl('path', { d: mouth, stroke: '#5ce1e6', 'stroke-width': 2.4, fill: 'none', 'stroke-linecap': 'round' }),
-    svgEl('circle', { cx: 18, cy: 52, r: 3, fill: '#ffe066' }), svgEl('circle', { cx: 46, cy: 52, r: 3, fill: '#ff5d73' }),
-    svgEl('rect', { x: 26, y: 50, width: 12, height: 4, rx: 2, fill: '#2e1d66' }));
+    svgEl('g', { class: 'bip' },
+      svgEl('line', { x1: 32, y1: 4, x2: 32, y2: 13, stroke: '#7c4dff', 'stroke-width': 3, 'stroke-linecap': 'round' }),
+      svgEl('circle', { cx: 32, cy: 5, r: 4, fill: mood === 'party' ? '#ffe066' : mood === 'sad' ? '#8a8ab0' : '#ffb84d', class: 'antenna' }),
+      svgEl('rect', { x: 8, y: 16, width: 48, height: 44, rx: 13, fill: '#4b2a99' }),
+      svgEl('rect', { x: 8, y: 12, width: 48, height: 44, rx: 13, fill: 'url(#bipBody)' }),
+      svgEl('rect', { x: 15, y: 20, width: 34, height: 26, rx: 8, fill: '#16122b' }),
+      ...eyes,
+      svgEl('path', { d: mouth, stroke: c, 'stroke-width': 2.4, fill: mood === 'party' ? c : 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      svgEl('circle', { cx: 18, cy: 52, r: 3, fill: '#ffe066' }), svgEl('circle', { cx: 46, cy: 52, r: 3, fill: '#ff5d73' }),
+      svgEl('rect', { x: 26, y: 50, width: 12, height: 4, rx: 2, fill: '#2e1d66' })),
+    ...extra);
   return svg;
 }

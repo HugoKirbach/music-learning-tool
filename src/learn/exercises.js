@@ -3,7 +3,7 @@
 import { el } from '../ui.js';
 import { ensureAudio, now, playSynth, playDrum, playClick, transport, outputLatency } from '../core/audio.js';
 import { presetParams } from '../player.js';
-import { onMidi, drumForNote } from '../midiin.js';
+import { onMidi, drumForNote, midiStatus, onMidiStatus, midiSupported } from '../midiin.js';
 import { getState } from '../store.js';
 import { inputLatency } from '../core/latency.js';
 import { resolvePatch, judgeTaps } from '../core/course.js';
@@ -11,7 +11,8 @@ import { noteName, enName, frName, liveName, chordMidi } from '../core/coursegen
 import { SCALES, mod } from '../core/theory.js';
 import { paramById, getPath, setPath, norm, fromNorm, formatParam, similarity } from '../core/synthparams.js';
 import { LIVE_ZONES, comboFromEvent, comboLabel } from '../data/ableton.js';
-import { playSpec, playBtn, stopSpec, runEvents, sfx, piano, isBlackKey, COMPUTER_KEYS, visual, keycaps, mascot, isMac, touchOnly, waveSvg, adsrSvg, filterSvg, rowName } from './kit.js';
+import { sfx } from './jam.js';
+import { playSpec, playBtn, stopSpec, runEvents, prepareItem, prepareSpec, lvPreset, piano, isBlackKey, COMPUTER_KEYS, visual, keycaps, mascot, isMac, touchOnly, waveSvg, adsrSvg, filterSvg, rowName } from './kit.js';
 import { liveMock } from './livemock.js';
 
 const labelOf = (c) => (typeof c === 'string' ? c : c.label);
@@ -27,12 +28,14 @@ function bigPlay(spec) {
 // ---------- Fiche ----------
 function card(item) {
   return {
-    node: el('div.ex-card',
-      el('div.ex-card-head', mascot('happy', 46), el('h2', item.title)),
-      el('div.ex-card-body', [].concat(item.text).map((t) => el('p', t))),
-      item.visual ? el('div.ex-media', visual(item.visual)) : null,
-      item.demo ? el('div.ex-demos', item.demo.map((d) => playBtn(d.play, d.label))) : null,
-      item.tip ? el('p.ex-tip', '💡 ', item.tip) : null),
+    node: el('div.ex-card' + (item.visual || item.demo ? '.split' : ''),
+      el('div.ex-card-text',
+        el('div.ex-card-head', mascot('happy', 46), el('h2', item.title)),
+        el('div.ex-card-body', [].concat(item.text).map((t) => el('p', t))),
+        item.tip ? el('p.ex-tip', '💡 ', item.tip) : null),
+      item.visual || item.demo ? el('div.ex-card-side',
+        item.visual ? el('div.ex-media', visual(item.visual, { live: true })) : null,
+        item.demo ? el('div.ex-demos', item.demo.map((d) => playBtn(d.play, d.label))) : null) : null),
     value: () => ({ ok: true }),
     ready: true,
   };
@@ -220,9 +223,8 @@ function keys(item, api) {
   let picked = [];
   const held = new Set();
   const voices = new Map();
-  const pr = presetParams('piano');
   let locked = false;
-  const sound = (m, v = 0.75) => { voices.get(m)?.release(); voices.set(m, playSynth(pr, m, now(), null, v, { send: 0.15 })); };
+  const sound = (m, v = 0.75) => { voices.get(m)?.release(); voices.set(m, playSynth(lvPreset('piano'), m, now(), null, v, { send: 0.15 })); };
   const silence = (m) => { voices.get(m)?.release(); voices.delete(m); };
 
   const kbHost = el('div.ex-kb');
@@ -401,10 +403,10 @@ function roll(item, api) {
   const notes = new Map();
   const cellsByKey = new Map();
   const scale = item.scale && item.hl !== false ? SCALES[item.scale.scale].steps.map((s) => mod(item.scale.root + s, 12)) : null;
-  const pr = presetParams(item.p || 'pluck');
+  const lead = () => lvPreset(item.p || 'pluck');
   const ghost = new Set((item.ghost ? item.target : []).map(([s, m]) => `${s}:${m}`));
   const guide = new Set((item.guide || []).map(([s, m]) => `${s}:${m}`));
-  const preview = (m) => { ensureAudio(); playSynth(pr, m, now() + 0.01, 0.25, 0.8, { send: 0.1 }); };
+  const preview = (m) => { ensureAudio(); playSynth(lead(), m, now() + 0.01, 0.25, 0.8, { send: 0.1 }); };
   const toggle = (s, m) => {
     const k = `${s}:${m}`;
     if (notes.has(k)) notes.delete(k);
@@ -439,13 +441,13 @@ function roll(item, api) {
     playing = true;
     btn.classList.add('on');
     btn.textContent = '■ Stop';
-    const padP = presetParams('pad');
+    const padP = { ...lvPreset('pad') };
     transport.start((step, time, sd) => {
       const per = beatRes ? 4 : 1;
       if (item.kick && step % 4 === 0) playDrum('kick', time, 0.9, 'club');
       if (step % per) return;
       const col = (step / per) % steps;
-      for (const n of notes.values()) if (n.s === col) playSynth(pr, n.m, time, sd * per * 0.9, 0.8, { send: 0.1 });
+      for (const n of notes.values()) if (n.s === col) playSynth(lead(), n.m, time, sd * per * 0.9, 0.8, { send: 0.1 });
       if (item.chords && beatRes && col % 4 === 0) chordMidi(item.chords[col / 4] || item.chords[0], 57).forEach((m) => playSynth(padP, m, time, sd * 15, 0.35, { send: 0.2 }));
     }, (step) => {
       const per = beatRes ? 4 : 1;
@@ -492,7 +494,12 @@ function synthEx(item, api) {
   };
   let touched = false;
   let playT = null;
-  const audition = () => { clearTimeout(playT); playT = setTimeout(() => playSpec({ k: 'synth', over: params, notes: phrase, bpm: 100 }), 120); };
+  // Volume égalisé : ton son et la cible gardent le même gain (celui de la cible, ou du réglage de départ),
+  // pour que les écarts de niveau que tu crées en réglant restent audibles.
+  const ref = { k: 'synth', ...(item.match ? (typeof item.match === 'string' ? { preset: item.match } : { over: item.match }) : { over: resolvePatch(item.base) }), notes: phrase, bpm: 100 };
+  prepareSpec(ref);
+  const mineSpec = () => ({ k: 'synth', over: params, notes: phrase, bpm: 100, ref });
+  const audition = () => { clearTimeout(playT); playT = setTimeout(() => playSpec(mineSpec()), 120); };
   const change = () => { paintVis(); if (!touched) { touched = true; api.setReady(true); } };
   const controls = item.knobs.map((id) => {
     const def = paramById(id);
@@ -531,8 +538,8 @@ function synthEx(item, api) {
   });
   paintVis();
   const why = el('div.ex-why');
-  const mine = el('button.btn.lbtn.play', { type: 'button', onclick: () => playSpec({ k: 'synth', over: params, notes: phrase, bpm: 100 }) }, '▶ Ton son');
-  const target = item.match ? el('button.btn.lbtn.play.model', { type: 'button', onclick: () => playSpec({ k: 'synth', ...(typeof item.match === 'string' ? { preset: item.match } : { over: item.match }), notes: phrase, bpm: 100 }) }, '🎯 La cible') : null;
+  const mine = el('button.btn.lbtn.play', { type: 'button', onclick: () => playSpec(mineSpec()) }, '▶ Ton son');
+  const target = item.match ? el('button.btn.lbtn.play.model', { type: 'button', onclick: () => playSpec(ref) }, '🎯 La cible') : null;
   const node = el('div.ex-synth', el('div.row.gap.wrap.ex-tools', target, mine), el('div.sx-panel', el('div.sx-ctls', controls), vis), why);
   return {
     node,
@@ -639,7 +646,6 @@ function tap(item, api) {
 function velocity(item, api) {
   ensureAudio();
   let idx = 0, misses = 0, last = null;
-  const pr = presetParams('epiano');
   const marker = el('i.vm-mark');
   const band = el('i.vm-band');
   const meter = el('div.vmeter', band, marker, el('small.vm-top', '127'), el('small.vm-bot', '0'));
@@ -656,7 +662,7 @@ function velocity(item, api) {
   const hitVel = (v127, m = 60) => {
     if (finished) return;
     ensureAudio();
-    playSynth(pr, m, now(), 0.6, Math.max(0.05, v127 / 127), { send: 0.15 });
+    playSynth(lvPreset('epiano'), m, now(), 0.6, Math.max(0.05, v127 / 127), { send: 0.15 });
     last = v127;
     val.textContent = String(v127);
     marker.style.bottom = `${(v127 / 127) * 100}%`;
@@ -748,7 +754,36 @@ export function typeLabel(item) {
 export function renderItem(item, api) {
   const fn = RENDER[item.t];
   if (!fn) throw new Error(`Type d'exercice inconnu : ${item.t}`);
+  prepareItem(item);
   const r = fn(item, api);
   return { reveal() {}, answerText: () => null, destroy() {}, ...r };
+}
+
+// ---------- Aides au bon moment ----------
+const MIDI_USE = {
+  keys: 'joue la réponse directement sur ton clavier',
+  tap: 'tape le rythme sur n’importe quelle touche ou pad',
+  velocity: 'frappe tes touches : la force compte',
+  knob: 'tourne un potard ou la molette de ton contrôleur',
+  grid: 'tes pads jouent les sons de la grille',
+};
+/** Cet exercice peut se faire au clavier MIDI. */
+export const midiPlayable = (item) => !!MIDI_USE[item.t];
+/**
+ * Bandeau « 🎹 Clavier MIDI détecté » quand l'exercice peut se jouer au clavier (mis à jour si on branche en cours de route).
+ * Renvoie { node, destroy } ou null.
+ */
+export function midiBanner(item) {
+  if (!midiPlayable(item) || !midiSupported()) return null;
+  const node = el('div.midi-banner', { role: 'status' });
+  const short = (n = '') => n.replace(/\s*\(.*\)\s*/g, '').replace(/^(\d+-\s*)/, '').slice(0, 22) || 'clavier MIDI';
+  const paint = (st = midiStatus()) => {
+    const on = st.state === 'connected';
+    node.hidden = !on;
+    if (on) node.replaceChildren(el('span.mb-ico', { 'aria-hidden': 'true' }, '🎹'), el('span', el('b', 'Clavier MIDI détecté'), ` · ${short(st.devices?.[0])} — ${MIDI_USE[item.t]}.`));
+  };
+  const off = onMidiStatus(paint);
+  paint();
+  return { node, destroy: () => { if (typeof off === 'function') off(); } };
 }
 

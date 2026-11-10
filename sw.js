@@ -1,11 +1,11 @@
 // Service worker : app utilisable hors-ligne (stale-while-revalidate sur les fichiers de l'app).
-const CACHE = 'beatforge-v33';
+const CACHE = 'beatforge-v34';
 // Module de compte (Firebase, versionné dans l'URL) : gardé en cache pour retrouver sa session hors-ligne
 const SDK_CACHE = 'beatforge-sdk-10.12.2';
 const SHELL = [
   './src/views/learn.js', './src/views/lesson.js', './src/core/course.js', './src/core/coursegen.js', './src/core/coursemerge.js',
   './src/data/course.js', './src/data/coursekit.js', './src/data/course-more.js', './src/data/course-p1.js', './src/data/course-p2.js', './src/data/course-p3.js', './src/data/course-p4.js', './src/data/ableton.js',
-  './src/learn/kit.js', './src/learn/exercises.js', './src/learn/livemock.js',
+  './src/learn/kit.js', './src/learn/exercises.js', './src/learn/livemock.js', './src/learn/jam.js', './src/learn/level.js', './src/learn/scenes.js',
   './src/core/demosong.js',
   './src/data/demos.js',
   './src/demoplayer.js',
@@ -82,14 +82,14 @@ async function maybeRemind() {
   if (now.getHours() * 60 + now.getMinutes() < h * 60 + (m || 0)) return;
   if (d.notified === today) return;
   if (d.day === today && (d.practiced || !d.message)) return;
-  const msg = d.day === today ? d.message : { title: '🎧 5 minutes de musique ?', body: 'Ta session express t’attend.', url: '#/home' };
+  const msg = d.day === today ? d.message : { title: '🎧 3 minutes de musique ?', body: 'Ta prochaine leçon t’attend sur le parcours.', url: '#/learn' };
   await self.registration.showNotification(msg.title, { body: msg.body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'bf-reminder', data: { url: msg.url } });
   await kv('readwrite', (st) => st.put({ ...d, notified: today }, 'reminder'));
 }
 self.addEventListener('periodicsync', (e) => { if (e.tag === 'bf-reminder') e.waitUntil(maybeRemind()); });
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const url = new URL(e.notification.data?.url || '#/home', self.registration.scope).href;
+  const url = new URL(e.notification.data?.url || '#/learn', self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
     const c = list[0];
     if (c) { c.navigate(url); return c.focus(); }

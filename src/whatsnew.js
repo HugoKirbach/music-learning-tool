@@ -2,8 +2,23 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '4.0';
+export const APP_VERSION = '4.1';
 export const CHANGELOG = [
+  {
+    version: '4.1', date: 'novembre 2026', items: [
+      ['🎵', 'Tes réponses construisent un morceau', 'chaque bonne réponse ajoute une piste (kick, hats, clap, basse, accords, mélodie), une erreur en retire une. À la fin de la leçon, tu écoutes le morceau que tu as gagné. Un morceau différent par partie du parcours.'],
+      ['🤖', 'Bip réagit', 'la mascotte fête tes séries, sourit ou fait la moue dans le bandeau vert ou rouge, et te parle en haut du parcours.'],
+      ['🌍', 'Un univers par partie', 'le studio, l’écran de Live, la salle d’écriture, le rack de synthés puis le club : chaque partie a son décor, avec un léger effet de profondeur au défilement.'],
+      ['〰️', 'Schémas animés', 'dans les fiches, l’onde oscille, le filtre s’ouvre et l’enveloppe se dessine au rythme de la note. « Voir et entendre » joue le son en même temps.'],
+      ['🔓', 'Déblocage animé', 'le trait du chemin se trace jusqu’à la leçon suivante et le cadenas saute ; l’XP de fin de leçon défile.'],
+      ['🎯', 'Aujourd’hui, en haut du parcours', 'anneau d’objectif du jour, série en cours et révisions dues. Les leçons où tu as hésité reviennent après 1, 3, 7 puis 14 jours.'],
+      ['📌', 'En-tête d’unité collant', 'en faisant défiler le chemin, l’unité en cours reste visible en haut, avec son bouton Guide.'],
+      ['🖥️', 'Leçons sur deux colonnes (PC)', 'la consigne et l’explication à gauche, le grand exercice à droite (maquette de Live, piano roll, synthé). Rappel des touches 1 à 4, Espace et Entrée.'],
+      ['🎹', 'Clavier MIDI détecté', 'un bandeau te prévient quand un exercice peut se jouer sur ton clavier.'],
+      ['🔊', 'Volume égalisé', 'tous les sons des exercices sont ramenés au même niveau (Réglages › Général pour le couper).'],
+      ['🧩', 'Extras', 'le parcours est l’écran principal. Jeux, ateliers libres et carnet sont réunis dans l’onglet Extras : optionnels, quand tu veux.'],
+    ],
+  },
   {
     version: '4.0', date: 'novembre 2026', items: [
       ['🎓', 'Le Parcours, nouveau cœur de l’app', 'un chemin façon Duolingo en 18 unités et 5 parties : rythme, clavier, MIDI, Ableton Live, gammes, accords, mélodies, synthé à la main, effets, arrangement, mixage et export. Des leçons de 3 à 5 minutes, de plus en plus poussées.'],
@@ -84,9 +99,9 @@ export const CHANGELOG = [
 ];
 
 const TOUR = [
-  { route: '#/learn', title: '🎓 Ton parcours', text: 'Le cœur de l’app : un chemin de leçons courtes, des bases du rythme jusqu’au morceau exporté depuis Ableton Live. Touche le prochain rond pour commencer.' },
-  { route: '#/learn', title: '📖 Guides et ⏩ sauts', text: 'Chaque unité a son guide (l’essentiel à retenir) ; si tu connais déjà, « Sauter ici » te fait passer un test pour aller plus loin.' },
-  { route: '#/home', title: '⚡ Entraînement libre', text: 'L’ancien accueil : session express, prochaine étape et accès direct aux jeux ou à ton idée.' },
+  { route: '#/learn', title: '🎓 Ton parcours', text: 'Le cœur de l’app. En haut, ta journée : objectif du jour, série et révisions dues. En dessous, le chemin : touche le prochain rond pour commencer.' },
+  { route: '#/learn', title: '🎵 Un morceau par leçon', text: 'Chaque bonne réponse ajoute une piste à ton morceau, que tu écoutes à la fin. Chaque unité a son guide ; « Sauter ici » te fait passer un test pour aller plus loin.' },
+  { route: '#/home', title: '🧩 Extras', text: 'Tout ce qui est en plus du parcours, optionnel : jeux, ateliers libres, carnet d’idées et session express.' },
   { route: '#/play', title: '🎮 Jouer', text: 'Tous les jeux au même endroit : Nuit au club avec ou sans le son, Piano Rush, Pad Rush, oreille et révisions.' },
   { route: '#/club?silent=1', title: '🔇 Sans le son', text: 'Des mini-jeux 100 % visuels pour progresser là où tu ne peux pas mettre le son : grilles, accords, calcul, structure, réglages.' },
   { route: '#/create', title: '🎛️ Créer', text: 'Ton idée en cours, puis les ateliers rangés : écrire, son & mix, développer, et tout ce qui se finit dans ton studio.' },

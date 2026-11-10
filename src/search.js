@@ -1,7 +1,7 @@
 // Recherche rapide (Ctrl+K, « / » ou 🔍) : parcours (unités, leçons), écrans, styles, missions studio, niveaux de jeux et réglages.
 import { el, modal } from './ui.js';
 import { getState } from './store.js';
-import { TABS, SCREENS, screenById } from './catalog.js';
+import { HUBS, SCREENS, screenById } from './catalog.js';
 import { search } from './core/search.js';
 
 const SETTINGS = [
@@ -23,8 +23,8 @@ async function buildIndex() {
     // Le parcours : unités et leçons (une leçon encore verrouillée mène à son unité)
     ...UNITS.map((u, i) => ({ name: `Unité ${i + 1} : ${u.title}`, emoji: u.emoji, desc: u.goal, keys: `parcours unité leçon ${u.guide.map((g) => g[0]).join(' ')}`, href: `#/learn?u=${u.id}`, group: 'Parcours', boost: 3 })),
     ...course.NODES.filter((n) => n.type === 'lesson').map((n) => ({ name: n.title, emoji: n.icon, desc: `Leçon · unité ${n.ui + 1} : ${UNITS[n.ui].title}${states[n.id] === 'locked' ? ' (verrouillée)' : ''}`, keys: 'leçon parcours apprendre', href: states[n.id] === 'locked' ? `#/learn?u=${n.unit}` : `#/lesson?id=${n.id}`, group: 'Leçon', boost: 2 })),
-    ...TABS.map((t) => ({ name: t.label, emoji: t.icon, href: '#/' + t.id, group: 'Onglet', boost: 6 })),
-    ...SCREENS.filter((x) => !TABS.some((t) => t.id === x.id)).map((x) => ({ ...x, group: x.desc ? 'Atelier' : 'Écran', boost: 4 })),
+    ...HUBS.map((t) => ({ name: t.label, emoji: t.icon, href: '#/' + t.id, group: 'Onglet', boost: 6 })),
+    ...SCREENS.filter((x) => !HUBS.some((t) => t.id === x.id)).map((x) => ({ ...x, group: x.desc ? 'Atelier' : 'Écran', boost: 4 })),
     { name: 'Jeux sans le son', emoji: '🔇', href: '#/club?silent=1', desc: 'Nuit au club en mode silencieux', keys: 'silencieux muet métro', group: 'Jeu', boost: 4 },
     { name: 'Dé à idées', emoji: '🎲', href: '#/studio?dice=1', desc: 'Une contrainte au hasard', keys: 'inspiration hasard', group: 'Studio', boost: 3 },
     ...SETTINGS.map(([id, emoji, name, keys]) => ({ name, emoji, keys, href: `#/settings?sec=${id}`, group: 'Réglage', boost: 2 })),

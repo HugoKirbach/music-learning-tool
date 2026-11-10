@@ -6,7 +6,7 @@ const unlockTo = (page, id) => page.evaluate(async (stop) => {
   const c = await import('/src/core/course.js');
   const done = {};
   for (const n of c.NODES) { if (n.id === stop) break; if (c.isRequired(n)) done[n.id] = { d: '2026-11-01', n: 1, best: 90 }; }
-  m.update((s) => { s.course = { done }; s.settings.seenVersion = '4.0'; });
+  m.update((s) => { s.course = { done }; s.settings.seenVersion = '4.1'; });
 }, id);
 
 const item = (page) => page.evaluate(() => window.__bfLesson?.item() || null);
@@ -252,5 +252,154 @@ export const tests = {
     for (let i = 0; i < 6; i++) { xs.push(await page.locator('.pnode-wrap.current .pn-bubble').evaluate((b) => { const r = b.getBoundingClientRect(); return Math.round(r.left + r.width / 2); })); await page.waitForTimeout(150); }
     const nodeX = await page.locator('.pnode-wrap.current .pnode').evaluate((b) => { const r = b.getBoundingClientRect(); return Math.round(r.left + r.width / 2); });
     t.assert.ok(xs.every((x) => Math.abs(x - nodeX) <= 2), `bulle décentrée : ${xs} / nœud ${nodeX}`);
+  },
+
+  'parcours 4.1 : aujourd’hui (objectif, série, révisions), décors par partie et en-tête d’unité collant': async (t) => {
+    const page = await t.open({ route: '#/learn' });
+    await unlockTo(page, 'u2-l3');
+    const day = (off) => { const d = new Date(Date.now() - off * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    await page.store(`s.course.miss = { 'u1-l1': 3, 'u1-l2': 2, 'u1-l3': 1 }; s.streak = { count: 4, last: '${day(1)}' }; s.days['${day(0)}'] = { xp: 60, sessions: 0, exercises: 2 }; s.settings.dailyGoal = 150;`);
+    await page.go('#/learn', 500);
+    t.assert.match(await page.locator('.lh-tile.goal').innerText(), /Objectif du jour\s*60 \/ 150 XP/);
+    t.assert.match(await page.locator('.lh-tile.goal .lring text').textContent(), /40%/);
+    t.assert.match(await page.locator('.lh-tile.streak').innerText(), /4 jours/);
+    t.assert.match(await page.locator('.lh-tile.review.due').innerText(), /Révisions dues\s*2 notions/, 'les leçons avec 2 erreurs ou plus sont dues');
+    t.assert.equal(await page.locator('.lh-mascot .mascot').count(), 1);
+    // Un univers par partie : 5 décors en deux plans
+    t.assert.equal(await page.locator('section.part').count(), 5);
+    t.assert.equal(await page.locator('.part-bg').evaluateAll((l) => l.filter((n) => getComputedStyle(n).backgroundImage.startsWith('url("data:image/svg+xml')).length), 10);
+    t.assert.match(await page.locator('.part-4 .part-head').innerText(), /RACK DE SYNTHÉS/);
+    // En-tête collant : absent en haut, présent une fois le bandeau de l'unité passé, avec le Guide
+    t.assert.equal(await page.locator('.unit-sticky.show').count(), 0);
+    await page.evaluate(() => { document.getElementById('unit-u2').scrollIntoView({ block: 'start' }); window.scrollBy(0, 320); });
+    await page.waitForTimeout(400);
+    t.assert.match(await page.locator('.unit-sticky.show').innerText(), /UNITÉ 2[\s\S]*Le clavier[\s\S]*Guide/);
+    const box = await page.locator('.unit-sticky.show').boundingBox();
+    t.assert.ok(box.y >= 50 && box.y < 80, `collé sous la barre du haut (${box.y})`);
+    t.assert.notEqual(await page.locator('.learn').evaluate((n) => n.style.getPropertyValue('--sy')), '0', 'le décor suit le défilement');
+    await page.locator('.unit-sticky .ub-btn').click();
+    t.assert.match(await page.locator('.modal-card .guide').innerText(), /UNITÉ 2 · GUIDE/);
+    await page.keyboard.press('Escape');
+    // Révisions dues → entraînement ; une fois fait, les leçons révisées ne sont plus dues
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator('.lh-tile.review').click(); await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/lesson\?practice=1/);
+    await playLesson(page, t);
+    const c = (await page.state()).course;
+    t.assert.equal(c.rev['u1-l1'].n, 1);
+    t.assert.equal(c.miss['u1-l1'], 1, 'erreurs divisées par deux après la révision');
+    await page.locator('.lesson-end a', { hasText: 'Continuer' }).click(); await page.waitForTimeout(400);
+    t.assert.equal(await page.locator('.lh-tile.review.due').count(), 0);
+    // Navigation : le parcours d'abord, le reste dans Extras
+    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Apprendre', 'Extras', 'Profil', 'Rechercher', 'Raccourcis']);
+    await page.locator('.learn-extras').click(); await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/home$/);
+    t.assert.deepEqual(await page.locator('.extras-hub b').allInnerTexts(), ['Jeux', 'Ateliers', 'Carnet']);
+  },
+
+  'parcours 4.1 : le morceau se construit, Bip réagit, XP qui défile, déblocage animé': async (t) => {
+    const page = await t.open({ route: '#/learn' });
+    await page.go('#/lesson?id=u1-l1');
+    const leds = () => page.locator('.lp-jam i.on').count();
+    t.assert.equal(await page.locator('.lp-jam i').count(), 6);
+    let good = 0, wronged = false, max = 0;
+    for (let k = 0; k < 80 && !(await page.locator('.lesson-end').count()); k++) {
+      const it = await item(page);
+      if (!it) { await footBtn(page).click(); await page.waitForTimeout(100); continue; }
+      const wrong = !wronged && good >= 1 && ['mcq', 'number'].includes(it.t);
+      const r = await answer(page, it, { wrong });
+      if (r === 'checked' || r === 'self') {
+        await page.waitForSelector('.lesson-foot.good, .lesson-foot.bad', { timeout: 3000 });
+        if (wrong) {
+          wronged = true;
+          t.assert.equal(await leds(), Math.min(6, good) - 1, 'une erreur retire une piste');
+          t.assert.equal(await page.locator('.lf-bip .mascot.mood-sad').count(), 1, 'Bip déçu dans le bandeau rouge');
+          t.assert.match(await page.locator('.lf-jam').innerText(), /quitte ton morceau/);
+          good = Math.min(6, good) - 1;
+        } else {
+          good = Math.min(6, good + 1);
+          max = Math.max(max, good);
+          t.assert.equal(await leds(), good, `une piste de plus (${good})`);
+          t.assert.equal(await page.locator('.lf-bip .mascot.mood-happy, .lf-bip .mascot.mood-party').count(), 1, 'Bip content dans le bandeau vert');
+        }
+      }
+      await page.waitForTimeout(80);
+    }
+    t.assert.ok(wronged && max >= 1, `erreur ${wronged}, pistes ${max}`);
+    // Écran de fin : le morceau gagné, l'XP qui défile jusqu'à sa valeur
+    t.assert.equal(await page.locator('.le-track .lt-chip.on').count(), Math.max(1, good));
+    t.assert.equal(await page.locator('.le-track .lt-chip').count(), 6);
+    t.assert.ok(await page.locator('.le-track.playing').count(), 'le morceau gagné joue');
+    await page.waitForTimeout(1700);
+    const xp = (await page.state()).log.find((e) => e.key === 'course:lesson').xp;
+    t.assert.equal(await page.locator('.le-tile.xp b').innerText(), `+${xp}`);
+    await page.locator('.lt-play').click(); await page.waitForTimeout(200);
+    t.assert.equal(await page.locator('.le-track.playing').count(), 0, 'Stop coupe le morceau');
+    // Retour au parcours : le trait se trace, le cadenas saute sur la leçon suivante
+    await page.locator('.lesson-end a', { hasText: 'Continuer' }).click(); await page.waitForTimeout(300);
+    t.assert.match(page.url(), /done=u1-l1&new=1/);
+    t.assert.equal(await page.locator('.upath-svg path.trace').count(), 1);
+    t.assert.equal(await page.locator('.pnode.unlocking[data-node="u1-l2"] .pn-lock').count(), 1);
+    await page.waitForTimeout(2200);
+    t.assert.equal(await page.locator('.pnode[data-node="u1-l2"] .pn-lock').evaluate((n) => getComputedStyle(n).opacity), '0', 'cadenas parti');
+    t.assert.equal(await page.locator('.upath-svg path.trace').evaluate((n) => getComputedStyle(n).strokeDashoffset), '0px', 'trait tracé');
+    // Rejouer une leçon déjà faite ne rejoue pas le déblocage
+    await page.go('#/learn?done=u1-l1');
+    t.assert.equal(await page.locator('.pnode.unlocking').count(), 0);
+  },
+
+  'parcours 4.1 : deux colonnes et rappel des touches sur PC, bandeau MIDI, schémas animés, volume égalisé': async (t) => {
+    const page = await t.open({ route: '#/learn', midi: true });
+    await unlockTo(page, 'u18-cp');
+    const until = async (pred) => { for (let k = 0; k < 30; k++) { const it = await item(page); if (it && pred(it)) return it; if (!it) await footBtn(page).click(); else await answer(page, it); await page.waitForTimeout(100); } return null; };
+    // Maquette de Live : consigne à gauche, exercice à droite
+    await page.go('#/lesson?id=u4-l1');
+    t.assert.ok(await until((it) => it.t === 'live'));
+    const head = await page.locator('.ex.two > .ex-head').boundingBox(), content = await page.locator('.ex.two > .ex-content').boundingBox();
+    t.assert.ok(head.x + head.width <= content.x && Math.abs(head.y - content.y) < 40, `consigne à gauche de l'exercice (${JSON.stringify([head, content])})`);
+    t.assert.ok(content.width > head.width * 1.5, 'la grande colonne est pour l’exercice');
+    t.assert.match(await page.locator('.lf-hint').innerText(), /Entrée\s*vérifier/);
+    await answer(page, await item(page));
+    await page.waitForSelector('.lesson-foot.good');
+    t.assert.ok(await page.locator('.ex.two .ex-explain.good').isVisible(), 'explication à gauche, à côté de l’exercice');
+    t.assert.equal(await page.locator('.lf-hint').isVisible(), false, 'le rappel des touches s’efface pendant le retour');
+    // QCM : rappel 1 à N + Entrée, et les chiffres choisissent
+    await footBtn(page).click();
+    const q = await until((it) => it.t === 'mcq');
+    t.assert.match(await page.locator('.lf-hint').innerText(), new RegExp(`1\\s*–\\s*${q.choices.length}\\s*choisir[\\s\\S]*Entrée\\s*vérifier`));
+    await page.keyboard.press(`Digit${q.a + 1}`); await page.keyboard.press('Enter');
+    await page.waitForSelector('.lesson-foot.good');
+    // Exercice au clavier : bandeau « Clavier MIDI détecté » (et pas sur un QCM)
+    t.assert.equal(await page.locator('.midi-banner').count(), 0);
+    await page.go('#/lesson?id=u2-l1');
+    t.assert.ok(await until((it) => it.t === 'keys'));
+    t.assert.match(await page.locator('.midi-banner').innerText(), /Clavier MIDI détecté/);
+    await page.evaluate(() => window.__unplug()); await page.waitForTimeout(200);
+    t.assert.equal(await page.locator('.midi-banner').isVisible(), false, 'le bandeau disparaît si on débranche');
+    await page.evaluate(() => window.__plug()); await page.waitForTimeout(200);
+    t.assert.ok(await page.locator('.midi-banner').isVisible());
+    // Fiches : schémas animés (l'onde bouge, l'enveloppe se dessine), fixes dans les exercices
+    await page.go('#/lesson?id=u10-l1');
+    const d1 = await page.locator('.ex-card .lvis.live .lsvg path.stroke').first().getAttribute('d');
+    await page.waitForTimeout(400);
+    t.assert.notEqual(await page.locator('.ex-card .lvis.live .lsvg path.stroke').first().getAttribute('d'), d1, 'l’onde oscille');
+    await page.go('#/lesson?id=u12-l1');
+    const w1 = await page.locator('.ex-card .lsvg clipPath rect').getAttribute('width');
+    await page.waitForTimeout(400);
+    t.assert.notEqual(await page.locator('.ex-card .lsvg clipPath rect').getAttribute('width'), w1, 'l’enveloppe se dessine');
+    await page.locator('.vis-play').click(); await page.waitForTimeout(150);
+    t.assert.ok(Number(await page.locator('.ex-card .lsvg clipPath rect').getAttribute('width')) < 80, '« Voir et entendre » repart du début de la note');
+    // Volume égalisé : un son faible est remonté, un son fort baissé ; coupé dans les réglages → gain 1
+    const lv = await page.evaluate(async () => {
+      const kit = await import('/src/learn/kit.js'); const level = await import('/src/learn/level.js'); const store = await import('/src/store.js');
+      const quiet = { k: 'synth', preset: 'supersaw', notes: [[57, 0, 1]] }, loud = { k: 'synth', preset: 'acid', notes: [[45, 0, 1]] };
+      kit.prepareSpec(quiet); kit.prepareSpec(loud);
+      await new Promise((r) => setTimeout(r, 1500));
+      const on = [level.levelOf(quiet), level.levelOf(loud)];
+      store.update((s) => { s.settings.leveling = false; });
+      return { on, off: level.levelOf(quiet) };
+    });
+    t.assert.ok(lv.on[0] > 1.2 && lv.on[1] < 1 && lv.on[0] > lv.on[1] + 0.5, `gains ${lv.on}`);
+    t.assert.equal(lv.off, 1);
   },
 };

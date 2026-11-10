@@ -52,6 +52,7 @@ export function render(root) {
     .sort((a, b) => a.minLevel - b.minLevel);
 
   root.append(
+    el('a.hub-back', { href: '#/home' }, '‹ Extras'),
     el('div.hub-head', header('🎛️ Créer', 'Écris, façonne le son, développe… puis continue dans Live, Serum ou sur le MPC.', null),
       el('button.btn.hub-search', { type: 'button', onclick: () => openSearch(), 'aria-label': 'Rechercher un atelier, un style ou une mission' }, '🔍')),
     idea,

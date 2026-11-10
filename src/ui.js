@@ -3,7 +3,7 @@ import { recordExercise, getState } from './store.js';
 import { titleFor, hintsByDefault, levelFromXp } from './core/progress.js';
 import { buildMidi } from './core/midi.js';
 import { ensureAudio } from './core/audio.js';
-import { tabOf } from './catalog.js';
+import { hubOf } from './catalog.js';
 
 // append / prepend / replaceChildren natifs affichent « null » : on ignore null/false pour écrire `cond ? node : null`.
 for (const m of ['append', 'prepend', 'replaceChildren']) {
@@ -249,9 +249,8 @@ export function card(...children) {
 export function header(title, sub, back) {
   if (back === undefined) {
     const id = (location.hash.slice(2) || 'learn').split('?')[0];
-    const tab = tabOf(id);
-    // Programme, révisions, écoute : ils viennent de l'Entraînement libre (l'ancien accueil)
-    back = tab === 'learn' && !['learn', 'lesson', 'home'].includes(id) ? '#/home' : '#/' + tab;
+    // Retour vers la page-carrefour de l'écran (Jouer, Créer, Profil, Extras…)
+    back = '#/' + hubOf(id);
   }
   return el('div.page-head',
     back ? el('a.back', { href: back, 'aria-label': 'Retour' }, '‹') : null,

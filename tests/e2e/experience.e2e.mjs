@@ -78,7 +78,7 @@ export const tests = {
     await page.go('#/settings', 600);
     await page.locator('text=Quoi de neuf ? / visite').scrollIntoViewIfNeeded();
     await page.tap('text=Quoi de neuf ? / visite'); await page.waitForTimeout(400);
-    t.assert.ok(await page.locator('.modal-card summary:has-text("Version 2.")').count(), 'nouveautés précédentes repliées');
+    t.assert.ok(await page.locator('.modal-card summary:has-text("Version 4.0")').count(), 'nouveautés précédentes repliées');
     await page.tap('text=🧭 Visite guidée');
     const seen = [];
     for (let i = 0; i < 10; i++) {

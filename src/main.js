@@ -6,7 +6,7 @@ import { transport, ensureAudio, setVolume, playSynth, now } from './core/audio.
 import { autoEnableMidi, enableMidi, onMidiActivity, midiStatus, midiStatusText, onMidiStatus, onDeviceChange, setMidiFallback, midiSupported } from './midiin.js';
 import { presetParams } from './player.js';
 import { mountMiniPlayer, MINI_ROUTES } from './miniplayer.js';
-import { pushRecent, TABS, tabOf, screenById } from './catalog.js';
+import { pushRecent, TABS, HUBS, tabOf, screenById } from './catalog.js';
 import { cloudWanted, startCloud, onCloud, cloudStatus } from './cloud.js';
 import { applyAudioMode } from './audiomode.js';
 import { applyPrefs } from './prefs.js';
@@ -194,7 +194,7 @@ async function route() {
   paintMini();
   if (getState().recent?.[0] !== id && pushRecent([], id).length) update((s) => { s.recent = pushRecent(s.recent, id); });
   renderNav(id);
-  const label = TABS.find((x) => x.id === id)?.label || screenById(id)?.name;
+  const label = HUBS.find((x) => x.id === id)?.label || screenById(id)?.name;
   document.title = label && id !== 'learn' ? `${label} · BeatForge` : 'BeatForge';
   let mod;
   try {
@@ -224,7 +224,7 @@ function onboarding() {
     el('ol.onboard-steps',
       el('li', el('b', '🎓 Apprendre'), ' — des leçons de 3 à 5 minutes, de plus en plus poussées : clavier, MIDI, Live, accords, synthé, mix.'),
       el('li', el('b', '🎛️ Pratiquer'), ' — chaque unité t’envoie dans un atelier de l’app et te donne une mission à faire dans Live.'),
-      el('li', el('b', '🎮 Jouer'), ' — les jeux et ateliers libres restent là pour t’entraîner quand tu veux.'),
+      el('li', el('b', '🧩 Extras'), ' — jeux, ateliers libres et carnet d’idées : optionnels, en plus du parcours, quand tu veux.'),
     ),
     el('p', el('b', 'Tu en es où ?')),
     segmented([

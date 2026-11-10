@@ -230,3 +230,24 @@ test('synchro : la progression du parcours fusionne sans rien perdre', () => {
   const remote = { xp: 80, updatedAt: 2, days: { y: {} }, course: b };
   assert.ok(mergeStates(local, remote).course.done['u1-l2'], 'mergeStates garde le parcours des deux appareils');
 });
+
+test('révisions du parcours : dues après 1, 3, 7, 14 jours, allégées par l’entraînement, fusionnées sans retour en arrière', async () => {
+  const { dueLessons, markPracticed } = await import('../src/core/course.js');
+  const done = { 'u1-l1': { d: '2026-11-01', n: 1, best: 80 }, 'u1-l2': { d: '2026-11-01', n: 1, best: 100 }, 'u1-l3': { d: '2026-11-01', n: 1, best: 90 } };
+  let c = { done, miss: { 'u1-l1': 4, 'u1-l2': 1, 'u1-l3': 2, 'u2-l1': 9 } };
+  assert.deepEqual(dueLessons(c, '2026-11-01'), [], 'pas le jour même');
+  assert.deepEqual(dueLessons(c, '2026-11-02'), ['u1-l1', 'u1-l3'], 'au moins 2 erreurs, leçon faite');
+  c = markPracticed(c, ['u1-l1', 'u1-l3'], '2026-11-02');
+  assert.deepEqual([c.miss['u1-l1'], c.miss['u1-l3'], c.rev['u1-l1']], [2, 1, { d: '2026-11-02', n: 1 }]);
+  assert.deepEqual(dueLessons(c, '2026-11-04'), [], '3 jours après la 1re révision');
+  assert.deepEqual(dueLessons(c, '2026-11-05'), ['u1-l1']);
+  const again = markPracticed(c, ['u1-l1'], '2026-11-02');
+  assert.equal(again.rev['u1-l1'].n, 1, 'deux entraînements le même jour comptent pour une révision');
+  // Synchro : un vieil état (erreurs plus nombreuses, pas de révision) ne ramène pas le compteur
+  const old = { done, miss: { 'u1-l1': 4, 'u1-l3': 2 } };
+  for (const m of [mergeCourse(old, c), mergeCourse(c, old)]) {
+    assert.equal(m.miss['u1-l1'], 2);
+    assert.deepEqual(m.rev['u1-l1'], { d: '2026-11-02', n: 1 });
+  }
+  assert.equal(buildPractice({ done }, 3).lessons.length, 3);
+});

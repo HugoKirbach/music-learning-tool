@@ -56,6 +56,7 @@ export function render(root) {
     el('div.home-tiles', bySec(sec.id).map((x) => htile(x.href, x.emoji, x.name, detail[x.id] || x.desc)), extra));
 
   root.append(
+    el('a.hub-back', { href: '#/home' }, '‹ Extras'),
     el('div.hub-head', header('🎮 Jouer', 'Des jeux courts pour l’oreille, le rythme et la théorie. Parfaits sur téléphone.', null),
       el('button.btn.hub-search', { type: 'button', onclick: () => openSearch(), 'aria-label': 'Rechercher un jeu ou un atelier' }, '🔍')),
     clubCard,

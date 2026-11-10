@@ -197,13 +197,17 @@ export function render(root, params) {
   const cu = cp.current ? UNITS[cp.current.ui] : null;
   const courseBanner = el('div.home-course', { style: cu ? { '--uc': cu.color } : null },
     el('span', { style: { fontSize: '30px' }, 'aria-hidden': 'true' }, '🎓'),
-    el('div', el('b', cp.current ? `Parcours : unité ${cp.current.ui + 1} · ${cu.title}` : 'Parcours terminé 🎉'), el('p.small.muted', `${cp.done}/${cp.total} leçons et contrôles · ${cp.pct} %`)),
+    el('div', el('b', cp.current ? `Le parcours d’abord : unité ${cp.current.ui + 1} · ${cu.title}` : 'Parcours terminé 🎉'), el('p.small.muted', `${cp.done}/${cp.total} leçons et contrôles · ${cp.pct} %`)),
     el('a.btn3d.primary', { href: cp.current ? `#/lesson?id=${cp.current.id}` : '#/learn' }, cp.current ? '▶ Leçon' : 'Voir'));
   root.append(
     el('div.hero.home-hero',
-      el('div', el('h1', `${hello} 👋`), el('p.sub', `Entraînement libre · niveau ${lv} · ${titleFor(lv)} — série de ${plural(s.streak.count || 0, 'jour')}`)),
+      el('div', el('h1', '🧩 Extras'), el('p.sub', phone ? `En plus du parcours, quand tu veux · niveau ${lv}` : `${hello} ! Tout ce qui est en plus du parcours : optionnel, à picorer quand tu veux · niveau ${lv} · ${titleFor(lv)}`)),
       el('button.btn.hub-search', { type: 'button', onclick: () => openSearch(), 'aria-label': 'Rechercher un jeu, un atelier, un style…' }, '🔍')),
     courseBanner,
+    el('nav.extras-hub', { 'aria-label': 'Les extras' },
+      el('a', { href: '#/play' }, el('span', { 'aria-hidden': 'true' }, '🎮'), el('b', 'Jeux'), el('small', 'Club, Piano Rush, Pad Rush, oreille')),
+      el('a', { href: '#/create' }, el('span', { 'aria-hidden': 'true' }, '🎛️'), el('b', 'Ateliers'), el('small', 'Beat, accords, mélodie, synthé')),
+      el('a', { href: '#/notebook' }, el('span', { 'aria-hidden': 'true' }, '📓'), el('b', 'Carnet'), el('small', 'Tes idées gardées'))),
     // Téléphone : les jeux d'abord (accessibles sans défiler) ; PC : la session et le studio d'abord
     ...(phone
       ? [playSection, todaySection, captureCard, createSection, resume, day]

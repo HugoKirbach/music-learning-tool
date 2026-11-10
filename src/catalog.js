@@ -1,17 +1,30 @@
 // Catalogue des écrans : onglets de la navigation, rubriques des pages Jouer et Créer, libellés,
 // bouton retour de chaque écran et historique « Reprendre où j'en étais ».
 
-/** Onglets de la barre de navigation. `also` : écrans rattachés (onglet allumé + bouton retour vers l'onglet). */
+/**
+ * Onglets de la barre de navigation : l'app tourne autour du parcours (Apprendre). Tout le reste (jeux, ateliers,
+ * carnet, session express) est rangé dans « Extras » : optionnel, en plus du parcours.
+ */
 export const TABS = [
-  { id: 'learn', icon: '🎓', label: 'Apprendre', also: ['lesson', 'home', 'program', 'review', 'listen'] },
+  { id: 'learn', icon: '🎓', label: 'Apprendre', hubs: ['learn'] },
+  { id: 'home', icon: '🧩', label: 'Extras', hubs: ['home', 'play', 'create', 'notebook'] },
+  { id: 'profile', icon: '👤', label: 'Profil', hubs: ['profile'] },
+];
+
+/** Pages-carrefours. `also` : écrans rattachés (bouton retour vers le carrefour). */
+export const HUBS = [
+  { id: 'learn', icon: '🎓', label: 'Apprendre', also: ['lesson'] },
+  { id: 'home', icon: '🧩', label: 'Extras', also: ['program', 'review', 'listen'] },
   { id: 'play', icon: '🎮', label: 'Jouer', also: ['rush', 'pads', 'club', 'ear', 'callresponse'] },
   { id: 'create', icon: '🎛️', label: 'Créer', also: ['labs', 'beat', 'chords', 'melody', 'basslab', 'hum', 'synth', 'mixdown', 'arrange', 'remix', 'critique', 'atlas', 'studio', 'path', 'project', 'challenge', 'tools'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
   { id: 'profile', icon: '👤', label: 'Profil', also: ['progress', 'skills', 'bilan', 'collection', 'friends', 'placement', 'settings', 'latency'] },
 ];
 
-/** Onglet auquel appartient un écran. */
-export const tabOf = (id) => TABS.find((t) => t.id === id || t.also?.includes(id))?.id || 'learn';
+/** Page-carrefour à laquelle appartient un écran (Jouer, Créer, Extras, Profil…). */
+export const hubOf = (id) => HUBS.find((t) => t.id === id || t.also?.includes(id))?.id || 'learn';
+/** Onglet allumé dans la barre de navigation pour un écran. */
+export const tabOf = (id) => { const h = hubOf(id); return TABS.find((t) => t.hubs.includes(h))?.id || 'learn'; };
 
 /** Rubriques des pages Jouer et Créer. */
 export const SECTIONS = [
@@ -46,7 +59,7 @@ export const SCREENS = [
   { id: 'atlas', sec: 'studio', href: '#/atlas', emoji: '🗺️', name: 'Atlas des styles', desc: 'Ingrédients, maquettes, références.', keys: 'styles genres house techno trance' },
   // Écrans hors rubriques (recherche et « Reprendre »)
   { id: 'learn', href: '#/learn', emoji: '🎓', name: 'Parcours : apprendre pas à pas', keys: 'apprendre parcours leçons duolingo cours ableton live synthé clavier midi débutant unités' },
-  { id: 'home', href: '#/home', emoji: '⚡', name: 'Entraînement libre (session express)', keys: 'accueil session express quêtes entraînement libre' },
+  { id: 'home', href: '#/home', emoji: '⚡', name: 'Extras : session express, jeux, ateliers', keys: 'accueil session express quêtes entraînement libre extras bonus' },
   { id: 'program', href: '#/program', emoji: '📅', name: 'Programme 4 semaines', keys: 'programme parcours débutant' },
   { id: 'placement', href: '#/placement', emoji: '🧪', name: 'Test de la semaine', keys: 'test niveau lundi' },
   { id: 'skills', href: '#/skills', emoji: '🌳', name: 'Arbre de compétences', keys: 'compétences' },

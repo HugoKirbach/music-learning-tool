@@ -5,7 +5,7 @@ import { getState, update } from './store.js';
 import { transport, ensureAudio } from './core/audio.js';
 
 export const NAV_KEYS = {
-  h: ['learn', 'Apprendre (parcours)'], l: ['home', 'Entraînement libre'], e: ['play', 'Jouer'], c: ['create', 'Créer'], s: ['home?start=1', 'Lancer une session express'],
+  h: ['learn', 'Apprendre (parcours)'], l: ['home', 'Extras (jeux, ateliers, session express)'], e: ['play', 'Jouer'], c: ['create', 'Créer'], s: ['home?start=1', 'Lancer une session express'],
   b: ['beat', 'Lab Beat'], a: ['chords', 'Lab Accords'], m: ['melody', 'Lab Mélodie'], g: ['basslab', 'Labo de basse'], y: ['synth', 'Lab Synthé'],
   o: ['ear', 'Quiz d’oreille'], r: ['arrange', 'Lab Arrangement'], j: ['rush', 'Piano Rush'], d: ['pads', 'Pad Rush'], n: ['club', 'Nuit au club'],
   t: ['skills', 'Arbre de compétences'], x: ['remix', 'Remix'], k: ['notebook', 'Carnet'], p: ['profile', 'Profil'],

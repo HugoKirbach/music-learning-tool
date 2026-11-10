@@ -1,11 +1,13 @@
 // 🎓 Apprendre : le parcours principal, façon Duolingo. Un chemin sinueux d'unités, chacune faite de leçons,
 // d'ateliers de l'app, d'une mission studio et d'un contrôle ; la suite se débloque au fur et à mesure.
 import { el, modal, toast, plural, showBadges } from '../ui.js';
-import { getState, update, recordExercise } from '../store.js';
+import { getState, update, recordExercise, today, dueReviews } from '../store.js';
 import { UNITS, PARTS } from '../data/course.js';
-import { NODES, nodeStates, unitStatus, courseProgress, courseOf, unitIndex, nodeById, isRequired, completeNode, bonusDone, xpFor, buildLesson } from '../core/course.js';
+import { NODES, nodeStates, unitStatus, courseProgress, courseOf, unitIndex, nodeById, isRequired, completeNode, bonusDone, xpFor, buildLesson, dueLessons } from '../core/course.js';
 import { mascot } from '../learn/kit.js';
 import { dayKey } from '../core/progress.js';
+import { streakAtRisk } from '../core/reminder.js';
+import { sceneFor } from '../learn/scenes.js';
 
 const ROW = 112;          // espacement vertical des nœuds
 const W = 300;            // largeur du chemin
@@ -44,14 +46,19 @@ function startBonus(n) {
   update((s) => { const c = courseOf(s); s.course = { ...c, started: { ...(c.started || {}), [n.id]: { ...(c.started?.[n.id] || {}), at: c.started?.[n.id]?.at || Date.now(), exports0: s.stats.exports || 0 } } }; });
 }
 
-/** Anneau de progression (SVG). */
-function ring(pct, size = 74) {
+/** Anneau d'objectif (SVG) : pct de 0 à 100, avec un texte au centre. */
+function ring(pct, label, size = 92) {
   const r = 30, c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(100, pct));
   const n = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  n.setAttribute('viewBox', '0 0 72 72'); n.setAttribute('width', size); n.setAttribute('height', size); n.setAttribute('class', 'lring');
-  n.innerHTML = `<circle cx="36" cy="36" r="${r}" class="lring-bg"/><circle cx="36" cy="36" r="${r}" class="lring-fg" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct / 100)}" transform="rotate(-90 36 36)"/><text x="36" y="41" text-anchor="middle">${pct}%</text>`;
+  n.setAttribute('viewBox', '0 0 72 72'); n.setAttribute('width', size); n.setAttribute('height', size); n.setAttribute('class', 'lring' + (p >= 100 ? ' full' : ''));
+  n.innerHTML = `<circle cx="36" cy="36" r="${r}" class="lring-bg"/><circle cx="36" cy="36" r="${r}" class="lring-fg" stroke-dasharray="${c}" stroke-dashoffset="${c}" transform="rotate(-90 36 36)"/><text x="36" y="${label.length > 3 ? 40 : 42}" text-anchor="middle" class="${label.length > 3 ? 'sm' : ''}">${label}</text>`;
+  // L'anneau se remplit à l'affichage
+  requestAnimationFrame(() => requestAnimationFrame(() => n.querySelector('.lring-fg')?.setAttribute('stroke-dashoffset', String(c * (1 - p / 100)))));
   return n;
 }
+
+let detach = null; // écouteurs de défilement de l'affichage en cours
 
 export function render(root, params = {}) {
   autoBonus();
@@ -65,40 +72,75 @@ export function render(root, params = {}) {
   let pop = null;
   const closePop = () => { pop?.remove(); pop = null; document.querySelectorAll('.pnode.active').forEach((x) => x.classList.remove('active')); };
 
-  // ---------- En-tête ----------
+  // ---------- En-tête : aujourd'hui (objectif, série, révisions) et la prochaine leçon ----------
   const hasDone = NODES.some((n) => n.type === 'lesson' && course.done?.[n.id]);
-  const hero = el('section.learn-hero',
+  const t = today();
+  const goal = s.settings.dailyGoal || 150;
+  const goalPct = Math.round((100 * Math.min(t.xp, goal)) / goal);
+  const streak = s.streak.count || 0;
+  const lit = s.streak.last === dayKey();
+  const risk = streakAtRisk(s);
+  const dueCourse = dueLessons(course, dayKey()).length;
+  const dueOther = dueReviews().length;
+  const due = dueCourse + dueOther;
+  // Bip réagit à ta journée
+  const mood = goalPct >= 100 ? 'party' : risk ? 'sleepy' : !prog.done ? 'wow' : 'happy';
+  const say = goalPct >= 100 ? 'Objectif du jour atteint ! 🎉'
+    : risk ? `Ta série de ${streak} jours t’attend : une leçon et elle continue.`
+      : !prog.done ? 'Salut, moi c’est Bip ! Ta première leçon dure 3 minutes.'
+        : t.xp ? `Encore ${goal - t.xp} XP pour ton objectif du jour.`
+          : due ? `${plural(due, 'révision')} t’attend${due > 1 ? 'ent' : ''}, et la suite du chemin aussi.` : 'Une leçon aujourd’hui ? 3 minutes suffisent.';
+  const reviewHref = dueCourse ? '#/lesson?practice=1' : dueOther ? '#/review' : hasDone ? '#/lesson?practice=1' : null;
+  const hero = el('section.learn-hero', { 'aria-label': 'Aujourd’hui' },
     el('div.lh-top',
-      el('div.lh-mascot', mascot(prog.done ? 'happy' : 'wow', 78)),
-      el('div.lh-text',
-        el('h1', prog.done ? 'Ton parcours' : 'Bienvenue dans ton parcours'),
-        el('p.sub', cur ? `Unité ${cur.ui + 1} · ${curUnit.title}` : 'Tout le parcours est terminé : bravo ! 🎓')),
-      ring(prog.pct)),
-    el('div.lh-stats',
-      el('span.stat3d', { title: 'Série de jours' }, '🔥 ', el('b', String(s.streak.count || 0))),
-      el('span.stat3d', { title: 'Leçons et contrôles réussis' }, '⭐ ', el('b', `${prog.done}/${prog.total}`)),
-      el('span.stat3d', { title: 'Unités terminées' }, '🏆 ', el('b', `${unitsDone}/${UNITS.length}`)),
-      el('span.stat3d', { title: 'Ateliers et missions bonus' }, '🎁 ', el('b', String(prog.bonus)))),
+      el('div.lh-mascot', mascot(mood, 72, { anim: mood === 'party' ? 'jump' : '' })),
+      el('div.lh-say', el('p', say), el('small', cur ? `Unité ${cur.ui + 1} · ${curUnit.title}` : 'Tout le parcours est terminé : bravo ! 🎓'))),
+    el('div.lh-today',
+      el('a.lh-tile.goal' + (goalPct >= 100 ? '.ok' : ''), { href: '#/profile', title: 'Objectif du jour (réglable dans le Profil)' },
+        ring(goalPct, goalPct >= 100 ? '✓' : `${goalPct}%`, 64),
+        el('div', el('small', 'Objectif du jour'), el('b', `${Math.min(t.xp, goal)} / ${goal} XP`))),
+      el('a.lh-tile.streak' + (lit ? '.lit' : '') + (risk ? '.risk' : ''), { href: '#/profile', title: lit ? 'Série de jours : c’est fait pour aujourd’hui' : 'Série de jours : fais une leçon pour la continuer' },
+        el('span.lh-ico', { 'aria-hidden': 'true' }, '🔥'),
+        el('div', el('small', lit ? 'Série · fait aujourd’hui' : risk ? 'Série · à sauver ce soir' : 'Série en cours'), el('b', plural(streak, 'jour')))),
+      el(reviewHref ? 'a.lh-tile.review' + (due ? '.due' : '') : 'div.lh-tile.review.off', { href: reviewHref, title: due ? 'Les notions où tu as hésité reviennent au bon moment' : hasDone ? 'Rien à réviser aujourd’hui : tu peux quand même t’entraîner' : 'Termine une leçon pour débloquer les révisions' },
+        el('span.lh-ico', { 'aria-hidden': 'true' }, due ? '🔁' : '🏋️'),
+        el('div', el('small', due ? 'Révisions dues' : 'Révisions'), el('b', due ? plural(due, 'notion') : hasDone ? 'S’entraîner' : 'Bientôt')))),
     cur
       ? el('a.btn3d.primary.big.wide', { href: `#/lesson?id=${cur.id}`, style: { '--uc': curUnit.color } }, `▶ ${prog.done ? 'Continuer' : 'Commencer'} : ${cur.title}`)
       : el('a.btn3d.primary.big.wide', { href: '#/lesson?practice=1' }, '🏋️ S’entraîner'),
-    el('div.lh-more',
-      el('a.mini3d' + (hasDone ? '' : '.off'), { href: hasDone ? '#/lesson?practice=1' : null, 'aria-disabled': hasDone ? null : 'true', title: hasDone ? 'Exercices des leçons déjà faites, en priorité celles où tu as hésité' : 'Termine une leçon pour débloquer l’entraînement' }, el('span', '🏋️'), 'S’entraîner'),
-      el('a.mini3d', { href: '#/home' }, el('span', '⚡'), 'Entraînement libre'),
-      el('a.mini3d', { href: '#/play' }, el('span', '🎮'), 'Jeux'),
-      el('a.mini3d', { href: '#/create' }, el('span', '🎛️'), 'Ateliers')));
+    el('div.lh-course', { title: 'Ta progression dans le parcours' },
+      el('div.lh-bar', el('i', { style: { width: `${prog.pct}%` } })),
+      el('span', `Parcours : ${prog.pct} %`), el('span', `⭐ ${prog.done}/${prog.total}`), el('span', `🏆 ${unitsDone}/${UNITS.length} unités`), prog.bonus ? el('span', `🎁 ${prog.bonus}`) : null));
 
-  // ---------- Le chemin ----------
-  const sections = [];
+  // ---------- Animation de déblocage : au retour d'une leçon réussie pour la première fois ----------
+  const fresh = new Map(); // nœud qui vient de s'ouvrir → rang (pour décaler les animations)
+  if (params.new && params.done && course.done?.[params.done]) {
+    const i0 = NODES.findIndex((n) => n.id === params.done);
+    for (let i = i0 + 1, k = 0; i0 >= 0 && i < NODES.length; i++) {
+      if (states[NODES[i].id] === 'locked') break;
+      fresh.set(NODES[i].id, k++);
+      if (NODES[i].id === current) break;
+    }
+  }
+
+  // ---------- Le chemin : un univers par partie ----------
+  const sticky = el('div.unit-sticky', { 'aria-hidden': 'true' });
+  const sections = [el('div.unit-sticky-slot', sticky)];
+  const blocks = []; // { u, k, st, sec } pour l'en-tête collant
   for (const part of PARTS) {
-    sections.push(el('div.part-head', el('span.part-emoji', part.emoji), el('div', el('small', `PARTIE ${part.id}`), el('h2', part.name), el('p.small.muted', part.desc))));
-    for (const u of UNITS.filter((x) => x.part === part.id)) sections.push(unitBlock(u));
+    const sc = sceneFor(part.id);
+    sections.push(el('section.part.part-' + part.id, { style: { '--pc': sc.color }, 'aria-label': `Partie ${part.id} : ${part.name}` },
+      el('div.part-bg.far', { 'aria-hidden': 'true', style: { backgroundImage: sc.far } }),
+      el('div.part-bg.near', { 'aria-hidden': 'true', style: { backgroundImage: sc.near } }),
+      el('div.part-head', el('span.part-emoji', part.emoji), el('div', el('small', `PARTIE ${part.id} · ${sc.name.toUpperCase()}`), el('h2', part.name), el('p.small.muted', part.desc))),
+      UNITS.filter((x) => x.part === part.id).map((u) => unitBlock(u))));
   }
 
   function unitBlock(u) {
     const k = unitIndex(u.id);
     const st = unitStatus(course, u.id);
-    const banner = el('div.unit-banner' + (st.open ? '' : '.locked') + (st.complete ? '.complete' : ''), { id: `unit-${u.id}`, style: { '--uc': u.color } },
+    const justOpen = fresh.has(u.nodes[0].id) && fresh.get(u.nodes[0].id) === 0;
+    const banner = el('div.unit-banner' + (st.open ? '' : '.locked') + (st.complete ? '.complete' : '') + (justOpen ? '.unlocked' : ''), { id: `unit-${u.id}`, style: { '--uc': u.color } },
       el('div.ub-main',
         el('small', `UNITÉ ${k + 1}${st.complete ? ' · ✓ TERMINÉE' : ''}`),
         el('h2', `${u.emoji} ${u.title}`),
@@ -118,21 +160,26 @@ export function render(root, params = {}) {
     svg.innerHTML = pts.slice(1).map(([x, y], i) => {
       const [x0, y0] = pts[i];
       const lit = ['done', 'perfect'].includes(states[nodes[i].id]) && states[nodes[i + 1].id] !== 'locked';
-      return `<path d="M${x0},${y0} C${x0},${(y0 + y) / 2} ${x},${(y0 + y) / 2} ${x},${y}" class="${lit ? 'lit' : ''}"/>`;
+      // Le trait se trace depuis la leçon qu'on vient de réussir
+      const trace = lit && fresh.size && nodes[i].id === params.done;
+      return `<path d="M${x0},${y0} C${x0},${(y0 + y) / 2} ${x},${(y0 + y) / 2} ${x},${y}" class="${lit ? 'lit' : ''}${trace ? ' trace' : ''}"${trace ? ' pathLength="1"' : ''}/>`;
     }).join('');
     const path = el('div.upath', { style: { height: `${H}px`, '--uc': u.color } }, svg);
     nodes.forEach((n, i) => {
       const state = states[n.id];
       const [x, y] = pts[i];
       const isCur = n.id === current;
-      const b = el('button.pnode.' + state + '.t-' + n.type + (params.done && prevOf(n.id) === params.done ? '.pop' : ''), {
+      const rank = fresh.get(n.id);
+      const b = el('button.pnode.' + state + '.t-' + n.type + (rank != null ? '.unlocking' : params.done && prevOf(n.id) === params.done ? '.pop' : ''), {
         type: 'button', 'aria-label': `${n.title} : ${STATE_LABEL[state]}`, 'data-node': n.id,
         onclick: (e) => { e.stopPropagation(); openPop(n, state, b, path, x, y); },
       }, el('span.pn-ico', state === 'locked' && isRequired(n) ? '🔒' : n.icon), state === 'perfect' ? el('span.pn-crown', '👑') : state === 'done' ? el('span.pn-check', '✓') : null,
-        !isRequired(n) && state !== 'locked' && !['done', 'perfect'].includes(state) ? el('span.pn-gift', { 'aria-hidden': 'true' }, '🎁') : null);
+        !isRequired(n) && state !== 'locked' && !['done', 'perfect'].includes(state) ? el('span.pn-gift', { 'aria-hidden': 'true' }, '🎁') : null,
+        rank != null ? el('span.pn-lock', { 'aria-hidden': 'true' }, '🔒') : null);
+      if (rank != null) b.style.setProperty('--ud', `${0.95 + rank * 0.28}s`);
       // Étiquette à côté du nœud, du côté où il y a de la place
       const side = SWING[i % SWING.length] > 0 ? 'l' : 'r';
-      path.append(el('div.pnode-wrap' + (isCur ? '.current' : '') + '.t-' + n.type, { style: { left: `${x}px`, top: `${y}px` } },
+      path.append(el('div.pnode-wrap' + (isCur ? '.current' : '') + '.t-' + n.type + (rank != null ? '.fresh' : ''), { style: { left: `${x}px`, top: `${y}px`, ...(rank != null ? { '--ud': `${0.95 + rank * 0.28}s` } : {}) } },
         isCur ? el('div.pn-bubble', prog.done ? 'CONTINUER' : 'COMMENCER') : null,
         b, el('span.pn-label.' + side, !isRequired(n) ? el('small', n.type === 'studio' ? 'Mission studio' : 'Atelier bonus') : null, n.title)));
     });
@@ -140,7 +187,9 @@ export function render(root, params = {}) {
     const mi = Math.min(2, nodes.length - 1);
     const side = SWING[mi % SWING.length] > 0 ? 'left' : 'right';
     path.append(el('div.path-mascot.' + side, { style: { top: `${pts[mi][1] - 30}px` } }, mascot(st.complete ? 'cool' : st.open ? 'happy' : 'wow', 64), el('span.pm-tip', u.guide[0][0])));
-    return el('section.unit', { 'aria-label': `Unité ${k + 1} : ${u.title}` }, banner, path);
+    const sec = el('section.unit', { 'aria-label': `Unité ${k + 1} : ${u.title}` }, banner, path);
+    blocks.push({ u, k, st, sec, banner });
+    return sec;
   }
 
   function prevOf(id) {
@@ -234,12 +283,51 @@ export function render(root, params = {}) {
   const rerender = () => { root.replaceChildren(); render(root, {}); };
 
   root.append(el('div.learn', { onclick: () => closePop() }, hero, el('div.learn-path', sections),
-    el('div.learn-end', mascot('cool', 90), el('h2', 'Au bout du chemin'), el('p.muted', 'Un morceau fini, exporté depuis Ableton Live, avec tes propres sons. Le reste de l’app (jeux, ateliers, carnet) t’accompagne à chaque étape.'))));
+    el('div.learn-end', mascot('cool', 90), el('h2', 'Au bout du chemin'), el('p.muted', 'Un morceau fini, exporté depuis Ableton Live, avec tes propres sons.'),
+      el('a.learn-extras', { href: '#/home' }, el('span', { 'aria-hidden': 'true' }, '🧩'), el('div', el('b', 'Les extras'), el('small', 'Jeux, ateliers libres et carnet d’idées : en plus du parcours, quand tu veux.')), el('span', { 'aria-hidden': 'true' }, '›')))));
 
-  // Défilement : vers l'unité demandée, ou vers la leçon en cours
+  // ---------- En-tête d'unité collant + profondeur des décors au défilement ----------
+  detach?.();
+  let shown = null, raf = 0;
+  const stickTop = () => (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--status-h')) || 52) + 8;
+  const paintSticky = () => {
+    raf = 0;
+    const top = stickTop();
+    // L'unité dont le bandeau est déjà passé au-dessus, et dont le chemin est encore à l'écran
+    let on = null;
+    for (const b of blocks) {
+      const r = b.sec.getBoundingClientRect();
+      if (b.banner.getBoundingClientRect().bottom < top + 6 && r.bottom > top + 120) on = b;
+    }
+    if (on !== shown) {
+      shown = on;
+      sticky.classList.toggle('show', !!on);
+      sticky.setAttribute('aria-hidden', on ? 'false' : 'true');
+      if (on) {
+        sticky.style.setProperty('--uc', on.u.color);
+        sticky.classList.toggle('locked', !on.st.open);
+        sticky.replaceChildren(
+          el('button.us-main', { type: 'button', title: 'Remonter au début de l’unité', onclick: (e) => { e.stopPropagation(); on.banner.scrollIntoView({ block: 'start', behavior: 'smooth' }); } },
+            el('small', `UNITÉ ${on.k + 1}${on.st.complete ? ' · ✓' : ` · ${on.st.done}/${on.st.total}`}`), el('b', `${on.u.emoji} ${on.u.title}`)),
+          el('button.ub-btn', { type: 'button', onclick: (e) => { e.stopPropagation(); guide(on.u); } }, '📖 Guide'),
+          el('div.ub-bar', el('i', { style: { width: `${Math.round((100 * on.st.done) / on.st.total)}%` } })));
+      }
+    }
+    // Décors : le plan lointain glisse plus lentement que le chemin
+    const sy = window.scrollY || document.documentElement.scrollTop || 0;
+    root.firstElementChild?.style.setProperty('--sy', String(Math.round(sy)));
+  };
+  const onScroll = () => { if (!raf) raf = requestAnimationFrame(paintSticky); };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+  detach = () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); detach = null; };
+
+  // Défilement : vers l'unité demandée, la leçon qui vient de se débloquer, ou la leçon en cours
   requestAnimationFrame(() => {
     if (params.u) { document.getElementById(`unit-${params.u}`)?.scrollIntoView({ block: 'start' }); return; }
-    const target = params.done ? root.querySelector('.pnode.pop') || root.querySelector('.pnode-wrap.current') : root.querySelector('.pnode-wrap.current');
+    const target = params.done ? root.querySelector('.pnode.unlocking') || root.querySelector('.pnode.pop') || root.querySelector('.pnode-wrap.current') : root.querySelector('.pnode-wrap.current');
     if (target && (params.done || prog.done)) target.scrollIntoView({ block: 'center' });
+    onScroll();
   });
+  return () => detach?.();
 }

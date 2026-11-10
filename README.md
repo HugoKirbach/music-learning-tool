@@ -2,8 +2,8 @@
 
 **Un parcours pas à pas pour apprendre Ableton Live, le sound design au synthé et ton clavier MIDI**, façon Duolingo : des leçons de 3 à 5 minutes, de plus en plus poussées, des bases du rythme jusqu'à ton premier morceau exporté.
 
-- **🎓 Le parcours** est le cœur de l'app : 5 parties, 18 unités, 90 leçons, plus de 500 exercices interactifs (clavier 3D et MIDI, maquette cliquable d'Ableton Live, boîte à rythmes, piano roll, synthé à régler à l'oreille, raccourcis à taper…), des ateliers, des missions à faire dans Live et un contrôle par unité.
-- **Le reste de l'app** (jeux, ateliers, carnet, session express) reste là pour t'entraîner librement : chaque unité du parcours t'y envoie au bon moment.
+- **🎓 Le parcours** est l'écran principal et le cœur de l'app : 5 parties, 18 unités, 90 leçons, plus de 500 exercices interactifs (clavier 3D et MIDI, maquette cliquable d'Ableton Live, boîte à rythmes, piano roll, synthé à régler à l'oreille, raccourcis à taper…), des ateliers, des missions à faire dans Live et un contrôle par unité.
+- **Les 🧩 Extras** (jeux, ateliers, carnet, session express) sont optionnels : ils restent là pour t'entraîner librement, et chaque unité du parcours t'y envoie au bon moment.
 - **Sur PC**, chaque notion se termine par un geste à refaire dans **Ableton Live 12**, **Serum 2** (ou Drift) et sur ton clavier MIDI ; **sur téléphone**, les leçons et les jeux se font au doigt, même sans le son.
 
 > Le but n'est pas que l'app compose à ta place. Elle t'apprend **où cliquer**, **quoi tourner** et **pourquoi**, puis te fait pratiquer jusqu'à ce que tu sois autonome.
@@ -13,7 +13,7 @@
 ## Sommaire
 
 1. [Démarrer](#démarrer)
-2. [L'app en 5 onglets](#lapp-en-5-onglets)
+2. [L'app en 3 onglets](#lapp-en-3-onglets)
 3. [🎓 Le parcours](#-le-parcours)
 4. [🎮 Jouer](#-jouer)
 5. [🎛️ Créer](#️-créer)
@@ -42,17 +42,17 @@ Câble USB sur le port « Computer » du MPC, mode contrôleur, app ouverte dans
 
 ---
 
-## L'app en 5 onglets
+## L'app en 3 onglets
+
+L'app tourne autour du parcours. Tout le reste est rangé dans **Extras** : optionnel, en plus.
 
 | Onglet | Ce que tu y trouves |
 |---|---|
-| 🎓 **Apprendre** | Le parcours (écran d'ouverture) : le chemin des unités, la prochaine leçon, l'entraînement et les guides. L'ancien accueil devient **⚡ Entraînement libre** (session express, prochaine étape, jeux), accessible depuis le parcours. |
-| 🎮 **Jouer** | Tous les jeux : Nuit au club (avec ou **sans le son**), Piano Rush, Pad Rush, Call & Response, quiz d'oreille, défi 2 min, révisions. |
-| 🎛️ **Créer** | Ton idée en cours (beat → accords → basse → mélodie), puis les ateliers rangés en 4 rubriques : *Écrire*, *Son & mix*, *Développer*, *Dans ton studio*. |
-| 📓 **Carnet** | Tout ce que tu as gardé : idées complètes, beats, accords, sons, notes. Recherche, filtres, export MIDI, partage. |
+| 🎓 **Apprendre** | L'écran d'ouverture. En haut, **aujourd'hui** : l'anneau d'objectif du jour, ta série 🔥, les révisions dues et la prochaine leçon. En dessous, le chemin des unités. |
+| 🧩 **Extras** | Tout ce qui est en plus du parcours : **🎮 Jeux** (Nuit au club, Piano Rush, Pad Rush, oreille), **🎛️ Ateliers** (ton idée en cours, les labs, les missions studio), **📓 Carnet** (ce que tu as gardé), et la session express. |
 | 👤 **Profil** | Niveau, série, compétences, styles préférés, collection, amis ; la roue ⚙️ ouvre les **Réglages**. |
 
-Sur PC la barre est à gauche, avec 🔍 *Rechercher* et ⌨️ *Raccourcis* ; sur téléphone elle est en bas, et 🔍 est en haut de l'Accueil, de Jouer et de Créer. Chaque écran a un bouton retour vers son onglet. Les ateliers avancés apparaissent avec ton niveau (*Réglages › Général › Ateliers : Tout afficher* pour tout voir d'un coup).
+Sur PC la barre est à gauche, avec 🔍 *Rechercher* et ⌨️ *Raccourcis* ; sur téléphone elle est en bas. Chaque écran a un bouton retour vers sa page (Jeux, Ateliers, Extras, Profil). Les ateliers avancés apparaissent avec ton niveau (*Réglages › Général › Ateliers : Tout afficher* pour tout voir d'un coup).
 
 ---
 
@@ -80,6 +80,20 @@ Un chemin sinueux d'unités, comme Duolingo : chaque leçon débloque la suivant
 - 👂 Écoute (accords, gammes, intervalles, formes d'onde, filtre, enveloppes, contour), 🔗 paires, 🔢 remettre dans l'ordre, ✍️ phrases à compléter, 🧮 calculs de producteur (ms, Hz, mesures).
 
 **Contenu vérifié** : les raccourcis et les fonctions de Live 12 citées viennent du manuel officiel d'Ableton. Un bouton **⚑ Signaler** sur chaque exercice range un signalement d'erreur dans ton Carnet.
+
+**🎵 Tes réponses construisent un morceau** : chaque bonne réponse ajoute une piste à une boucle (kick, puis hats, clap, basse, accords, mélodie) et joue la mesure suivante ; une erreur retire une piste. Les pistes gagnées s'allument en haut de la leçon, et l'écran de fin joue le morceau que tu as « gagné » (bouton *Réécouter*). Chaque partie du parcours a son morceau. *Réglages › Général › Sons de validation* règle son niveau (doux, normal, coupé).
+
+**🔊 Volume égalisé** : tous les sons des exercices (presets, sons de synthé réglés à la main, batteries) sont mesurés une fois puis ramenés au même niveau perçu. Dans un exercice de synthé, ton son et la cible gardent le même gain : les écarts que tu crées restent audibles. *Réglages › Général › Volume égalisé* pour le couper.
+
+**🤖 Bip, la mascotte, réagit** : il sourit ou fait la moue dans le bandeau vert ou rouge, fête une série de bonnes réponses, et te parle en haut du parcours (objectif atteint, série à sauver…).
+
+**🌍 Un univers par partie** : le studio (fondations), l'écran de Live, la salle d'écriture (composer), le rack de synthés, puis le club. Chaque partie a son décor en deux plans, avec un léger effet de profondeur au défilement. L'en-tête de l'unité en cours reste collé en haut, avec son bouton Guide. Quand une leçon se débloque, le trait du chemin se trace jusqu'à elle et le cadenas saute.
+
+**〰️ Schémas animés** dans les fiches : l'onde oscille, la courbe du filtre s'ouvre, l'enveloppe se dessine au rythme de la note. « 🔊 Voir et entendre » joue le son en même temps.
+
+**🖥️ Sur PC, deux colonnes** : la consigne et l'explication à gauche, le grand exercice à droite (maquette de Live, piano roll, synthé, clavier). Un rappel des touches (1 à 4 pour choisir, Espace pour écouter, Entrée pour vérifier) s'affiche pendant que tu réponds, et un bandeau **🎹 Clavier MIDI détecté** apparaît quand l'exercice peut se jouer au clavier.
+
+**🔁 Révisions** : une leçon où tu as hésité (2 erreurs ou plus) revient après 1, 3, 7 puis 14 jours ; le compteur « Révisions dues » en haut du parcours lance l'entraînement.
 
 **Comme Duolingo** : barre de progression, « Vérifier » puis bandeau vert ou rouge avec l'explication, les questions ratées reviennent en fin de leçon, série 🔥, XP, couronnes (sans faute 👑), **⏩ Sauter ici** (un test pour aller directement à une unité), **🏋️ S'entraîner** (révision des leçons où tu as hésité). À l'ouverture, l'app te demande ton niveau et peut te faire passer directement le test de l'unité 4 ou 7.
 
@@ -173,7 +187,7 @@ Une boucle qui te suit d'un atelier à l'autre : style, tempo, tonalité, batter
 - **🔍 Recherche rapide** : `Ctrl + K` (ou `/`) sur PC, bouton 🔍 sur téléphone. Elle trouve un atelier, un style, une mission studio, un niveau de Piano Rush / Pad Rush ou une rubrique des réglages en quelques lettres (sans se soucier des accents) ; ↑ ↓ puis Entrée.
 - **Lecture** : `Espace` lecture / stop (ta boucle, la question du quiz, ou TAP dans la boîte à outils), `1`-`4` couper batterie / basse / accords / mélodie, `+` / `−` tempo, `←` / `→` mesure ou accord.
 - **Quiz** : `1`-`9` réponses, `Entrée` question suivante.
-- **Aller à** (Maj + lettre) : H Apprendre (parcours), L Entraînement libre, E Jouer, C Créer, S lancer une session, J Piano Rush, D Pad Rush, N Nuit au club, O Oreille, B Beat, A Accords, M Mélodie, G Basse, Y Synthé, R Arranger, X Remix, T Compétences, K Carnet, P Profil. `?` affiche l'aide, `Échap` ferme. Les lettres seules restent au piano.
+- **Aller à** (Maj + lettre) : H Apprendre (parcours), L Extras, E Jouer, C Créer, S lancer une session, J Piano Rush, D Pad Rush, N Nuit au club, O Oreille, B Beat, A Accords, M Mélodie, G Basse, Y Synthé, R Arranger, X Remix, T Compétences, K Carnet, P Profil. `?` affiche l'aide, `Échap` ferme. Les lettres seules restent au piano.
 
 ---
 
