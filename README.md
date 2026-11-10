@@ -1,11 +1,12 @@
 # ◆ BeatForge
 
-**Une salle d'entraînement de poche pour apprendre à composer** : rythmes, accords, mélodies « catchy », sound design et arrangement, en sessions de **5 à 10 minutes**.
+**Un parcours pas à pas pour apprendre Ableton Live, le sound design au synthé et ton clavier MIDI**, façon Duolingo : des leçons de 3 à 5 minutes, de plus en plus poussées, des bases du rythme jusqu'à ton premier morceau exporté.
 
-- **Sur PC**, tu travailles : chaque atelier se termine par un geste à refaire dans **Ableton Live 12**, sur le **MPC Key 37** ou dans **Serum 2**, et tout s'exporte en MIDI.
-- **Sur téléphone**, tu joues : des jeux courts qui entraînent ton oreille, ton rythme et ta théorie sans y penser, **même sans le son**.
+- **🎓 Le parcours** est le cœur de l'app : 5 parties, 18 unités, 90 leçons, plus de 500 exercices interactifs (clavier 3D et MIDI, maquette cliquable d'Ableton Live, boîte à rythmes, piano roll, synthé à régler à l'oreille, raccourcis à taper…), des ateliers, des missions à faire dans Live et un contrôle par unité.
+- **Le reste de l'app** (jeux, ateliers, carnet, session express) reste là pour t'entraîner librement : chaque unité du parcours t'y envoie au bon moment.
+- **Sur PC**, chaque notion se termine par un geste à refaire dans **Ableton Live 12**, **Serum 2** (ou Drift) et sur ton clavier MIDI ; **sur téléphone**, les leçons et les jeux se font au doigt, même sans le son.
 
-> Le but n'est pas que l'app compose à ta place. Elle t'apprend **où chercher** et **quoi manipuler**, puis retire progressivement les indices pour que tu deviennes autonome.
+> Le but n'est pas que l'app compose à ta place. Elle t'apprend **où cliquer**, **quoi tourner** et **pourquoi**, puis te fait pratiquer jusqu'à ce que tu sois autonome.
 
 ---
 
@@ -13,14 +14,15 @@
 
 1. [Démarrer](#démarrer)
 2. [L'app en 5 onglets](#lapp-en-5-onglets)
-3. [🎮 Jouer](#-jouer)
-4. [🎛️ Créer](#️-créer)
-5. [📓 Carnet, 👤 Profil et ⚙️ Réglages](#-carnet--profil-et-️-réglages)
-6. [Progresser](#progresser)
-7. [Avec Ableton Live, le MPC et Serum](#avec-ableton-live-le-mpc-et-serum)
-8. [Raccourcis et recherche](#raccourcis-et-recherche)
-9. [Compte, synchro et amis](#compte-synchro-et-amis)
-10. [Technique, tests et mise en ligne](#technique)
+3. [🎓 Le parcours](#-le-parcours)
+4. [🎮 Jouer](#-jouer)
+5. [🎛️ Créer](#️-créer)
+6. [📓 Carnet, 👤 Profil et ⚙️ Réglages](#-carnet--profil-et-️-réglages)
+7. [Progresser](#progresser)
+8. [Avec Ableton Live, le MPC et Serum](#avec-ableton-live-le-mpc-et-serum)
+9. [Raccourcis et recherche](#raccourcis-et-recherche)
+10. [Compte, synchro et amis](#compte-synchro-et-amis)
+11. [Technique, tests et mise en ligne](#technique)
 
 ---
 
@@ -44,13 +46,40 @@ Câble USB sur le port « Computer » du MPC, mode contrôleur, app ouverte dans
 
 | Onglet | Ce que tu y trouves |
 |---|---|
-| 🏠 **Accueil** | La session express du jour, ta prochaine étape (série, test, projet, révisions…), un accès direct aux jeux (téléphone) ou à ton idée et au studio (PC). |
+| 🎓 **Apprendre** | Le parcours (écran d'ouverture) : le chemin des unités, la prochaine leçon, l'entraînement et les guides. L'ancien accueil devient **⚡ Entraînement libre** (session express, prochaine étape, jeux), accessible depuis le parcours. |
 | 🎮 **Jouer** | Tous les jeux : Nuit au club (avec ou **sans le son**), Piano Rush, Pad Rush, Call & Response, quiz d'oreille, défi 2 min, révisions. |
 | 🎛️ **Créer** | Ton idée en cours (beat → accords → basse → mélodie), puis les ateliers rangés en 4 rubriques : *Écrire*, *Son & mix*, *Développer*, *Dans ton studio*. |
 | 📓 **Carnet** | Tout ce que tu as gardé : idées complètes, beats, accords, sons, notes. Recherche, filtres, export MIDI, partage. |
 | 👤 **Profil** | Niveau, série, compétences, styles préférés, collection, amis ; la roue ⚙️ ouvre les **Réglages**. |
 
 Sur PC la barre est à gauche, avec 🔍 *Rechercher* et ⌨️ *Raccourcis* ; sur téléphone elle est en bas, et 🔍 est en haut de l'Accueil, de Jouer et de Créer. Chaque écran a un bouton retour vers son onglet. Les ateliers avancés apparaissent avec ton niveau (*Réglages › Général › Ateliers : Tout afficher* pour tout voir d'un coup).
+
+---
+
+## 🎓 Le parcours
+
+Un chemin sinueux d'unités, comme Duolingo : chaque leçon débloque la suivante, chaque unité se termine par un contrôle. Les ateliers et missions studio sont des **bonus** qui ne bloquent jamais la progression (pas de clavier MIDI ou pas d'Ableton sous la main ? tu avances quand même).
+
+| Partie | Unités |
+|---|---|
+| 🧱 **Les fondations** | 1. Le temps et le tempo · 2. Le clavier (notes, dièses, octaves, C3 = 60) · 3. Ton clavier MIDI (Note On/Off, vélocité, octaves, molettes, potards, pads, clavier de l'ordinateur) |
+| 🖥️ **Ableton Live : premiers pas** | 4. Découvrir Live (Session / Arrangement, barre de contrôle, navigateur, pistes, mixage, vue détail) · 5. Programmer un beat (Drum Rack, clips MIDI, grooves, vélocité, ghost notes, variations) · 6. Jouer et enregistrer (métronome, Session Record, overdub, quantification, Capture MIDI) |
+| 🎼 **Composer** | 7. Gammes et tonalités (majeure, mineure, penta, mode Scale de Live 12) · 8. Les accords (triades, degrés, progressions, renversements, septièmes) · 9. Mélodies et basses (piano roll, fondamentales, offbeat, basse roulante, hooks, variations) |
+| 🔊 **Le synthé à la main** | 10. Oscillateurs · 11. Filtres · 12. Enveloppes · 13. Modulation (LFO, synchro, glide, MIDI Map, macros, FM, wavetable) · 14. Recettes (sub, pluck, pad, supersaw, acid, reese) |
+| 🚀 **Produire un morceau** | 15. Effets (chaîne, inserts et envois, EQ, compression, sidechain, racks) · 16. Arrangement (sections, automatisation, transitions, méthode soustractive) · 17. Mixage et export (gain staging, stéréo, limiteur, LUFS, stems) · 18. Workflow de pro (warp, freeze, resampling, raccourcis, groove, finir) + examen final |
+
+**Dans une unité** : des leçons (fiches courtes puis exercices), des **ateliers** de l'app (Piano Rush, Pad Rush, Lab Beat, Lab Synthé, Mixdown…) qui se valident tout seuls quand tu les réussis, une **mission studio** à cocher pendant que tu la fais dans Live / Serum / au clavier, un **guide** (l'essentiel à retenir) et le **contrôle** (12 exercices, 3 cœurs).
+
+**Les exercices** (tous nouveaux, pensés pour le parcours) :
+- 🎹 **Clavier 3D + clavier MIDI** : trouver une note, une octave précise (boutons Octave − / +), jouer un accord, un renversement, une gamme ; le clavier de l'ordinateur joue comme dans Live (A = Do, Z / X = octave).
+- 💪 **Vélocité** et 🎚️ **potards (CC)** : frapper doux / fort, tourner un potard jusqu'à la bonne valeur, ouvrir un filtre en direct avec ton contrôleur.
+- 🖱️ **Maquette cliquable d'Ableton Live 12** : barre de contrôle, navigateur, Session, Arrangement, vues Clip et Device. « Où cliques-tu pour… ? »
+- ⌨️ **Raccourcis** : tape la combinaison sur ton clavier (Ctrl ou ⌘, QWERTY ou AZERTY), ou choisis-la.
+- 🥁 **Boîte à rythmes** (dont ghost notes et grooves à reproduire à l'oreille), 🎼 **piano roll** (motifs, basses sur une grille d'accords, hooks répétés), 👆 **taper en rythme** (avec le décalage moyen en ms).
+- 🎛️ **Synthé à régler** : un vrai petit synthé (forme d'onde, unison, filtre, enveloppes, LFO, glide, FM) avec dessins en direct, à régler d'après une consigne ou **à l'oreille** d'après un son cible.
+- 👂 Écoute (accords, gammes, intervalles, formes d'onde, filtre, enveloppes, contour), 🔗 paires, 🔢 remettre dans l'ordre, ✍️ phrases à compléter, 🧮 calculs de producteur (ms, Hz, mesures).
+
+**Comme Duolingo** : barre de progression, « Vérifier » puis bandeau vert ou rouge avec l'explication, les questions ratées reviennent en fin de leçon, série 🔥, XP, couronnes (sans faute 👑), **⏩ Sauter ici** (un test pour aller directement à une unité), **🏋️ S'entraîner** (révision des leçons où tu as hésité). À l'ouverture, l'app te demande ton niveau et peut te faire passer directement le test de l'unité 4 ou 7.
 
 ---
 
@@ -142,7 +171,7 @@ Une boucle qui te suit d'un atelier à l'autre : style, tempo, tonalité, batter
 - **🔍 Recherche rapide** : `Ctrl + K` (ou `/`) sur PC, bouton 🔍 sur téléphone. Elle trouve un atelier, un style, une mission studio, un niveau de Piano Rush / Pad Rush ou une rubrique des réglages en quelques lettres (sans se soucier des accents) ; ↑ ↓ puis Entrée.
 - **Lecture** : `Espace` lecture / stop (ta boucle, la question du quiz, ou TAP dans la boîte à outils), `1`-`4` couper batterie / basse / accords / mélodie, `+` / `−` tempo, `←` / `→` mesure ou accord.
 - **Quiz** : `1`-`9` réponses, `Entrée` question suivante.
-- **Aller à** (Maj + lettre) : H Accueil, E Jouer, C Créer, S lancer une session, J Piano Rush, D Pad Rush, N Nuit au club, O Oreille, B Beat, A Accords, M Mélodie, G Basse, Y Synthé, R Arranger, X Remix, T Compétences, K Carnet, P Profil. `?` affiche l'aide, `Échap` ferme. Les lettres seules restent au piano.
+- **Aller à** (Maj + lettre) : H Apprendre (parcours), L Entraînement libre, E Jouer, C Créer, S lancer une session, J Piano Rush, D Pad Rush, N Nuit au club, O Oreille, B Beat, A Accords, M Mélodie, G Basse, Y Synthé, R Arranger, X Remix, T Compétences, K Carnet, P Profil. `?` affiche l'aide, `Échap` ferme. Les lettres seules restent au piano.
 
 ---
 
@@ -165,6 +194,10 @@ Une boucle qui te suit d'un atelier à l'autre : style, tempo, tonalité, batter
 ```
 index.html, styles.css, sw.js, manifest.webmanifest
 src/main.js        routeur, barre du haut, onglets
+src/views/learn.js, lesson.js   le parcours (carte) et le lecteur de leçon
+src/learn/         exercices interactifs, maquette d'Ableton Live, clavier 3D, sons et dessins des leçons
+src/core/course.js progression du parcours, construction des leçons, vérification des réponses (coursegen.js : générateurs d'exercices)
+src/data/course*.js le contenu du parcours (5 parties, 18 unités) ; ableton.js : zones de Live et raccourcis
 src/catalog.js     onglets, rubriques, écrans (navigation, retour, recherche)
 src/core/          logique pure et testée (théorie, rythme, MIDI, jeux, progression, fusion, recherche, boîte à outils…)
 src/data/          styles, presets + recettes Serum 2, missions, niveaux, maquettes

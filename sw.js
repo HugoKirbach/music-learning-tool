@@ -1,8 +1,11 @@
 // Service worker : app utilisable hors-ligne (stale-while-revalidate sur les fichiers de l'app).
-const CACHE = 'beatforge-v31';
+const CACHE = 'beatforge-v32';
 // Module de compte (Firebase, versionné dans l'URL) : gardé en cache pour retrouver sa session hors-ligne
 const SDK_CACHE = 'beatforge-sdk-10.12.2';
 const SHELL = [
+  './src/views/learn.js', './src/views/lesson.js', './src/core/course.js', './src/core/coursegen.js', './src/core/coursemerge.js',
+  './src/data/course.js', './src/data/coursekit.js', './src/data/course-more.js', './src/data/course-p1.js', './src/data/course-p2.js', './src/data/course-p3.js', './src/data/course-p4.js', './src/data/ableton.js',
+  './src/learn/kit.js', './src/learn/exercises.js', './src/learn/livemock.js',
   './src/core/demosong.js',
   './src/data/demos.js',
   './src/demoplayer.js',

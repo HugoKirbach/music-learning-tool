@@ -18,6 +18,8 @@ import { itemMidi, openItem, markDone } from './notebook.js';
 import { cloudStatus } from '../cloud.js';
 import { PATHS, pathProgress } from '../data/paths.js';
 import { openSearch } from '../search.js';
+import { courseProgress, courseOf } from '../core/course.js';
+import { UNITS } from '../data/course.js';
 
 const HABITS = [
   'Termine avant de perfectionner : une boucle finie vaut 10 idées en cours.',
@@ -191,10 +193,17 @@ export function render(root, params) {
     el('a.btn.small', { href: `#/atlas?g=${g.id}`, 'aria-label': `Essayer le style ${g.name}` }, 'Essayer'));
   const todaySection = section('today', '☀️ Aujourd’hui', null, sessCard, followCard);
 
+  const cp = courseProgress(courseOf(s));
+  const cu = cp.current ? UNITS[cp.current.ui] : null;
+  const courseBanner = el('div.home-course', { style: cu ? { '--uc': cu.color } : null },
+    el('span', { style: { fontSize: '30px' }, 'aria-hidden': 'true' }, '🎓'),
+    el('div', el('b', cp.current ? `Parcours : unité ${cp.current.ui + 1} · ${cu.title}` : 'Parcours terminé 🎉'), el('p.small.muted', `${cp.done}/${cp.total} leçons et contrôles · ${cp.pct} %`)),
+    el('a.btn3d.primary', { href: cp.current ? `#/lesson?id=${cp.current.id}` : '#/learn' }, cp.current ? '▶ Leçon' : 'Voir'));
   root.append(
     el('div.hero.home-hero',
-      el('div', el('h1', `${hello} 👋`), el('p.sub', `Niveau ${lv} · ${titleFor(lv)} — série de ${plural(s.streak.count || 0, 'jour')}`)),
+      el('div', el('h1', `${hello} 👋`), el('p.sub', `Entraînement libre · niveau ${lv} · ${titleFor(lv)} — série de ${plural(s.streak.count || 0, 'jour')}`)),
       el('button.btn.hub-search', { type: 'button', onclick: () => openSearch(), 'aria-label': 'Rechercher un jeu, un atelier, un style…' }, '🔍')),
+    courseBanner,
     // Téléphone : les jeux d'abord (accessibles sans défiler) ; PC : la session et le studio d'abord
     ...(phone
       ? [playSection, todaySection, captureCard, createSection, resume, day]

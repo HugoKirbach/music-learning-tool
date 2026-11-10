@@ -3,7 +3,7 @@
 
 /** Onglets de la barre de navigation. `also` : écrans rattachés (onglet allumé + bouton retour vers l'onglet). */
 export const TABS = [
-  { id: 'home', icon: '🏠', label: 'Accueil', also: ['program', 'review', 'listen'] },
+  { id: 'learn', icon: '🎓', label: 'Apprendre', also: ['lesson', 'home', 'program', 'review', 'listen'] },
   { id: 'play', icon: '🎮', label: 'Jouer', also: ['rush', 'pads', 'club', 'ear', 'callresponse'] },
   { id: 'create', icon: '🎛️', label: 'Créer', also: ['labs', 'beat', 'chords', 'melody', 'basslab', 'hum', 'synth', 'mixdown', 'arrange', 'remix', 'critique', 'atlas', 'studio', 'path', 'project', 'challenge', 'tools'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
@@ -11,7 +11,7 @@ export const TABS = [
 ];
 
 /** Onglet auquel appartient un écran. */
-export const tabOf = (id) => TABS.find((t) => t.id === id || t.also?.includes(id))?.id || 'home';
+export const tabOf = (id) => TABS.find((t) => t.id === id || t.also?.includes(id))?.id || 'learn';
 
 /** Rubriques des pages Jouer et Créer. */
 export const SECTIONS = [
@@ -45,6 +45,8 @@ export const SCREENS = [
   { id: 'tools', sec: 'studio', href: '#/tools', emoji: '🧰', name: 'Boîte à outils', desc: 'Tap tempo, delays en ms, roue Camelot, accordage du kick.', keys: 'bpm delay ms camelot tonalité fréquence hz kick accorder calcul' },
   { id: 'atlas', sec: 'studio', href: '#/atlas', emoji: '🗺️', name: 'Atlas des styles', desc: 'Ingrédients, maquettes, références.', keys: 'styles genres house techno trance' },
   // Écrans hors rubriques (recherche et « Reprendre »)
+  { id: 'learn', href: '#/learn', emoji: '🎓', name: 'Parcours : apprendre pas à pas', keys: 'apprendre parcours leçons duolingo cours ableton live synthé clavier midi débutant unités' },
+  { id: 'home', href: '#/home', emoji: '⚡', name: 'Entraînement libre (session express)', keys: 'accueil session express quêtes entraînement libre' },
   { id: 'program', href: '#/program', emoji: '📅', name: 'Programme 4 semaines', keys: 'programme parcours débutant' },
   { id: 'placement', href: '#/placement', emoji: '🧪', name: 'Test de la semaine', keys: 'test niveau lundi' },
   { id: 'skills', href: '#/skills', emoji: '🌳', name: 'Arbre de compétences', keys: 'compétences' },

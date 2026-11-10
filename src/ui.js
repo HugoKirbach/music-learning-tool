@@ -247,7 +247,12 @@ export function card(...children) {
 
 /** En-tête d'écran. Sans `back`, le bouton retour mène à l'onglet de l'écran (Jouer, Créer, Profil…) ; `null` le retire. */
 export function header(title, sub, back) {
-  if (back === undefined) back = '#/' + tabOf((location.hash.slice(2) || 'home').split('?')[0]);
+  if (back === undefined) {
+    const id = (location.hash.slice(2) || 'learn').split('?')[0];
+    const tab = tabOf(id);
+    // Programme, révisions, écoute : ils viennent de l'Entraînement libre (l'ancien accueil)
+    back = tab === 'learn' && !['learn', 'lesson', 'home'].includes(id) ? '#/home' : '#/' + tab;
+  }
   return el('div.page-head',
     back ? el('a.back', { href: back, 'aria-label': 'Retour' }, '‹') : null,
     el('div', el('h1', title), sub ? el('p.sub', sub) : null),

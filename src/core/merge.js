@@ -1,3 +1,4 @@
+import { mergeCourse } from './coursemerge.js';
 // Fusion de deux sauvegardes (deux appareils modifiés hors-ligne) : rien de ce qui a été gagné n'est perdu.
 // Cumulatif (XP, jours, badges, carnet, records…) → union / maximum. Le reste (idée en cours, réglages…) → la version la plus récente.
 
@@ -83,6 +84,8 @@ export function mergeStates(local, remote, base = null) {
   // Parcours de style : étapes faites des deux côtés
   out.paths = { ...(older.paths || {}) };
   for (const [g, p] of Object.entries(newer.paths || {})) { const o = out.paths[g] || {}; out.paths[g] = { ...o, ...p, start: [o.start, p.start].filter(Boolean).sort()[0], done: { ...(o.done || {}), ...(p.done || {}) } }; }
+  // Parcours « Apprendre » : leçons faites des deux côtés, meilleurs scores
+  if (local.course || remote.course) out.course = mergeCourse(older.course, newer.course);
   out.cards = { ...(newer.cards || {}), ...(older.cards || {}) };
   for (const [k, v] of Object.entries(newer.cards || {})) if (!out.cards[k] || v < out.cards[k]) out.cards[k] = v;
   out.certs = { ...(newer.certs || {}), ...(older.certs || {}) };

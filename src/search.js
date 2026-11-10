@@ -1,4 +1,4 @@
-// Recherche rapide (Ctrl+K, « / » ou 🔍) : écrans, styles, missions studio, niveaux de jeux et réglages.
+// Recherche rapide (Ctrl+K, « / » ou 🔍) : parcours (unités, leçons), écrans, styles, missions studio, niveaux de jeux et réglages.
 import { el, modal } from './ui.js';
 import { getState } from './store.js';
 import { TABS, SCREENS, screenById } from './catalog.js';
@@ -15,9 +15,14 @@ const SETTINGS = [
 ];
 
 async function buildIndex() {
-  const [{ GENRES }, { MISSIONS }, { LEVELS }, { PAD_LEVELS }, { PATHS }] = await Promise.all([
-    import('./data/genres.js'), import('./data/missions.js'), import('./data/rush.js'), import('./data/pads.js'), import('./data/paths.js')]);
+  const [{ GENRES }, { MISSIONS }, { LEVELS }, { PAD_LEVELS }, { PATHS }, { UNITS }, course] = await Promise.all([
+    import('./data/genres.js'), import('./data/missions.js'), import('./data/rush.js'), import('./data/pads.js'), import('./data/paths.js'),
+    import('./data/course.js'), import('./core/course.js')]);
+  const { states } = course.nodeStates(course.courseOf(getState()));
   return [
+    // Le parcours : unités et leçons (une leçon encore verrouillée mène à son unité)
+    ...UNITS.map((u, i) => ({ name: `Unité ${i + 1} : ${u.title}`, emoji: u.emoji, desc: u.goal, keys: `parcours unité leçon ${u.guide.map((g) => g[0]).join(' ')}`, href: `#/learn?u=${u.id}`, group: 'Parcours', boost: 3 })),
+    ...course.NODES.filter((n) => n.type === 'lesson').map((n) => ({ name: n.title, emoji: n.icon, desc: `Leçon · unité ${n.ui + 1} : ${UNITS[n.ui].title}${states[n.id] === 'locked' ? ' (verrouillée)' : ''}`, keys: 'leçon parcours apprendre', href: states[n.id] === 'locked' ? `#/learn?u=${n.unit}` : `#/lesson?id=${n.id}`, group: 'Leçon', boost: 2 })),
     ...TABS.map((t) => ({ name: t.label, emoji: t.icon, href: '#/' + t.id, group: 'Onglet', boost: 6 })),
     ...SCREENS.filter((x) => !TABS.some((t) => t.id === x.id)).map((x) => ({ ...x, group: x.desc ? 'Atelier' : 'Écran', boost: 4 })),
     { name: 'Jeux sans le son', emoji: '🔇', href: '#/club?silent=1', desc: 'Nuit au club en mode silencieux', keys: 'silencieux muet métro', group: 'Jeu', boost: 4 },
@@ -51,7 +56,7 @@ export async function openSearch() {
       href: it.href, role: 'option', 'aria-selected': String(i === sel), onclick: (e) => { e.preventDefault(); go(it); },
     }, el('span.search-emoji', { 'aria-hidden': 'true' }, it.emoji || '•'),
     el('span.search-text', el('b', it.name), it.desc ? el('span', it.desc) : null),
-    el('span.search-group', it.group))) : [el('p.small.muted', 'Rien trouvé. Essaie « basse », « house », « serum », « accords »…')]));
+    el('span.search-group', it.group))) : [el('p.small.muted', 'Rien trouvé. Essaie « basse », « house », « serum », « accords », « enveloppe »…')]));
     list.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
   };
   input.addEventListener('input', () => { sel = 0; paint(); });

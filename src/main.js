@@ -17,6 +17,8 @@ applyAudioMode();
 import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
 const ROUTES = {
+  learn: () => import('./views/learn.js'),
+  lesson: () => import('./views/lesson.js'),
   home: () => import('./views/home.js'),
   play: () => import('./views/play.js'),
   create: () => import('./views/create.js'),
@@ -64,7 +66,7 @@ const nav = document.getElementById('nav');
 const status = document.getElementById('status');
 let cleanup = null;
 let renderToken = 0;
-let currentId = 'home';
+let currentId = 'learn';
 const mini = mountMiniPlayer(document.getElementById('miniplayer'));
 const paintMini = () => mini.setVisible(MINI_ROUTES.includes(currentId) && !!getState().settings.onboarded);
 
@@ -89,7 +91,7 @@ function renderStatus() {
   const goal = s.settings.dailyGoal;
   const pct = Math.min(1, t.xp / goal);
   clear(status);
-  status.appendChild(el('a.brand', { href: '#/home' }, el('span.logo', '◆'), el('span.brand-name', 'BeatForge')));
+  status.appendChild(el('a.brand', { href: '#/learn' }, el('span.logo', '◆'), el('span.brand-name', 'BeatForge')));
   status.appendChild(el('div.status-right',
     el('a.chip.streak' + (s.streak.last === dayKey() ? '.lit' : ''), { href: '#/profile', title: `Série de jours${s.streak.freezes ? ` · ${s.streak.freezes > 1 ? `${s.streak.freezes} jokers` : '1 joker'} 🧊 pour sauver un jour manqué` : ''}` },
       '🔥 ', String(s.streak.count || 0), s.streak.freezes ? el('span.chip-freeze', { 'aria-label': s.streak.freezes > 1 ? `${s.streak.freezes} jokers` : '1 joker' }, s.streak.freezes > 1 ? `🧊${s.streak.freezes}` : '🧊') : null),
@@ -176,9 +178,10 @@ function ring(p) {
 
 async function route() {
   const token = ++renderToken;
-  const hash = location.hash || '#/home';
+  const hash = location.hash || '#/learn';
   const [path, query = ''] = hash.slice(2).split('?');
-  const id = ROUTES[path] ? path : 'home';
+  const id = ROUTES[path] ? path : 'learn';
+  document.body.dataset.route = id;
   // La boucle du mini-lecteur continue entre les écrans d'édition ; tout le reste s'arrête.
   const keep = transport.owner === 'mini' && MINI_ROUTES.includes(id);
   if (!keep) transport.stop();
@@ -192,7 +195,7 @@ async function route() {
   if (getState().recent?.[0] !== id && pushRecent([], id).length) update((s) => { s.recent = pushRecent(s.recent, id); });
   renderNav(id);
   const label = TABS.find((x) => x.id === id)?.label || screenById(id)?.name;
-  document.title = label && id !== 'home' ? `${label} · BeatForge` : 'BeatForge';
+  document.title = label && id !== 'learn' ? `${label} · BeatForge` : 'BeatForge';
   let mod;
   try {
     mod = await ROUTES[id]();
@@ -213,17 +216,20 @@ async function route() {
 function onboarding() {
   const s = getState();
   if (s.settings.onboarded) return;
-  let goal = 150;
+  let goal = 150, start = 'u1';
   const close = modal(el('div.onboard',
     el('div.onboard-logo', '◆'),
     el('h2', 'Bienvenue dans BeatForge'),
-    el('p', 'Ta salle d’entraînement de poche pour composer : rythmes, accords, mélodies « catchy » et sound design — puis transposer chaque geste dans Ableton Live 12, ton MPC Key 37 et Serum 2.'),
+    el('p', 'Un parcours pas à pas pour apprendre Ableton Live, le sound design au synthé et ton clavier MIDI : des bases du rythme jusqu’à ton premier morceau exporté.'),
     el('ol.onboard-steps',
-      el('li', el('b', '⚡ Session express'), ' — 5-10 min : oreille, création dans un style, puis une mission sur tes outils.'),
-      el('li', el('b', '🎮 Jouer'), ' — sur téléphone : des jeux courts, même sans le son, pour progresser sans y penser.'),
-      el('li', el('b', '🎛️ Créer'), ' — sur PC : les ateliers, ton idée qui te suit partout, l’export vers Live.'),
+      el('li', el('b', '🎓 Apprendre'), ' — des leçons de 3 à 5 minutes, de plus en plus poussées : clavier, MIDI, Live, accords, synthé, mix.'),
+      el('li', el('b', '🎛️ Pratiquer'), ' — chaque unité t’envoie dans un atelier de l’app et te donne une mission à faire dans Live.'),
+      el('li', el('b', '🎮 Jouer'), ' — les jeux et ateliers libres restent là pour t’entraîner quand tu veux.'),
     ),
-    el('p.muted', 'Les indices disparaissent progressivement avec ton niveau : le but est que tu deviennes autonome.'),
+    el('p', el('b', 'Tu en es où ?')),
+    segmented([
+      { value: 'u1', label: 'Je débute' }, { value: 'u4', label: 'Je joue un peu du clavier' }, { value: 'u7', label: 'J’utilise déjà Live' },
+    ], start, (v) => { start = v; }),
     el('p', el('b', 'Objectif quotidien :')),
     segmented([
       { value: 100, label: 'Cool · 100 XP' }, { value: 150, label: 'Régulier · 150' }, { value: 250, label: 'Intense · 250' },
@@ -233,8 +239,10 @@ function onboarding() {
         ensureAudio();
         update((st) => { st.settings.onboarded = true; st.settings.dailyGoal = goal; st.settings.seenVersion = APP_VERSION; });
         close();
+        if (start !== 'u1') location.hash = `#/lesson?jump=${start}`;
       },
     }, 'C’est parti 🎧'),
+    el('p.small.muted', 'Tu pourras toujours sauter des unités avec « ⏩ Sauter ici » sur le parcours.'),
   ), { dismissable: false });
 }
 

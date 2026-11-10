@@ -2,8 +2,18 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '3.0';
+export const APP_VERSION = '4.0';
 export const CHANGELOG = [
+  {
+    version: '4.0', date: 'novembre 2026', items: [
+      ['🎓', 'Le Parcours, nouveau cœur de l’app', 'un chemin façon Duolingo en 18 unités et 5 parties : rythme, clavier, MIDI, Ableton Live, gammes, accords, mélodies, synthé à la main, effets, arrangement, mixage et export. Des leçons de 3 à 5 minutes, de plus en plus poussées.'],
+      ['🖱️', 'Ableton Live dans l’app', 'une maquette cliquable de Live (barre de contrôle, navigateur, Session, Arrangement, vues Clip et Device) pour apprendre où cliquer, et les raccourcis à taper au clavier.'],
+      ['🎛️', 'Nouveaux exercices', 'clavier 3D et clavier MIDI (notes, accords, gammes, octaves), vélocité, potards (CC), boîte à rythmes, piano roll, synthé à régler à l’oreille, taper en rythme, paires, phrases à compléter, calculs de producteur.'],
+      ['🏆', 'Contrôles, cœurs et sauts', 'chaque unité se termine par un contrôle (3 cœurs) ; « ⏩ Sauter ici » pour aller plus loin si tu connais déjà, et « S’entraîner » pour réviser là où tu as hésité.'],
+      ['🎁', 'Ateliers et missions', 'chaque unité t’envoie dans les ateliers de l’app (Piano Rush, Pad Rush, Labs…) et te donne une mission à faire dans Live, Serum 2 ou au clavier.'],
+      ['⚡', 'Le reste de l’app', 'l’ancien accueil devient l’« Entraînement libre » : session express, jeux, ateliers et carnet restent là, à côté du parcours.'],
+    ],
+  },
   {
     version: '3.0', date: 'octobre 2026', items: [
       ['🧭', 'Nouveau menu en 5 onglets', 'Accueil, 🎮 Jouer, 🎛️ Créer, 📓 Carnet, 👤 Profil. Chaque écran a son retour vers son onglet, les réglages ont leur propre page (roue ⚙️ du Profil).'],
@@ -74,7 +84,9 @@ export const CHANGELOG = [
 ];
 
 const TOUR = [
-  { route: '#/home', title: 'Ton accueil', text: 'La session du jour, ta prochaine étape et un accès direct aux jeux (sur téléphone) ou à ton idée (sur PC).' },
+  { route: '#/learn', title: '🎓 Ton parcours', text: 'Le cœur de l’app : un chemin de leçons courtes, des bases du rythme jusqu’au morceau exporté depuis Ableton Live. Touche le prochain rond pour commencer.' },
+  { route: '#/learn', title: '📖 Guides et ⏩ sauts', text: 'Chaque unité a son guide (l’essentiel à retenir) ; si tu connais déjà, « Sauter ici » te fait passer un test pour aller plus loin.' },
+  { route: '#/home', title: '⚡ Entraînement libre', text: 'L’ancien accueil : session express, prochaine étape et accès direct aux jeux ou à ton idée.' },
   { route: '#/play', title: '🎮 Jouer', text: 'Tous les jeux au même endroit : Nuit au club avec ou sans le son, Piano Rush, Pad Rush, oreille et révisions.' },
   { route: '#/club?silent=1', title: '🔇 Sans le son', text: 'Des mini-jeux 100 % visuels pour progresser là où tu ne peux pas mettre le son : grilles, accords, calcul, structure, réglages.' },
   { route: '#/create', title: '🎛️ Créer', text: 'Ton idée en cours, puis les ateliers rangés : écrire, son & mix, développer, et tout ce qui se finit dans ton studio.' },

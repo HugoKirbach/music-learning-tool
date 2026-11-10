@@ -56,6 +56,7 @@ function fresh() {
     program: { startedAt: null, done: {} },
     customDice: [],
     recent: [],
+    course: { done: {} },
   };
 }
 
@@ -160,7 +161,7 @@ export function recordExercise(r) {
     day.skills[k] = (day.skills[k] || 0) + Math.round(v);
   }
   // Journal (pour le bilan hebdo) : 400 dernières entrées
-  state.log = [...(state.log || []), { d, key: r.key, xp, skill: r.skill || null, genre: r.genre || null, score: r.score ?? null }].slice(-400);
+  state.log = [...(state.log || []), { d, t: Date.now(), key: r.key, xp, skill: r.skill || null, genre: r.genre || null, score: r.score ?? null }].slice(-400);
   // Tableau de bord : score moyen du jour et tempo le plus rapide réussi (≥ 80 %)
   if (typeof r.score === 'number') day.acc = { n: (day.acc?.n || 0) + 1, sum: (day.acc?.sum || 0) + Math.round(r.score) };
   if (r.bpm && r.score >= 80) day.tempo = Math.max(day.tempo || 0, Math.round(r.bpm));
