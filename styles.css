@@ -1494,7 +1494,9 @@ a.btn3d { text-decoration: none; }
 .pnode-wrap.t-lab .pn-label.r, .pnode-wrap.t-studio .pn-label.r { left: 38px; } .pnode-wrap.t-lab .pn-label.l, .pnode-wrap.t-studio .pn-label.l { right: 38px; }
 .pn-gift { position: absolute; top: -10px; left: -8px; font-size: 18px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.3)); }
 .pnode-wrap.current .pn-label { color: var(--text); }
-.pn-bubble { position: absolute; bottom: 44px; left: 0; transform: translateX(-50%); padding: 7px 12px; border-radius: 12px; background: var(--card); border: 2px solid var(--line); color: var(--uc); font-weight: 900; font-size: 13px; letter-spacing: .8px; white-space: nowrap; box-shadow: 0 4px 0 var(--line); animation: bob 1.8s ease-in-out infinite; }
+.pn-bubble { position: absolute; bottom: 44px; left: 0; transform: translateX(-50%); padding: 7px 12px; border-radius: 12px; background: var(--card); border: 2px solid var(--line); color: var(--uc); font-weight: 900; font-size: 13px; letter-spacing: .8px; white-space: nowrap; box-shadow: 0 4px 0 var(--line); animation: bubble-hop 1.6s ease-in-out infinite; }
+/* La bulle reste centrée sur son nœud et sautille vers lui (verticalement seulement) */
+@keyframes bubble-hop { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
 .pn-bubble::after { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -7px; border: 7px solid transparent; border-top-color: var(--line); border-bottom: 0; }
 .pnode-wrap.current .pn-bubble { bottom: 48px; }
 .pnode-wrap.current.t-checkpoint .pn-bubble { bottom: 58px; }

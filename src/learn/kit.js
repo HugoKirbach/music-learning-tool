@@ -121,14 +121,18 @@ export function playBtn(spec, label = '▶ Écouter', cls = '') {
 }
 
 // ---------- Sons de l'interface ----------
+/** Niveau des sons de validation par rapport aux exercices (Réglages › Général). */
+export const SFX_LEVELS = { soft: 0.3, normal: 0.6, off: 0 };
+const sfxPatch = (id, k) => { const p = JSON.parse(JSON.stringify(presetParams(id))); p.gain *= k; p.delay = 0; p.reverb = Math.min(p.reverb ?? 0.2, 0.12); return p; };
 export function sfx(kind) {
-  if ((getState().settings.volume ?? 0.8) <= 0) return;
+  const st = getState().settings;
+  const k = SFX_LEVELS[st.sfx || 'soft'] ?? SFX_LEVELS.soft;
+  if ((st.volume ?? 0.8) <= 0 || !k) return;
   ensureAudio();
   const t = now() + 0.02;
-  const pr = presetParams(kind === 'bad' ? 'fmbass' : 'marimba');
-  if (kind === 'ok') { playSynth(pr, 84, t, 0.12, 0.5, { send: 0.1 }); playSynth(pr, 91, t + 0.09, 0.2, 0.5, { send: 0.1 }); }
-  else if (kind === 'bad') { playSynth(pr, 40, t, 0.18, 0.45, { send: 0 }); playSynth(pr, 39, t + 0.12, 0.25, 0.4, { send: 0 }); }
-  else if (kind === 'end') [72, 76, 79, 84, 88].forEach((m, i) => playSynth(pr, m, t + i * 0.09, 0.3, 0.5, { send: 0.25 }));
+  if (kind === 'ok') { const p = sfxPatch('marimba', k); playSynth(p, 76, t, 0.12, 0.45, { send: 0.05 }); playSynth(p, 83, t + 0.08, 0.18, 0.45, { send: 0.05 }); }
+  else if (kind === 'bad') { const p = sfxPatch('pluckbass', k * 0.9); playSynth(p, 43, t, 0.16, 0.4, { send: 0 }); playSynth(p, 42, t + 0.11, 0.22, 0.35, { send: 0 }); }
+  else if (kind === 'end') { const p = sfxPatch('marimba', k); [72, 76, 79, 84].forEach((m, i) => playSynth(p, m, t + i * 0.1, 0.3, 0.45, { send: 0.08 })); }
 }
 
 // ---------- Clavier de piano (3D) ----------

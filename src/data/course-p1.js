@@ -237,7 +237,7 @@ export const U4 = unit('u4', {
     card('En bas de l’écran', ['La vue détail montre ce qui est sélectionné.', 'Vue Clip : les notes du clip (piano roll). Vue Device : la chaîne d’instruments et d’effets de la piste.', 'Shift+Tab bascule entre les deux ; double-cliquer un clip ouvre ses notes.'], { visual: { k: 'live', show: ['clip'] } }),
     L('Où sont les notes du clip ?', 'note-editor', ['clip']),
     L('Où est l’instrument de la piste ?', 'instrument', ['device']),
-    gen('shortcut', { ids: ['shifttab', 'detail'], n: 2 }),
+    gen('shortcut', { ids: ['shifttab', 'clipView', 'deviceView'], n: 2 }),
     Q('Tu double-cliques un clip MIDI. Que s’ouvre-t-il ?', ['Ses notes, dans la vue Clip', 'Le navigateur', 'Les Préférences']),
   ]),
   studio('st', 'Visite guidée de Live', '🧭', [
@@ -317,7 +317,7 @@ export const U6 = unit('u6', {
     ['Métronome', 'Toujours avec le clic au début. Son menu règle le décompte (Count-In).'],
     ['Session Record', 'Piste armée + slot sélectionné + Session Record. Relancer sur un clip MIDI = overdub.'],
     ['Quantifier', 'Ctrl/Cmd+U. Ctrl/Cmd+Shift+U pour régler la grille et la quantité (50-70 % garde le feeling).'],
-    ['Capture MIDI', 'Ctrl/Cmd+Shift+C : récupère ce que tu viens de jouer, même sans Rec.'],
+    ['Capture MIDI', 'Le bouton Capture MIDI de la barre de contrôle récupère ce que tu viens de jouer, même sans Rec.'],
     ['Éditer', 'Flèches ↑ ↓ : transposer. Ctrl/Cmd+D : dupliquer. 0 : désactiver une note.'],
   ],
 }, [
@@ -345,9 +345,9 @@ export const U6 = unit('u6', {
     T('Les hats en croches', { mode: 'pattern', pattern: 'x.x.x.x.x.x.x.x.', bars: 2, bpm: 100 }),
   ]),
   lesson('l4', 'Capture MIDI', '🪄', [
-    card('Le filet de sécurité', ['Tu as joué une super idée… sans appuyer sur Rec ? Live écoutait.', 'Capture MIDI (bouton de la barre de contrôle, ou Ctrl/Cmd+Shift+C) crée un clip avec ce que tu viens de jouer sur une piste armée.', 'Sur un set vide, il devine même le tempo de ton jeu.']),
+    card('Le filet de sécurité', ['Tu as joué une super idée… sans appuyer sur Rec ? Live écoutait.', 'Le bouton Capture MIDI de la barre de contrôle crée un clip avec ce que tu viens de jouer sur une piste armée.', 'Sur un set vide, il devine même le tempo de ton jeu.']),
     L('Où est le bouton Capture MIDI ?', 'capture', ['control']),
-    gen('shortcut', { ids: ['capture'], n: 1 }),
+    Q('Comment déclencher Capture MIDI ?', ['Avec son bouton dans la barre de contrôle (pas de raccourci par défaut)', 'Avec F9', 'Avec la touche Tab'], 'Tu peux lui donner ton propre raccourci en mode Key Map (Ctrl/Cmd+K).'),
     Q('Capture MIDI fonctionne si…', ['La piste MIDI est armée (ou en Monitor In)', 'Le métronome est coupé', 'Tu es dans la vue Arrangement']),
     K('Échauffe-toi : joue C, E, G, E', 'seq', [0, 4, 7, 4]),
   ]),
@@ -365,6 +365,6 @@ export const U6 = unit('u6', {
     'Joue 8 mesures de C – G – Am – F, une mesure par accord, avec Session Record.',
     'Quantifie à 60 % sur la grille 1/16 (Ctrl/Cmd+Shift+U).',
     'Rejoue une ligne de basse par-dessus sur une autre piste.',
-    'Essaie Capture MIDI : joue sans enregistrer, puis Ctrl/Cmd+Shift+C.',
+    'Essaie Capture MIDI : joue sans enregistrer, puis clique le bouton Capture MIDI.',
   ], 'Enregistrer en jouant est souvent plus rapide et plus vivant que dessiner les notes.', { tool: 'midi' }),
 ]);
