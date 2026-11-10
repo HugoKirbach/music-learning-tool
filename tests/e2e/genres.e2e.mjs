@@ -40,7 +40,7 @@ export const tests = {
     t.assert.deepEqual((await page.state()).settings.favGenres, ['hardhouse']);
   },
 
-  'analyse de référence désactivée : plus de lien, l’ancienne adresse revient à l’accueil': async (t) => {
+  'analyse de référence désactivée : plus de lien, l’ancienne adresse revient au parcours': async (t) => {
     const page = await t.open({ device: 'mobile' });
     await page.store('s.xp = 5000; s.settings.allModules = true;');
     for (const r of ['#/labs', '#/studio']) {
@@ -48,6 +48,6 @@ export const tests = {
       t.assert.equal(await page.locator('text=Analyse de référence').count(), 0, r);
     }
     await page.goto(page.url().split('#')[0] + '#/analyze'); await page.waitForTimeout(600);
-    t.assert.ok(await page.locator('text=⚡ Lancer une session').count(), 'redirigé vers l’accueil');
+    t.assert.ok(await page.locator('.learn-hero').count(), 'redirigé vers le parcours (écran principal)');
   },
 };

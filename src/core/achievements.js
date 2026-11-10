@@ -8,6 +8,7 @@ import { rng } from './daily.js';
 import { GENRES } from '../data/genres.js';
 
 export const CATEGORIES = [
+  { id: 'course', name: 'Parcours', emoji: '🎓' },
   { id: 'start', name: 'Premiers pas', emoji: '👣' },
   { id: 'rush', name: 'Piano Rush', emoji: '🎹' },
   { id: 'pads', name: 'Pad Rush', emoji: '🔲' },
@@ -33,6 +34,8 @@ const threeStars = (best = {}, levels) => levels.filter((l) => (best[l.id]?.star
 const chapterDone = (best = {}, levels, ch) => levels.filter((l) => l.ch === ch).every((l) => (best[l.id]?.stars || 0) >= 1);
 const minutes = (s) => Math.round(Object.values(s.days || {}).reduce((a, d) => a + (d.sec || 0), 0) / 60);
 const A = (id, cat, tier, emoji, name, desc, test) => ({ id, cat, tier, emoji, name, desc, test });
+/** Leçons du parcours terminées (hors contrôles, ateliers et missions). */
+const courseLessons = (s) => Object.keys(s.course?.done || {}).filter((k) => /^u\d+-l\d+$/.test(k)).length;
 
 const EXTRA = [
   // Piano Rush
@@ -82,6 +85,14 @@ const EXTRA = [
   // Progression
   A('level5', 'growth', 'bronze', '🌱', 'Niveau 5', 'Atteins le niveau 5', (s) => levelFromXp(s.xp).level >= 5),
   A('level20', 'growth', 'gold', '🚀', 'Niveau 20', 'Atteins le niveau 20', (s) => levelFromXp(s.xp).level >= 20),
+  // Parcours « Apprendre »
+  A('course1', 'course', 'bronze', '🎓', 'Première leçon', 'Termine ta première leçon du parcours', (s) => courseLessons(s) >= 1),
+  A('courseUnit', 'course', 'bronze', '🏆', 'Unité bouclée', 'Réussis le contrôle d’une unité', (s) => Object.keys(s.course?.done || {}).some((k) => k.endsWith('-cp'))),
+  A('coursePerfect10', 'course', 'silver', '👑', 'Sans faute', '10 leçons du parcours sans aucune erreur', (s) => Object.entries(s.course?.done || {}).filter(([k, v]) => /^u\d+-l\d+$/.test(k) && v.perfect).length >= 10),
+  A('courseBasics', 'course', 'silver', '🧱', 'Fondations solides', 'Termine la partie 1 : rythme, clavier et MIDI', (s) => !!s.course?.done?.['u3-cp']),
+  A('courseLive', 'course', 'silver', '🖥️', 'À l’aise dans Live', 'Termine la partie 2 : premiers pas dans Ableton Live', (s) => !!s.course?.done?.['u6-cp']),
+  A('courseSynth', 'course', 'gold', '🔊', 'Sound designer', 'Termine la partie 4 : le synthé à la main', (s) => !!s.course?.done?.['u14-cp']),
+  A('courseAll', 'course', 'gold', '🎓', 'Diplôme BeatForge', 'Réussis l’examen final du parcours', (s) => !!s.course?.done?.['u18-cp']),
   A('certs3', 'growth', 'silver', '🎓', 'Diplômé·e', `${Math.min(3, CERT_LEVELS.length)} certificats de niveau`, (s) => earnedCerts(s).length >= 3),
   A('allround', 'growth', 'gold', '🧩', 'Touche-à-tout', `Au moins 300 XP dans chacune des ${Object.keys(SKILLS).length} compétences`, (s) => Object.keys(SKILLS).every((k) => (s.skills?.[k] || 0) >= 300)),
 ];

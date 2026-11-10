@@ -92,7 +92,7 @@ export const tests = {
       t.assert.equal(await page.locator('text=Choisis ton pseudo').count(), 0, 'pseudo demandé pendant la visite');
       await btn.tap();
     }
-    t.assert.equal(seen.length, 7, seen.join(' '));
+    t.assert.equal(seen.length, 9, seen.join(' '));
     t.assert.equal(await page.locator('.tour-bubble').count(), 0);
   },
 };
