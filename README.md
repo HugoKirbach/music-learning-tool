@@ -86,7 +86,11 @@ Un chemin sinueux d'unités, comme Duolingo : chaque leçon débloque la suivant
 
 **🔊 Volume égalisé** : tous les sons des exercices (presets, sons de synthé réglés à la main, batteries) sont mesurés une fois puis ramenés au même niveau perçu. Dans un exercice de synthé, ton son et la cible gardent le même gain : les écarts que tu crées restent audibles. *Réglages › Général › Volume égalisé* pour le couper.
 
-**🤖 Bip, la mascotte, réagit** : il sourit ou fait la moue dans le bandeau vert ou rouge, fête une série de bonnes réponses, et te parle en haut du parcours (objectif atteint, série à sauver…).
+**🤖 Bip, ton compagnon** : il te parle en haut du parcours selon ta journée, commente tes réponses dans le bandeau vert ou rouge, dit un mot à la fin de chaque leçon et résume les points clés de chaque unité sur le chemin. Touche-le : il donne une astuce de production. Il a sa page (*Profil › Bip*, ou le bouton 👕 du parcours).
+
+**🎯 Défis du jour** : trois défis chaque jour (un facile, un moyen, un corsé), les mêmes sur tous tes appareils : finir une leçon, enchaîner 5 bonnes réponses, compléter ton morceau… Chacun rapporte des **🔩 boulons** (10, 15 ou 25) ; les trois réussis ouvrent le **coffre du jour** (+30 boulons et +20 XP).
+
+**👕 La garde-robe de Bip** : les boulons (défis, coffre, et chaque succès : 10, 25 ou 60 selon le palier) achètent des couleurs et des accessoires (casque, lunettes, casquette, bonnet, moustache…). Trois pièces se débloquent en progressant (antenne en feu, antenne étoile, couronne) et la couleur or avec l'examen final. La tenue de Bip le suit partout dans l'app. Une catégorie de succès « Défis & Bip » récompense défis, coffres, morceaux complets et garde-robe.
 
 **🌍 Un univers par partie** : le studio (fondations), l'écran de Live, la salle d'écriture (composer), le rack de synthés, puis le club. Chaque partie a quelques dessins discrets en fond, avec un léger effet de profondeur au défilement. L'en-tête de l'unité en cours reste collé en haut, avec son bouton Guide. Quand une leçon se débloque, le trait du chemin se trace jusqu'à elle et le cadenas saute.
 

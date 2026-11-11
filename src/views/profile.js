@@ -1,4 +1,5 @@
 // Profil : niveau, activité, styles préférés, passeport, collection et accès au suivi (progrès, compétences, amis…).
+import { boltsBalance } from '../core/challenges.js';
 import { el, card, header, plural } from '../ui.js';
 import { getState, update } from '../store.js';
 import { levelFromXp, titleFor, SKILLS, dayKey } from '../core/progress.js';
@@ -69,6 +70,7 @@ export function render(root, params = {}) {
       link('#/progress', '📊', 'Mes progrès', 'Courbes, objectifs, certificats'),
       link('#/skills', '🌳', 'Compétences', '18 compétences à valider'),
       link('#/bilan', '📈', 'Bilan & coach', 'Ta semaine et le plan du coach'),
+      link('#/bip', '🤖', 'Bip', `${boltsBalance(s)} 🔩 · défis du jour, garde-robe`),
       link('#/collection', '🏅', 'Collection', `${nbBadges}/${ACHIEVEMENTS.length} succès · ${Object.keys(s.cards || {}).length}/${CARDS.length} cartes`),
       link('#/friends', '👥', 'Amis', 'Classement de la semaine'),
       link('#/placement', '🧪', 'Test de la semaine', placementDue(s) ? 'À passer cette semaine' : 'Fait cette semaine ✓'),

@@ -18,7 +18,7 @@ export const HUBS = [
   { id: 'play', icon: '🎮', label: 'Jouer', also: ['rush', 'pads', 'club', 'ear', 'callresponse'] },
   { id: 'create', icon: '🎛️', label: 'Créer', also: ['labs', 'beat', 'chords', 'melody', 'basslab', 'hum', 'synth', 'mixdown', 'arrange', 'remix', 'critique', 'atlas', 'studio', 'path', 'project', 'challenge', 'tools'] },
   { id: 'notebook', icon: '📓', label: 'Carnet' },
-  { id: 'profile', icon: '👤', label: 'Profil', also: ['progress', 'skills', 'bilan', 'collection', 'friends', 'placement', 'settings', 'latency'] },
+  { id: 'profile', icon: '👤', label: 'Profil', also: ['progress', 'skills', 'bilan', 'collection', 'friends', 'placement', 'settings', 'latency', 'bip'] },
 ];
 
 /** Page-carrefour à laquelle appartient un écran (Jouer, Créer, Extras, Profil…). */
@@ -66,6 +66,7 @@ export const SCREENS = [
   { id: 'bilan', href: '#/bilan', emoji: '📈', name: 'Bilan & coach', keys: 'bilan semaine coach' },
   { id: 'progress', href: '#/progress', emoji: '📊', name: 'Mes progrès', keys: 'courbes statistiques objectifs certificats' },
   { id: 'review', href: '#/review', emoji: '🔁', name: 'Révisions', keys: 'révisions répétition espacée' },
+  { id: 'bip', href: '#/bip', emoji: '🤖', name: 'Bip : défis du jour et garde-robe', keys: 'bip mascotte compagnon défis du jour boulons récompenses garde-robe accessoires tenue astuces' },
   { id: 'collection', href: '#/collection', emoji: '🏅', name: 'Ma collection', keys: 'succès badges cartes vinyles' },
   { id: 'friends', href: '#/friends', emoji: '👥', name: 'Amis', keys: 'amis classement pseudo' },
   { id: 'notebook', href: '#/notebook', emoji: '📓', name: 'Carnet d’idées', keys: 'idées sauvegarde midi' },

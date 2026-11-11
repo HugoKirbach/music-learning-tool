@@ -9,6 +9,7 @@ import { GENRES } from '../data/genres.js';
 
 export const CATEGORIES = [
   { id: 'course', name: 'Parcours', emoji: '🎓' },
+  { id: 'bip', name: 'Défis & Bip', emoji: '🤖' },
   { id: 'start', name: 'Premiers pas', emoji: '👣' },
   { id: 'rush', name: 'Piano Rush', emoji: '🎹' },
   { id: 'pads', name: 'Pad Rush', emoji: '🔲' },
@@ -34,6 +35,9 @@ const threeStars = (best = {}, levels) => levels.filter((l) => (best[l.id]?.star
 const chapterDone = (best = {}, levels, ch) => levels.filter((l) => l.ch === ch).every((l) => (best[l.id]?.stars || 0) >= 1);
 const minutes = (s) => Math.round(Object.values(s.days || {}).reduce((a, d) => a + (d.sec || 0), 0) / 60);
 const A = (id, cat, tier, emoji, name, desc, test) => ({ id, cat, tier, emoji, name, desc, test });
+const claims = (s) => Object.values(s.days || {}).reduce((a, d) => a + Object.keys(d.claim || {}).length, 0);
+const chests = (s) => Object.values(s.days || {}).filter((d) => d.chest).length;
+const bipBought = (s) => Object.keys(s.stats || {}).filter((k) => k.startsWith('bip:')).length;
 /** Leçons du parcours terminées (hors contrôles, ateliers et missions). */
 const courseLessons = (s) => Object.keys(s.course?.done || {}).filter((k) => /^u\d+-l\d+$/.test(k)).length;
 
@@ -93,6 +97,18 @@ const EXTRA = [
   A('courseLive', 'course', 'silver', '🖥️', 'À l’aise dans Live', 'Termine la partie 2 : premiers pas dans Ableton Live', (s) => !!s.course?.done?.['u6-cp']),
   A('courseSynth', 'course', 'gold', '🔊', 'Sound designer', 'Termine la partie 4 : le synthé à la main', (s) => !!s.course?.done?.['u14-cp']),
   A('courseAll', 'course', 'gold', '🎓', 'Diplôme BeatForge', 'Réussis l’examen final du parcours', (s) => !!s.course?.done?.['u18-cp']),
+  // Défis du jour, morceaux et Bip
+  A('chal1', 'bip', 'bronze', '🎯', 'Défi relevé', 'Réussis un défi du jour', (s) => claims(s) >= 1),
+  A('chal25', 'bip', 'silver', '🏹', 'Chasseur de défis', '25 défis du jour réussis', (s) => claims(s) >= 25),
+  A('chal100', 'bip', 'gold', '🏅', 'Cent défis', '100 défis du jour réussis', (s) => claims(s) >= 100),
+  A('chest1', 'bip', 'bronze', '🧰', 'Coffre du jour', 'Réussis les 3 défis d’une même journée', (s) => chests(s) >= 1),
+  A('chest7', 'bip', 'silver', '🗝️', 'Sept coffres', 'Ouvre 7 coffres du jour', (s) => chests(s) >= 7),
+  A('chest30', 'bip', 'gold', '💰', 'Trésorier', 'Ouvre 30 coffres du jour', (s) => chests(s) >= 30),
+  A('jamFull1', 'bip', 'bronze', '🎶', 'Morceau complet', 'Termine une leçon avec les 6 pistes de ton morceau', (s) => (s.stats?.jamFull || 0) >= 1),
+  A('jamFull10', 'bip', 'silver', '💿', 'Dix titres', '10 leçons terminées avec le morceau complet', (s) => (s.stats?.jamFull || 0) >= 10),
+  A('bipTalk', 'bip', 'bronze', '💬', 'Bavard', 'Discute 10 fois avec Bip (touche-le !)', (s) => (s.stats?.bipTaps || 0) >= 10),
+  A('bip1', 'bip', 'bronze', '👕', 'Relooking', 'Offre un premier accessoire ou une couleur à Bip', (s) => bipBought(s) >= 1),
+  A('bip5', 'bip', 'silver', '🧳', 'Garde-robe', '5 accessoires ou couleurs achetés pour Bip', (s) => bipBought(s) >= 5),
   A('certs3', 'growth', 'silver', '🎓', 'Diplômé·e', `${Math.min(3, CERT_LEVELS.length)} certificats de niveau`, (s) => earnedCerts(s).length >= 3),
   A('allround', 'growth', 'gold', '🧩', 'Touche-à-tout', `Au moins 300 XP dans chacune des ${Object.keys(SKILLS).length} compétences`, (s) => Object.keys(SKILLS).every((k) => (s.skills?.[k] || 0) >= 300)),
 ];

@@ -6,6 +6,8 @@ import { presetParams } from '../player.js';
 import { resolvePatch } from '../core/course.js';
 import { liveName, frName, enName } from '../core/coursegen.js';
 import { liveMock } from './livemock.js';
+import { getState } from '../store.js';
+import { bipLook } from '../core/challenges.js';
 import { stopJam } from './jam.js';
 import { measure, levelOf, levelingOn } from './level.js';
 
@@ -432,9 +434,37 @@ export function visual(v, { live = false } = {}) {
 // Humeurs : happy, wow, sad (une larme), cool, party (yeux rieurs, étincelles), sleepy (série en danger).
 // anim : hop (petit saut), jump (fête), droop (déçu), shake (non de la tête).
 const MOUTHS = { happy: 'M25 39 Q32 45 39 39', wow: 'M29 40 Q32 45 35 40 Q32 36 29 40', sad: 'M25 42 Q32 37 39 42', cool: 'M25 40 L39 40', party: 'M24 37 Q32 48 40 37 Z', sleepy: 'M28 41 Q32 43 36 41' };
-export function mascot(mood = 'happy', size = 72, { anim = '' } = {}) {
+const SKINS = {
+  violet: ['#c4a1ff', '#7c4dff', '#4b2a99'], mint: ['#b4f5d8', '#2dd4a0', '#12805f'], coral: ['#ffc9b0', '#ff7a59', '#b8452b'],
+  sky: ['#bfe6ff', '#4cb4ff', '#1f6fb3'], night: ['#74749a', '#2c2c44', '#12121f'], gold: ['#fff3b0', '#f5b800', '#a67600'],
+};
+/** Accessoires de Bip (dessinés dans le repère 64 × 64). `over` : par-dessus le visage ; sinon derrière ou au-dessus. */
+function bipAccessory(acc, c2) {
+  switch (acc) {
+    case 'headphones': return [svgEl('path', { d: 'M9 30 V24 A23 21 0 0 1 55 24 V30', stroke: '#22223a', 'stroke-width': 4.5, fill: 'none', 'stroke-linecap': 'round' }),
+      svgEl('rect', { x: 2, y: 25, width: 10, height: 19, rx: 5, fill: '#22223a' }), svgEl('rect', { x: 52, y: 25, width: 10, height: 19, rx: 5, fill: '#22223a' }),
+      svgEl('rect', { x: 4, y: 29, width: 3, height: 11, rx: 1.5, fill: '#5ce1e6' }), svgEl('rect', { x: 57, y: 29, width: 3, height: 11, rx: 1.5, fill: '#5ce1e6' })];
+    case 'shades': return [svgEl('rect', { x: 17, y: 26, width: 14, height: 10, rx: 4, fill: '#0b0b14', stroke: '#ffb84d', 'stroke-width': 1.6 }), svgEl('rect', { x: 33, y: 26, width: 14, height: 10, rx: 4, fill: '#0b0b14', stroke: '#ffb84d', 'stroke-width': 1.6 }),
+      svgEl('path', { d: 'M31 30 h2', stroke: '#ffb84d', 'stroke-width': 1.8 }), svgEl('path', { d: 'M20 29 l4 -1.5 M36 29 l4 -1.5', stroke: '#fff', 'stroke-width': 1.3, 'stroke-linecap': 'round', opacity: 0.7 })];
+    case 'cap': return [svgEl('path', { d: 'M11 17 Q11 5 32 5 Q53 5 53 17 Z', fill: '#ff5d73' }), svgEl('path', { d: 'M40 17 H61 Q62 12 50 12 Z', fill: '#c53b50' }), svgEl('circle', { cx: 32, cy: 5.5, r: 2.2, fill: '#fff' })];
+    case 'beanie': return [svgEl('path', { d: 'M10 18 Q10 2 32 2 Q54 2 54 18 Z', fill: '#4cc3ff' }), svgEl('rect', { x: 8, y: 14, width: 48, height: 7, rx: 3.5, fill: '#1b78ad' }), svgEl('circle', { cx: 32, cy: 2.5, r: 3.4, fill: '#fff' })];
+    case 'bow': return [svgEl('path', { d: 'M32 58 L22 52.5 V63.5 Z M32 58 L42 52.5 V63.5 Z', fill: '#ff5d73' }), svgEl('circle', { cx: 32, cy: 58, r: 2.6, fill: '#c53b50' })];
+    case 'stache': return [svgEl('path', { d: 'M32 40.5 Q27 36 21 40.5 Q26 45.5 32 41.5 Q38 45.5 43 40.5 Q37 36 32 40.5 Z', fill: '#f4d6a0' })];
+    case 'crown': return [svgEl('path', { d: 'M17 14 L15 2 L24 8 L32 0 L40 8 L49 2 L47 14 Z', fill: '#ffd23f', stroke: '#b88600', 'stroke-width': 1.2, 'stroke-linejoin': 'round' }), svgEl('circle', { cx: 32, cy: 9, r: 2, fill: '#ff5d73' }), svgEl('circle', { cx: 23, cy: 10.5, r: 1.4, fill: '#5ce1e6' }), svgEl('circle', { cx: 41, cy: 10.5, r: 1.4, fill: '#5ce1e6' })];
+    case 'flame': return [svgEl('path', { d: 'M32 12 Q24 8 28 1 Q30 5 32 -2 Q37 4 36 8 Q38 6 38 4 Q41 9 32 12 Z', fill: '#ff7a1a', class: 'flame' }), svgEl('path', { d: 'M32 11 Q28 8 31 4 Q32 7 34 5 Q36 9 32 11 Z', fill: '#ffe066', class: 'flame' })];
+    case 'star': return [svgEl('path', { d: 'M32 -2 l2.4 5 5.4 .7 -4 3.8 1 5.4 -4.8 -2.6 -4.8 2.6 1 -5.4 -4 -3.8 5.4 -.7z', fill: '#ffe066', stroke: '#c79a00', 'stroke-width': 0.8, class: 'antenna' })];
+    default: return [];
+  }
+}
+/** Tenue de Bip : celle choisie dans sa garde-robe (Profil › Bip), sauf si `look` est donné. */
+export function mascot(mood = 'happy', size = 72, { anim = '', look = null } = {}) {
   const mouth = MOUTHS[mood] || MOUTHS.happy;
   const c = '#5ce1e6';
+  let lk = look;
+  if (!lk) { try { lk = bipLook(getState()); } catch (e) { lk = { skin: 'violet', acc: 'none' }; } }
+  const [c1, c2, c3] = SKINS[lk.skin] || SKINS.violet;
+  const acc = lk.acc || 'none';
+  const hideAntenna = ['cap', 'beanie', 'crown', 'flame', 'star'].includes(acc);
   const eyes = mood === 'party'
     ? [svgEl('path', { d: 'M21 33 Q25 27 29 33', stroke: c, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round' }), svgEl('path', { d: 'M35 33 Q39 27 43 33', stroke: c, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round' })]
     : mood === 'sleepy'
@@ -444,18 +474,22 @@ export function mascot(mood = 'happy', size = 72, { anim = '' } = {}) {
     ? [svgEl('path', { d: 'M5 14 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6z', fill: '#ffe066', class: 'spark s1' }), svgEl('path', { d: 'M58 8 l1.3 3.2 3.2 1.3 -3.2 1.3 -1.3 3.2 -1.3 -3.2 -3.2 -1.3 3.2 -1.3z', fill: '#ff8ad1', class: 'spark s2' }), svgEl('path', { d: 'M59 34 l1 2.6 2.6 1 -2.6 1 -1 2.6 -1 -2.6 -2.6 -1 2.6 -1z', fill: '#5ce1e6', class: 'spark s3' })]
     : mood === 'sad' ? [svgEl('path', { d: 'M24 38 q-2.4 4 0 5.2 q2.4 -1.2 0 -5.2z', fill: '#8fd3ff', class: 'tear' })]
       : mood === 'sleepy' ? [txt(52, 12, 'z', 'middle', 'zzz')] : [];
-  const svg = svgEl('svg', { viewBox: '0 0 64 64', width: size, height: size, class: `mascot mood-${mood}${anim ? ` anim-${anim}` : ''}`, 'aria-hidden': 'true' },
-    svgEl('defs', {}, svgEl('linearGradient', { id: 'bipBody', x1: 0, y1: 0, x2: 0, y2: 1 }, svgEl('stop', { offset: 0, 'stop-color': '#c4a1ff' }), svgEl('stop', { offset: 1, 'stop-color': '#7c4dff' }))),
+  const gid = `bipBody-${lk.skin || 'violet'}`;
+  const accNodes = bipAccessory(acc, c2);
+  const svg = svgEl('svg', { viewBox: acc === 'none' ? '0 0 64 64' : '-2 -4 68 70', width: size, height: size, class: `mascot mood-${mood}${anim ? ` anim-${anim}` : ''} acc-${acc}`, 'aria-hidden': 'true', overflow: 'visible' },
+    svgEl('defs', {}, svgEl('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, svgEl('stop', { offset: 0, 'stop-color': c1 }), svgEl('stop', { offset: 1, 'stop-color': c2 }))),
     svgEl('g', { class: 'bip' },
-      svgEl('line', { x1: 32, y1: 4, x2: 32, y2: 13, stroke: '#7c4dff', 'stroke-width': 3, 'stroke-linecap': 'round' }),
-      svgEl('circle', { cx: 32, cy: 5, r: 4, fill: mood === 'party' ? '#ffe066' : mood === 'sad' ? '#8a8ab0' : '#ffb84d', class: 'antenna' }),
-      svgEl('rect', { x: 8, y: 16, width: 48, height: 44, rx: 13, fill: '#4b2a99' }),
-      svgEl('rect', { x: 8, y: 12, width: 48, height: 44, rx: 13, fill: 'url(#bipBody)' }),
+      hideAntenna ? null : svgEl('line', { x1: 32, y1: 4, x2: 32, y2: 13, stroke: c2, 'stroke-width': 3, 'stroke-linecap': 'round' }),
+      hideAntenna ? null : svgEl('circle', { cx: 32, cy: 5, r: 4, fill: mood === 'party' ? '#ffe066' : mood === 'sad' ? '#8a8ab0' : '#ffb84d', class: 'antenna' }),
+      ['flame', 'star'].includes(acc) ? svgEl('line', { x1: 32, y1: 8, x2: 32, y2: 13, stroke: c2, 'stroke-width': 3, 'stroke-linecap': 'round' }) : null,
+      svgEl('rect', { x: 8, y: 16, width: 48, height: 44, rx: 13, fill: c3 }),
+      svgEl('rect', { x: 8, y: 12, width: 48, height: 44, rx: 13, fill: `url(#${gid})` }),
       svgEl('rect', { x: 15, y: 20, width: 34, height: 26, rx: 8, fill: '#16122b' }),
-      ...eyes,
-      svgEl('path', { d: mouth, stroke: c, 'stroke-width': 2.4, fill: mood === 'party' ? c : 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      svgEl('g', { class: 'face' }, ...eyes,
+        svgEl('path', { d: mouth, stroke: c, 'stroke-width': 2.4, fill: mood === 'party' ? c : 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })),
       svgEl('circle', { cx: 18, cy: 52, r: 3, fill: '#ffe066' }), svgEl('circle', { cx: 46, cy: 52, r: 3, fill: '#ff5d73' }),
-      svgEl('rect', { x: 26, y: 50, width: 12, height: 4, rx: 2, fill: '#2e1d66' })),
+      svgEl('rect', { x: 26, y: 50, width: 12, height: 4, rx: 2, fill: c3 }),
+      ...accNodes),
     ...extra);
   return svg;
 }

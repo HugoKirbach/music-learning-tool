@@ -13,6 +13,7 @@ import { applyPrefs } from './prefs.js';
 applyPrefs();
 import { onSocial } from './social.js';
 import { showWhatsNew, APP_VERSION } from './whatsnew.js';
+import { boltsBalance, challengeById, BOLT, CHEST_BOLTS } from './core/challenges.js';
 applyAudioMode();
 import { initShortcuts, resetViewKeys, showShortcutHelp } from './shortcuts.js';
 
@@ -58,6 +59,7 @@ const ROUTES = {
   profile: () => import('./views/profile.js'),
   settings: () => import('./views/settings.js'),
   tools: () => import('./views/tools.js'),
+  bip: () => import('./views/bip.js'),
 };
 
 
@@ -99,6 +101,7 @@ function renderStatus() {
       ring(pct), ` ${t.xp}/${goal}`),
     el('a.chip.lvl', { href: '#/profile', title: `${lv.into}/${lv.needed} XP vers le niveau ${lv.level + 1}` },
       `Niv. ${lv.level}`, el('span.mini-bar', el('span', { style: { width: `${Math.round(lv.progress * 100)}%` } }))),
+    el('a.chip.bolts', { href: '#/bip', title: 'Tes boulons : défis du jour et garde-robe de Bip' }, `${BOLT} ${boltsBalance(s)}`),
     cloudChip(),
     midiChip,
   ));
@@ -272,6 +275,20 @@ subscribe((s) => {
     else if ((st.freezes || 0) > (streakSeen.freezes || 0)) toast(`🧊 ${st.count} jours d’affilée : tu gagnes un joker ! Il sauvera ta série un jour où tu ne pourras pas jouer.`, 'good', 5000);
   }
   streakSeen = { ...st };
+});
+
+// ---------- Défis du jour réussis hors leçon (jeux, ateliers) : annoncés par un message ----------
+const claimsOf = (s) => { const d = s.days?.[dayKey()] || {}; return { ids: Object.keys(d.claim || {}), chest: !!d.chest }; };
+let claimsSeen = claimsOf(getState());
+subscribe((s) => {
+  const now = claimsOf(s);
+  if (currentId !== 'lesson') {
+    const fresh = now.ids.filter((id) => !claimsSeen.ids.includes(id)).map(challengeById).filter(Boolean);
+    // Le coffre d'abord (un seul message avec le total), sinon un message par défi
+    if (now.chest && !claimsSeen.chest) toast(`🎁 Coffre du jour ouvert ! Les 3 défis sont réussis · +${fresh.reduce((a, c) => a + c.bolts, CHEST_BOLTS)} ${BOLT}`, 'good', 5000);
+    else fresh.forEach((c) => toast(`🎯 Défi du jour réussi : ${c.name} · +${c.bolts} ${BOLT}`, 'good', 4200));
+  }
+  claimsSeen = now;
 });
 
 // ---------- Nouveau certificat (à chaque nouveau titre) ----------

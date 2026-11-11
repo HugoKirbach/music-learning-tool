@@ -1,4 +1,5 @@
 // État persistant de l'application (localStorage) + événements.
+import { settleChallenges, trackDay, buyItem, bipLook } from './core/challenges.js';
 import { levelFromXp, updateStreak, dayKey, SKILLS, CERT_LEVELS } from './core/progress.js';
 import { newAchievements, cardsOwed } from './core/achievements.js';
 import { gridFromPatterns } from './core/rhythm.js';
@@ -192,13 +193,16 @@ export function recordExercise(r) {
     }
   }
 
+  // Défis du jour : validés dès qu'ils sont remplis (boulons, et XP du coffre)
+  const challenges = settleChallenges(state, d);
+  if (challenges.xp) { state.xp += challenges.xp; state.days[d].xp += challenges.xp; }
   const badges = awardAchievements(d);
   const after = levelFromXp(state.xp).level;
   // Certificat à chaque nouveau titre (niveaux 3, 5, 8, 12…)
   const certs = CERT_LEVELS.filter((L) => L > before && L <= after && !state.certs?.[L]);
   if (certs.length) state.certs = { ...(state.certs || {}), ...Object.fromEntries(certs.map((L) => [L, d])) };
   save();
-  return { levelUp: after > before, level: after, badges, sessionAdvanced, sessionDone, xp, cert: certs.at(-1) || null };
+  return { levelUp: after > before, level: after, badges, sessionAdvanced, sessionDone, xp, cert: certs.at(-1) || null, challenges };
 }
 
 /**
@@ -213,6 +217,39 @@ function awardAchievements(d = dayKey()) {
   cards.forEach((c, i) => { if (badges[i]) badges[i].card = c; });
   // Cartes de rattrapage (succès obtenus avant l'arrivée des cartes) : annoncées sur le dernier succès ou à part
   if (cards.length > badges.length) badges.extraCards = cards.slice(badges.length);
+  return badges;
+}
+
+/** Évènement de leçon pour les défis du jour (bonne réponse, série, pistes du morceau, leçon finie…). */
+export function trackLesson(ev) {
+  trackDay(state, dayKey(), ev);
+  save();
+}
+/** Valide les défis du jour remplis hors exercice (ouverture de l'app, retour sur le parcours). */
+export function settleDaily() {
+  const d = dayKey();
+  const r = settleChallenges(state, d);
+  if (r.won.length || r.chest) {
+    if (r.xp) { state.xp += r.xp; state.days[d].xp += r.xp; }
+    awardAchievements(d);
+    save();
+  }
+  return r;
+}
+/** Bip : acheter un accessoire, changer de tenue, compter les papotages. */
+export function buyBipItem(id) {
+  const ok = buyItem(state, id);
+  if (ok) { awardAchievements(); save(); }
+  return ok;
+}
+export function wearBip(look) {
+  state.settings.bip = { ...bipLook(state), ...look };
+  save();
+}
+export function tapBip() {
+  state.stats.bipTaps = (state.stats.bipTaps || 0) + 1;
+  const badges = (state.stats.bipTaps === 10) ? awardAchievements() : [];
+  save();
   return badges;
 }
 

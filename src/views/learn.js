@@ -1,7 +1,10 @@
 // 🎓 Apprendre : le parcours principal, façon Duolingo. Un chemin sinueux d'unités, chacune faite de leçons,
 // d'ateliers de l'app, d'une mission studio et d'un contrôle ; la suite se débloque au fur et à mesure.
 import { el, modal, toast, plural, showBadges } from '../ui.js';
-import { getState, update, recordExercise, today, dueReviews } from '../store.js';
+import { getState, update, recordExercise, today, dueReviews, settleDaily, tapBip } from '../store.js';
+import { bipBubble, bipGreeting, bipChat } from '../learn/bip.js';
+import { dailyCard } from './dailycard.js';
+import { challengeStatus } from '../core/challenges.js';
 import { UNITS, PARTS } from '../data/course.js';
 import { NODES, nodeStates, unitStatus, courseProgress, courseOf, unitIndex, nodeById, isRequired, completeNode, bonusDone, xpFor, buildLesson, dueLessons } from '../core/course.js';
 import { mascot } from '../learn/kit.js';
@@ -62,6 +65,7 @@ let detach = null; // écouteurs de défilement de l'affichage en cours
 
 export function render(root, params = {}) {
   autoBonus();
+  settleDaily();
   const s = getState();
   const course = courseOf(s);
   const { states, current } = nodeStates(course);
@@ -84,18 +88,17 @@ export function render(root, params = {}) {
   const dueCourse = dueLessons(course, dayKey()).length;
   const dueOther = dueReviews().length;
   const due = dueCourse + dueOther;
-  // Bip réagit à ta journée
+  // Bip réagit à ta journée, et répond quand on le touche (astuce, encouragement)
+  const chal = challengeStatus(s, dayKey());
   const mood = goalPct >= 100 ? 'party' : risk ? 'sleepy' : !prog.done ? 'wow' : 'happy';
-  const say = goalPct >= 100 ? 'Objectif du jour atteint ! 🎉'
-    : risk ? `Ta série de ${streak} jours t’attend : une leçon et elle continue.`
-      : !prog.done ? 'Salut, moi c’est Bip ! Ta première leçon dure 3 minutes.'
-        : t.xp ? `Encore ${goal - t.xp} XP pour ton objectif du jour.`
-          : due ? `${plural(due, 'révision')} t’attend${due > 1 ? 'ent' : ''}, et la suite du chemin aussi.` : 'Une leçon aujourd’hui ? 3 minutes suffisent.';
+  const say = bipGreeting({ first: !prog.done, goalPct, goal, xp: t.xp, risk, streak, lit, due, chLeft: 3 - chal.count });
+  const talk = bipBubble({
+    text: say, sub: cur ? `Unité ${cur.ui + 1} · ${curUnit.title}` : 'Tout le parcours est terminé : bravo ! 🎓', mood, size: 76, anim: mood === 'party' ? 'jump' : 'wave',
+    onTap: (api) => { showBadges(tapBip()); api.say(bipChat(), 'happy', Math.random() < 0.4 ? 'jump' : 'hop'); },
+  });
   const reviewHref = dueCourse ? '#/lesson?practice=1' : dueOther ? '#/review' : hasDone ? '#/lesson?practice=1' : null;
   const hero = el('section.learn-hero', { 'aria-label': 'Aujourd’hui' },
-    el('div.lh-top',
-      el('div.lh-mascot', mascot(mood, 72, { anim: mood === 'party' ? 'jump' : '' })),
-      el('div.lh-say', el('p', say), el('small', cur ? `Unité ${cur.ui + 1} · ${curUnit.title}` : 'Tout le parcours est terminé : bravo ! 🎓'))),
+    el('div.lh-top', talk.node, el('a.lh-wardrobe', { href: '#/bip', title: 'La page de Bip : défis, boulons, garde-robe', 'aria-label': 'La page de Bip' }, '👕')),
     el('div.lh-today',
       el('a.lh-tile.goal' + (goalPct >= 100 ? '.ok' : ''), { href: '#/profile', title: 'Objectif du jour (réglable dans le Profil)' },
         ring(goalPct, goalPct >= 100 ? '✓' : `${goalPct}%`, 64),
@@ -186,7 +189,18 @@ export function render(root, params = {}) {
     // La mascotte accompagne chaque unité, du côté opposé au virage
     const mi = Math.min(2, nodes.length - 1);
     const side = SWING[mi % SWING.length] > 0 ? 'left' : 'right';
-    path.append(el('div.path-mascot.' + side, { style: { top: `${pts[mi][1] - 30}px` } }, mascot(st.complete ? 'cool' : st.open ? 'happy' : 'wow', 64), el('span.pm-tip', u.guide[0][0])));
+    // Bip accompagne chaque unité : on le touche, il donne les points clés du guide un par un
+    const pmMood = st.complete ? 'cool' : st.open ? 'happy' : 'wow';
+    const pmTip = el('span.pm-tip', u.guide[0][0]);
+    let gi = 0;
+    const pm = el('button.path-mascot.' + side, { type: 'button', title: 'Touche Bip : il te donne les points clés de l’unité', 'aria-label': `Bip : points clés de l’unité ${k + 1}`, style: { top: `${pts[mi][1] - 30}px` }, onclick: (e) => {
+      e.stopPropagation();
+      gi = (gi + 1) % u.guide.length;
+      pm.classList.add('open');
+      pmTip.replaceChildren(el('b', u.guide[gi][0]), el('span', u.guide[gi][1]));
+      pm.querySelector('.mascot').replaceWith(mascot(pmMood, 64, { anim: 'hop' }));
+    } }, mascot(pmMood, 64), pmTip);
+    path.append(pm);
     const sec = el('section.unit', { 'aria-label': `Unité ${k + 1} : ${u.title}` }, banner, path);
     blocks.push({ u, k, st, sec, banner });
     return sec;
@@ -286,7 +300,7 @@ export function render(root, params = {}) {
 
   const rerender = () => { root.replaceChildren(); render(root, {}); };
 
-  root.append(el('div.learn', { onclick: () => closePop() }, hero, el('div.learn-path', sections),
+  root.append(el('div.learn', { onclick: () => closePop() }, hero, dailyCard({ compact: true }), el('div.learn-path', sections),
     el('div.learn-end', mascot('cool', 90), el('h2', 'Au bout du chemin'), el('p.muted', 'Un morceau fini, exporté depuis Ableton Live, avec tes propres sons.'),
       el('a.learn-extras', { href: '#/home' }, el('span', { 'aria-hidden': 'true' }, '🧩'), el('div', el('b', 'Les extras'), el('small', 'Jeux, ateliers libres et carnet d’idées : en plus du parcours, quand tu veux.')), el('span', { 'aria-hidden': 'true' }, '›')))));
 

@@ -2,8 +2,17 @@
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 
-export const APP_VERSION = '4.1';
+export const APP_VERSION = '4.2';
 export const CHANGELOG = [
+  {
+    version: '4.2', date: 'novembre 2026', items: [
+      ['🎯', 'Défis du jour', 'trois défis chaque jour (un facile, un moyen, un corsé), les mêmes sur tous tes appareils. Chacun rapporte des boulons ; les trois réussis ouvrent le coffre du jour (boulons et XP en plus).'],
+      ['🔩', 'Les boulons', 'la monnaie de Bip. Ils se gagnent avec les défis, le coffre et chaque succès (y compris ceux que tu avais déjà).'],
+      ['👕', 'La garde-robe de Bip', '6 couleurs et 9 accessoires (casque, lunettes, casquette, couronne…) à acheter avec tes boulons ou à débloquer en progressant. Ta tenue le suit partout dans l’app.'],
+      ['🤖', 'Bip, ton compagnon', 'il a sa page (Profil › Bip, ou le bouton 👕 du parcours), il te parle selon ta journée, commente tes réponses, et quand tu le touches il donne une astuce de production. Sur le chemin, il résume les points clés de chaque unité.'],
+      ['🏅', 'Nouveaux succès', 'une catégorie « Défis & Bip » : défis réussis, coffres ouverts, morceaux complets, garde-robe.'],
+    ],
+  },
   {
     version: '4.1', date: 'novembre 2026', items: [
       ['🎵', 'Tes réponses construisent un morceau', 'chaque bonne réponse ajoute une piste (kick, hats, clap, basse, accords, mélodie), une erreur en retire une. À la fin de la leçon, tu écoutes le morceau que tu as gagné. Un morceau différent par partie du parcours.'],

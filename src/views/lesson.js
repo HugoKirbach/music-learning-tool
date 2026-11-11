@@ -2,7 +2,9 @@
 // les erreurs reviennent en fin de leçon, cœurs pour les contrôles et les tests de saut, écran de fin avec XP.
 import { keyLabel, fmtKeys } from '../keyboard.js';
 import { el, modal, confetti, showBadges, toast } from '../ui.js';
-import { getState, update, recordExercise } from '../store.js';
+import { getState, update, recordExercise, trackLesson } from '../store.js';
+import { bipReact, bipEnding } from '../learn/bip.js';
+import { BOLT, CHEST_BOLTS, CHEST_XP } from '../core/challenges.js';
 import { buildLesson, buildCheckpoint, buildJump, buildPractice, checkAnswer, completeNode, applyJump, addMisses, markPracticed, xpFor, courseOf, nodeStates, unitById, unitIndex, nodeById } from '../core/course.js';
 import { UNITS } from '../data/course.js';
 import { renderItem, typeLabel, midiBanner } from '../learn/exercises.js';
@@ -83,7 +85,7 @@ export function render(root, params = {}) {
   let pos = 0, settled = 0, hearts = run.hearts, graded = 0, correctFirst = 0, mistakes = 0, combo = 0, bestCombo = 0, answered = 0, skipped = 0;
   const misses = {};
   const t0 = Date.now();
-  let cur = null, phase = 'answer', banner = null;
+  let cur = null, phase = 'answer', banner = null, wasWrong = false;
 
   // Le morceau de la leçon : une piste par bonne réponse
   const jamEl = el('div.lp-jam', { role: 'img' }, JAM_LAYERS.map((l) => el('i', { title: l.name }, l.emoji)));
@@ -185,6 +187,7 @@ export function render(root, params = {}) {
     if (res.ok) {
       combo++; bestCombo = Math.max(bestCombo, combo); settled++;
       jam.good();
+      trackLesson({ good: 1, combo, jam: jam.count() });
     } else {
       mistakes++; combo = 0;
       if (it.src) misses[it.src] = (misses[it.src] || 0) + 1;
@@ -197,6 +200,7 @@ export function render(root, params = {}) {
     const explain = res.why || it.explain || cur.explain?.() || null;
     // Bip réagit : il fête une série, sourit à une bonne réponse, est déçu sur une erreur
     const party = res.ok && combo >= 3;
+    const lastWrong = wasWrong; wasWrong = !res.ok;
     const mood = res.ok ? (party ? 'party' : 'happy') : 'sad';
     const jamN = jam.count();
     const jamTxt = res.ok
@@ -209,7 +213,7 @@ export function render(root, params = {}) {
     msg.replaceChildren(
       el('div.lf-bip', mascot(mood, 58, { anim: party ? 'jump' : res.ok ? 'hop' : 'droop' }), el('span.lf-icon', res.ok ? '✓' : '✕')),
       el('div',
-        el('b.lf-title', res.ok ? `${pick(PRAISE)}${combo >= 3 ? ` 🔥 ${combo} d’affilée` : ''}` : pick(OOPS)),
+        el('b.lf-title', `${bipReact({ ok: res.ok, combo, retry: entry.retry, wasWrong: res.ok && lastWrong, hearts })}${res.ok && combo >= 3 ? ` 🔥 ${combo} d’affilée` : ''}`),
         answer ? el('p.lf-answer', 'Bonne réponse : ', el('b', answer)) : null,
         explain && !explainLeft ? el('p.lf-text', explain) : null,
         jamTxt ? el('p.lf-text.small.lf-jam', jamTxt) : null,
@@ -290,6 +294,8 @@ export function render(root, params = {}) {
       sub = 'Les notions où tu hésitais ont été révisées.';
     }
     recordMisses();
+    // Défis du jour : leçon finie, sans faute, rapide, pistes du morceau
+    trackLesson({ lesson: run.kind === 'lesson' || run.kind === 'checkpoint' ? 1 : 0, perfect: perfect && run.kind === 'lesson' ? 1 : 0, review: run.kind === 'practice' ? 1 : 0, fast: run.kind === 'lesson' && Date.now() - t0 < 120000 ? 1 : 0, jam: jam.count(), combo: bestCombo });
     const res = recordExercise({ key: `course:${run.kind}`, title: title, xp, skill: unit?.skill || 'autonomie', score: acc, success: true });
     if (perfect || run.kind !== 'lesson' || res.levelUp) confetti();
     if (perfect && mood === 'happy') mood = 'party';
@@ -306,16 +312,21 @@ export function render(root, params = {}) {
       if (d) { track.classList.add('playing'); replay.textContent = '■ Stop'; }
     };
     const xpEl = el('b'), accEl = el('b');
+    const won = res.challenges?.won || [];
     shell.classList.add('done');
     shell.replaceChildren(el('div.lesson-end',
       el('div.le-mascot', mascot(mood, 110, { anim: mood === 'party' ? 'jump' : '' })),
       el('h1', headline),
+      el('p.le-bip', bipEnding({ kind: run.kind, perfect, acc, layers: jam.count() })),
       sub ? el('p.le-sub', sub) : null,
       el('div.le-tiles',
         el('div.le-tile.xp', el('small', 'XP gagnés'), xpEl),
         el('div.le-tile.acc', el('small', 'Précision'), accEl),
         el('div.le-tile.time', el('small', 'Temps'), el('b', mmss(Date.now() - t0)))),
       track,
+      won.length || res.challenges?.chest ? el('div.le-chal',
+        won.map((c) => el('p', `🎯 Défi réussi : ${c.name} `, el('b', `+${c.bolts} ${BOLT}`))),
+        res.challenges.chest ? el('p.chest', '🎁 Coffre du jour ouvert ! ', el('b', `+${CHEST_BOLTS} ${BOLT} · +${CHEST_XP} XP`)) : null) : null,
       perfect ? el('p.le-badge', '✨ Sans faute') : bestCombo >= 5 ? el('p.le-badge', `🔥 Meilleure série : ${bestCombo}`) : null,
       res.levelUp ? el('p.le-badge', `🎉 Niveau ${res.level} !`) : null,
       el('div.row.gap.wrap.center',
@@ -333,6 +344,7 @@ export function render(root, params = {}) {
     shell.replaceChildren(el('div.lesson-end',
       el('div.le-mascot', mascot('wow', 110)),
       el('h1', 'Presque !'),
+      el('p.le-bip', bipEnding({ incomplete: true })),
       el('p.le-sub', `Tu as passé ${skipped} exercice${skipped > 1 ? 's' : ''} sur ${graded + skipped} : refais la leçon quand tu pourras écouter ou jouer, pour la valider.`),
       el('div.row.gap.wrap.center',
         el('a.btn3d', { href: `#/lesson?${new URLSearchParams(params).toString()}&r=${Date.now()}` }, '↻ Recommencer'),
@@ -349,6 +361,7 @@ export function render(root, params = {}) {
     shell.replaceChildren(el('div.lesson-end',
       el('div.le-mascot', mascot('sad', 110)),
       el('h1', 'Plus de cœurs 💔'),
+      el('p.le-bip', bipEnding({ failed: true })),
       el('p.le-sub', run.kind === 'jump' ? 'Pas grave : le parcours depuis le début t’apprendra ce qui te manque, et tu iras vite sur ce que tu connais déjà.' : 'Révise les leçons de l’unité (elles se rejouent à volonté), puis retente le contrôle.'),
       el('div.row.gap.wrap.center',
         el('a.btn3d', { href: `#/lesson?${run.kind === 'jump' ? `jump=${unit.id}` : `cp=${unit.id}`}&r=${Date.now()}` }, '↻ Réessayer'),

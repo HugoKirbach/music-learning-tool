@@ -6,7 +6,7 @@ const unlockTo = (page, id) => page.evaluate(async (stop) => {
   const c = await import('/src/core/course.js');
   const done = {};
   for (const n of c.NODES) { if (n.id === stop) break; if (c.isRequired(n)) done[n.id] = { d: '2026-11-01', n: 1, best: 90 }; }
-  m.update((s) => { s.course = { done }; s.settings.seenVersion = '4.1'; });
+  m.update((s) => { s.course = { done }; s.settings.seenVersion = '4.2'; });
 }, id);
 
 const item = (page) => page.evaluate(() => window.__bfLesson?.item() || null);
@@ -264,7 +264,7 @@ export const tests = {
     t.assert.match(await page.locator('.lh-tile.goal .lring text').textContent(), /40%/);
     t.assert.match(await page.locator('.lh-tile.streak').innerText(), /4 jours/);
     t.assert.match(await page.locator('.lh-tile.review.due').innerText(), /Révisions dues\s*2 notions/, 'les leçons avec 2 erreurs ou plus sont dues');
-    t.assert.equal(await page.locator('.lh-mascot .mascot').count(), 1);
+    t.assert.equal(await page.locator('.learn-hero .bip-tap .mascot').count(), 1);
     // Un univers par partie : 5 décors en deux plans
     t.assert.equal(await page.locator('section.part').count(), 5);
     t.assert.equal(await page.locator('.part-bg').evaluateAll((l) => l.filter((n) => getComputedStyle(n).backgroundImage.startsWith('url("data:image/svg+xml')).length), 5);
@@ -455,5 +455,67 @@ export const tests = {
       await page.locator('.ppop a').first().click(); await page.waitForTimeout(400);
       t.assert.match(page.url(), /#\/lesson\?id=u1-cp/);
     }
+  },
+
+  'défis du jour, boulons et Bip : défi validé en leçon, coffre, garde-robe, tenue partout, Bip qui parle': async (t) => {
+    const page = await t.open({ route: '#/learn', device: 'mobile' });
+    // Les trois défis du jour s'affichent sur le parcours, avec leur récompense
+    t.assert.equal(await page.locator('.daily-card .dc-item').count(), 3);
+    t.assert.equal(await page.locator('.daily-card .dc-item.done').count(), 0);
+    const defs = await page.evaluate(async () => { const c = await import('/src/core/challenges.js'); const p = await import('/src/core/progress.js'); const s = (await import('/src/store.js')).getState(); return { list: c.dailyChallenges(p.dayKey(), s).map((x) => ({ id: x.id, bolts: x.bolts, name: x.name })), bal: c.boltsBalance(s) }; });
+    t.assert.match(await page.locator('.daily-card').innerText(), new RegExp(defs.list[0].name.slice(0, 12)));
+    // Bip parle quand on le touche (et ça compte pour le succès « Bavard »)
+    const before = await page.locator('.learn-hero .bip-say p').innerText();
+    await page.locator('.learn-hero button.bip-tap').tap(); await page.waitForTimeout(200);
+    t.assert.notEqual(await page.locator('.learn-hero .bip-say p').innerText(), before);
+    t.assert.equal((await page.state()).stats.bipTaps, 1);
+    // Une leçon réussie : au moins un défi facile tombe, annoncé sur l'écran de fin avec ses boulons
+    await page.go('#/lesson?id=u1-l1');
+    await playLesson(page, t);
+    t.assert.ok(await page.locator('.le-bip').innerText(), 'Bip dit un mot à la fin');
+    const st = await page.state();
+    const day = Object.values(st.days).at(-1);
+    t.assert.ok(day.les === 1 && day.good >= 3 && day.jam >= 3 && day.combo >= 3, JSON.stringify(day));
+    const claimed = Object.keys(day.claim || {});
+    t.assert.ok(claimed.length >= 1, `défis validés : ${claimed}`);
+    t.assert.equal(await page.locator('.le-chal p:not(.chest)').count(), claimed.length);
+    t.assert.match(await page.locator('.le-chal').innerText(), /Défi réussi[\s\S]*\+\d+ 🔩/);
+    const bal = await page.evaluate(async () => (await import('/src/core/challenges.js')).boltsBalance((await import('/src/store.js')).getState()));
+    const fromBadges = Object.keys(st.badges).length;
+    t.assert.ok(bal >= defs.bal + claimed.reduce((a, id) => a + defs.list.find((x) => x.id === id).bolts, 0) && fromBadges >= 1, `solde ${bal}`);
+    await page.locator('.lesson-end a', { hasText: 'Continuer' }).click(); await page.waitForTimeout(400);
+    t.assert.equal(await page.locator('.daily-card .dc-item.done').count(), claimed.length);
+    // Les trois défis remplis → coffre du jour (boulons et XP), annoncé hors leçon par un message
+    const xp0 = (await page.state()).xp;
+    await page.evaluate(async () => { const m = await import('/src/store.js'); m.trackLesson({ lesson: 3, perfect: 1, good: 20, combo: 12, jam: 6, fast: 1, review: 1 }); m.update((s) => { const d = Object.keys(s.days).at(-1); s.days[d].xp = 400; s.days[d].les = 3; s.days[d].perf = 2; }); m.settleDaily(); });
+    await page.waitForSelector('.toast:has-text("Coffre du jour ouvert")', { timeout: 9000 });
+    const s2 = await page.state();
+    t.assert.equal(Object.values(s2.days).at(-1).chest, 1);
+    t.assert.ok(s2.xp >= xp0 + 20, 'XP du coffre');
+    t.assert.ok(s2.badges.chal1 && s2.badges.chest1, 'succès Défis & Bip');
+    await page.go('#/learn', 500);
+    t.assert.ok(await page.locator('.daily-card.all .dc-chest.open').count());
+    // La page de Bip : solde, garde-robe, achat, tenue portée partout
+    await page.locator('.lh-wardrobe').tap(); await page.waitForTimeout(500);
+    t.assert.match(page.url(), /#\/bip$/);
+    const bal2 = await page.evaluate(async () => (await import('/src/core/challenges.js')).boltsBalance((await import('/src/store.js')).getState()));
+    t.assert.match(await page.locator('.bip-stat.bolts').innerText(), new RegExp(`${bal2}`));
+    t.assert.ok(bal2 >= 80, `assez pour un casque (${bal2})`);
+    t.assert.match(await page.locator('.bw-item:has-text("Couronne")').innerText(), /🔒 10 leçons sans faute/);
+    await page.locator('.bw-item:has-text("Casque de studio") button').tap(); await page.waitForTimeout(400);
+    t.assert.match(await page.locator('.bw-item:has-text("Casque de studio")').innerText(), /Porté/);
+    const s3 = await page.state();
+    t.assert.equal(s3.stats['bip:headphones'], 1);
+    t.assert.deepEqual(s3.settings.bip, { skin: 'violet', acc: 'headphones' });
+    t.assert.equal(await page.evaluate(async () => (await import('/src/core/challenges.js')).boltsBalance((await import('/src/store.js')).getState())), bal2 - 80 + (s3.badges.bip1 && !s2.badges.bip1 ? 10 : 0));
+    t.assert.ok(await page.locator('.bip-hero .mascot.acc-headphones').count(), 'Bip porte son casque');
+    await page.go('#/learn', 500);
+    t.assert.ok(await page.locator('.learn-hero .mascot.acc-headphones').count(), 'tenue visible sur le parcours');
+    await page.go('#/lesson?id=u1-l1', 500);
+    t.assert.ok(await page.locator('.ex-card .mascot.acc-headphones').count(), 'et dans les leçons');
+    // Retirer l'accessoire
+    await page.go('#/bip', 500);
+    await page.locator('.bw-item:has-text("Rien") button').tap(); await page.waitForTimeout(300);
+    t.assert.equal((await page.state()).settings.bip.acc, 'none');
   },
 };
