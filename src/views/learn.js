@@ -130,7 +130,6 @@ export function render(root, params = {}) {
   for (const part of PARTS) {
     const sc = sceneFor(part.id);
     sections.push(el('section.part.part-' + part.id, { style: { '--pc': sc.color }, 'aria-label': `Partie ${part.id} : ${part.name}` },
-      el('div.part-bg.far', { 'aria-hidden': 'true', style: { backgroundImage: sc.far } }),
       el('div.part-bg.near', { 'aria-hidden': 'true', style: { backgroundImage: sc.near } }),
       el('div.part-head', el('span.part-emoji', part.emoji), el('div', el('small', `PARTIE ${part.id} · ${sc.name.toUpperCase()}`), el('h2', part.name), el('p.small.muted', part.desc))),
       UNITS.filter((x) => x.part === part.id).map((u) => unitBlock(u))));

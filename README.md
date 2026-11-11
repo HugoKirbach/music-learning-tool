@@ -87,7 +87,7 @@ Un chemin sinueux d'unités, comme Duolingo : chaque leçon débloque la suivant
 
 **🤖 Bip, la mascotte, réagit** : il sourit ou fait la moue dans le bandeau vert ou rouge, fête une série de bonnes réponses, et te parle en haut du parcours (objectif atteint, série à sauver…).
 
-**🌍 Un univers par partie** : le studio (fondations), l'écran de Live, la salle d'écriture (composer), le rack de synthés, puis le club. Chaque partie a son décor en deux plans, avec un léger effet de profondeur au défilement. L'en-tête de l'unité en cours reste collé en haut, avec son bouton Guide. Quand une leçon se débloque, le trait du chemin se trace jusqu'à elle et le cadenas saute.
+**🌍 Un univers par partie** : le studio (fondations), l'écran de Live, la salle d'écriture (composer), le rack de synthés, puis le club. Chaque partie a quelques dessins discrets en fond, avec un léger effet de profondeur au défilement. L'en-tête de l'unité en cours reste collé en haut, avec son bouton Guide. Quand une leçon se débloque, le trait du chemin se trace jusqu'à elle et le cadenas saute.
 
 **〰️ Schémas animés** dans les fiches : l'onde oscille, la courbe du filtre s'ouvre, l'enveloppe se dessine au rythme de la note. « 🔊 Voir et entendre » joue le son en même temps.
 

@@ -267,7 +267,7 @@ export const tests = {
     t.assert.equal(await page.locator('.lh-mascot .mascot').count(), 1);
     // Un univers par partie : 5 décors en deux plans
     t.assert.equal(await page.locator('section.part').count(), 5);
-    t.assert.equal(await page.locator('.part-bg').evaluateAll((l) => l.filter((n) => getComputedStyle(n).backgroundImage.startsWith('url("data:image/svg+xml')).length), 10);
+    t.assert.equal(await page.locator('.part-bg').evaluateAll((l) => l.filter((n) => getComputedStyle(n).backgroundImage.startsWith('url("data:image/svg+xml')).length), 5);
     t.assert.match(await page.locator('.part-4 .part-head').innerText(), /RACK DE SYNTHÉS/);
     // En-tête collant : absent en haut, présent une fois le bandeau de l'unité passé, avec le Guide
     t.assert.equal(await page.locator('.unit-sticky.show').count(), 0);
