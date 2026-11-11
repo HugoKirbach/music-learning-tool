@@ -402,4 +402,43 @@ export const tests = {
     t.assert.ok(lv.on[0] > 1.2 && lv.on[1] < 1 && lv.on[0] > lv.on[1] + 0.5, `gains ${lv.on}`);
     t.assert.equal(lv.off, 1);
   },
+
+  'clavier AZERTY : détection à la frappe, choix dans les réglages, touches affichées et jouées': async (t) => {
+    const page = await t.open({ route: '#/learn' });
+    await unlockTo(page, 'u18-cp');
+    const until = async (pred) => { for (let k = 0; k < 30; k++) { const it = await item(page); if (it && pred(it)) return it; if (!it) await footBtn(page).click(); else await answer(page, it); await page.waitForTimeout(100); } return null; };
+    const hint = () => page.locator('.lf-hint').innerText().then((x) => x.replace(/\s+/g, ' '));
+    // QWERTY (clavier des tests) : A S D F, octave Z X
+    await page.go('#/lesson?id=u2-l1');
+    t.assert.ok(await until((it) => it.t === 'keys' && it.mode === 'note'));
+    t.assert.match(await hint(), /ASDF… jouer ZX octave/);
+    // Une frappe AZERTY (la touche à l'emplacement du Q américain écrit « a ») : la disposition est reconnue
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ', key: 'a', shiftKey: true })));
+    t.assert.equal(await page.evaluate(() => import('/src/keyboard.js').then((m) => m.kbLayout())), 'azerty');
+    await page.go('#/lesson?id=u2-l1');
+    const it = await until((x) => x.t === 'keys' && x.mode === 'note');
+    t.assert.match(await hint(), /QSDF… jouer WX octave/);
+    t.assert.match(await page.locator('.ex-howto').innerText(), /touches Q S D F… de ton ordinateur \(W \/ X/);
+    // La touche jouée dépend de l'emplacement : le Do est sur la touche marquée Q (emplacement KeyA)
+    const codes = ['KeyA', 'KeyW', 'KeyS', 'KeyE', 'KeyD', 'KeyF', 'KeyT', 'KeyG', 'KeyY', 'KeyH', 'KeyU', 'KeyJ'];
+    const pc = ((it.exact ? it.target[0] : it.target[0]) % 12 + 12) % 12;
+    await page.evaluate(([code]) => { window.dispatchEvent(new KeyboardEvent('keydown', { code, key: 'x' })); window.dispatchEvent(new KeyboardEvent('keyup', { code, key: 'x' })); }, [codes[pc]]);
+    await page.waitForTimeout(150);
+    t.assert.match(await page.locator('.ex-picked').innerText(), /Ta note/);
+    // Maj + lettre suit le caractère tapé, quel que soit l'emplacement
+    await page.go('#/learn');
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ', key: 'A', shiftKey: true, bubbles: true })));
+    await page.waitForTimeout(400);
+    t.assert.match(page.url(), /#\/chords$/, 'Maj + A (touche marquée A) ouvre le Lab Accords');
+    // Réglages : Auto (AZERTY) détecté, puis choix forcé
+    await page.go('#/settings', 500);
+    t.assert.match(await page.locator('#set-general').innerText(), /Auto \(AZERTY\)/);
+    t.assert.match(await page.locator('.kb-note').innerText(), /Clavier AZERTY\s:\spiano sur Q Z S E D F T G/);
+    await page.locator('#set-general button', { hasText: 'QWERTY' }).click();
+    t.assert.match(await page.locator('.kb-note').innerText(), /Clavier QWERTY\s:\spiano sur A W S E D F T G…, octave Z \/ X/);
+    t.assert.equal((await page.state()).settings.kbLayout, 'qwerty');
+    await page.go('#/pads', 500);
+    await page.store("s.settings.kbLayout = 'azerty';");
+    t.assert.equal(await page.evaluate(() => import('/src/keyboard.js').then((m) => [m.keyLabel('KeyA'), m.keyLabel('KeyQ'), m.keyLabel('KeyW'), m.keyLabel('KeyZ'), m.keyLabel('Semicolon'), m.fmtKeys('Do = {KeyA}')].join())), 'Q,A,Z,W,M,Do = Q');
+  },
 };

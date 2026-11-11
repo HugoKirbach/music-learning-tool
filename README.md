@@ -75,6 +75,7 @@ Un chemin sinueux d'unités, comme Duolingo : chaque leçon débloque la suivant
 - 💪 **Vélocité** et 🎚️ **potards (CC)** : frapper doux / fort, tourner un potard jusqu'à la bonne valeur, ouvrir un filtre en direct avec ton contrôleur.
 - 🖱️ **Maquette cliquable d'Ableton Live 12** : barre de contrôle, navigateur, Session, Arrangement, vues Clip et Device. « Où cliques-tu pour… ? »
 - ⌨️ **Raccourcis** : tape la combinaison sur ton clavier (Ctrl ou ⌘, QWERTY ou AZERTY), ou choisis-la.
+- ⌨️ **Ton clavier, AZERTY ou QWERTY** : l'app reconnaît ta disposition (et tu peux la forcer dans *Réglages › Général › Clavier* : Auto, AZERTY, QWERTY, QWERTZ). Toutes les touches affichées suivent ce choix : sur un AZERTY, le piano se joue sur Q S D F… (noires sur Z E T Y U), l'octave sur W / X, et les pads sur leurs touches réelles. Les raccourcis Maj + lettre suivent la lettre tapée.
 - 🥁 **Boîte à rythmes** (dont ghost notes et grooves à reproduire à l'oreille), 🎼 **piano roll** (motifs, basses sur une grille d'accords, hooks répétés), 👆 **taper en rythme** (avec le décalage moyen en ms).
 - 🎛️ **Synthé à régler** : un vrai petit synthé (forme d'onde, unison, filtre, enveloppes, LFO, glide, FM) avec dessins en direct, à régler d'après une consigne ou **à l'oreille** d'après un son cible.
 - 👂 Écoute (accords, gammes, intervalles, formes d'onde, filtre, enveloppes, contour), 🔗 paires, 🔢 remettre dans l'ordre, ✍️ phrases à compléter, 🧮 calculs de producteur (ms, Hz, mesures).

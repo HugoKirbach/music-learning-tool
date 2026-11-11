@@ -1,5 +1,6 @@
 // Exercices interactifs du parcours. Chaque type renvoie { node, value(), reveal(res), answerText(), destroy() }.
 // api : setReady(bool) active « Vérifier », submit() vérifie tout de suite (fin d'un exercice en temps réel), enter().
+import { fmtKeys } from '../keyboard.js';
 import { el } from '../ui.js';
 import { ensureAudio, now, playSynth, playDrum, playClick, transport, outputLatency } from '../core/audio.js';
 import { presetParams } from '../player.js';
@@ -31,8 +32,8 @@ function card(item) {
     node: el('div.ex-card' + (item.visual || item.demo ? '.split' : ''),
       el('div.ex-card-text',
         el('div.ex-card-head', mascot('happy', 46), el('h2', item.title)),
-        el('div.ex-card-body', [].concat(item.text).map((t) => el('p', t))),
-        item.tip ? el('p.ex-tip', '💡 ', item.tip) : null),
+        el('div.ex-card-body', [].concat(item.text).map((t) => el('p', fmtKeys(t)))),
+        item.tip ? el('p.ex-tip', '💡 ', fmtKeys(item.tip)) : null),
       item.visual || item.demo ? el('div.ex-card-side',
         item.visual ? el('div.ex-media', visual(item.visual, { live: true })) : null,
         item.demo ? el('div.ex-demos', item.demo.map((d) => playBtn(d.play, d.label))) : null) : null),
@@ -295,7 +296,7 @@ function keys(item, api) {
     },
     noteOff: (n) => { held.delete(n); kb?.set('down', [n], false); silence(n); },
   });
-  // Clavier de l'ordinateur (positions comme dans Live : A = Do ; Z / X = octave)
+  // Clavier de l'ordinateur, par emplacement (QWERTY : A = Do, Z / X = octave ; AZERTY : Q = Do, W / X = octave)
   let compBase = Math.max(from, Math.min(from + span - 12, 60));
   compBase -= mod(compBase, 12);
   const down = new Set();

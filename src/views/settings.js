@@ -1,4 +1,5 @@
 // Réglages : compte, préférences, clavier MIDI, moteur audio, sortie vers Live, rappels, sauvegarde, installation.
+import { KB_OPTIONS, KB_NAMES, PIANO_CODES, kbLayout, detectedLayout, keyLabel, keyLabels } from '../keyboard.js';
 import { el, card, header, segmented, slider, download, toast } from '../ui.js';
 import { getState, update, exportBackup, importBackup, resetAll, snapshotInfo, restoreSnapshot } from '../store.js';
 import { dayKey } from '../core/progress.js';
@@ -70,6 +71,8 @@ export function render(root, params = {}) {
   const tag = (node, id) => { node.id = `set-${id}`; node.classList.add('set-sec'); return node; };
   const row = (label, ctrl) => el('div.ctrl-row', el('label', label), ctrl);
 
+  const kbText = () => `⌨️ Clavier ${KB_NAMES[kbLayout()]} : piano sur ${keyLabels(PIANO_CODES.slice(0, 8))}…, octave ${keyLabel('KeyZ')} / ${keyLabel('KeyX')}. Toutes les touches affichées dans l’app suivent ce choix.`;
+  const kbNote = el('p.small.muted.kb-note', kbText());
   const secs = {
     account: acct.node,
     general: card(el('h3', '🎚️ Général'),
@@ -78,6 +81,8 @@ export function render(root, params = {}) {
       row('Indices', segmented([{ value: 'auto', label: 'Auto (disparaissent niv. 6)' }, { value: 'on', label: 'Toujours' }, { value: 'off', label: 'Jamais' }], s.settings.hints, (v) => update((st) => { st.settings.hints = v; }))),
       row('Sons de validation', segmented([{ value: 'soft', label: 'Doux' }, { value: 'normal', label: 'Normaux' }, { value: 'off', label: 'Coupés' }], s.settings.sfx || 'soft', (v) => { update((st) => { st.settings.sfx = v; }); import('../learn/jam.js').then((m) => m.sfx('ok')); })),
       row('Volume égalisé', segmented([{ value: 'on', label: 'Oui' }, { value: 'off', label: 'Non' }], s.settings.leveling === false ? 'off' : 'on', (v) => { update((st) => { st.settings.leveling = v === 'on'; }); })),
+      row('Clavier', segmented(KB_OPTIONS.map((o) => (o.value === 'auto' ? { ...o, label: `Auto (${KB_NAMES[detectedLayout()]})` } : o)), KB_OPTIONS.some((o) => o.value === s.settings.kbLayout) ? s.settings.kbLayout : 'auto', (v) => { update((st) => { st.settings.kbLayout = v; }); kbNote.textContent = kbText(); })),
+      kbNote,
       row('Thème', segmented([{ value: 'auto', label: 'Auto' }, { value: 'dark', label: '🌙 Sombre' }, { value: 'light', label: '☀️ Clair' }], s.settings.theme || 'auto', (v) => update((st) => { st.settings.theme = v; }))),
       row('Animations', segmented([{ value: 'auto', label: 'Auto' }, { value: 'reduce', label: 'Réduites' }, { value: 'full', label: 'Complètes' }], s.settings.motion || 'auto', (v) => update((st) => { st.settings.motion = v; }))),
       row('Ateliers', segmented([{ value: false, label: 'Progressifs' }, { value: true, label: 'Tout afficher' }], !!s.settings.allModules, (v) => update((st) => { st.settings.allModules = v; }))),

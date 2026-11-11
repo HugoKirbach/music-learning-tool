@@ -1,3 +1,4 @@
+import { PIANO_CODES, keyLabels, kbLayout, KB_NAMES } from '../keyboard.js';
 import { el, card, header, segmented, select, slider, hintBox, finishExercise, toast, modal } from '../ui.js';
 import { getState, update, level } from '../store.js';
 import { PRESETS, makePreset, presetOptions } from '../data/presets.js';
@@ -53,13 +54,13 @@ export function keyboard({ base = 48, octaves = 2, onDown, onUp, inScale }) {
   wrap.addEventListener('pointermove', (e) => { if (!active.has(e.pointerId)) return; const m = keyAt(e.clientX, e.clientY); if (m != null) down(e.pointerId, m); });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => wrap.addEventListener(t, (e) => up(e.pointerId)));
 
-  const map = 'awsedftgyhujkolp';
+  const map = [...PIANO_CODES, 'KeyO', 'KeyL', 'KeyP']; // emplacements : la forme du piano ne dépend pas de la disposition
   const kd = (e) => {
     if (e.repeat || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-    const i = map.indexOf(e.key.toLowerCase());
-    if (i >= 0) down('k' + e.key, base + 12 + i);
+    const i = map.indexOf(e.code);
+    if (i >= 0) down('k' + e.code, base + 12 + i);
   };
-  const ku = (e) => up('k' + e.key);
+  const ku = (e) => up('k' + e.code);
   window.addEventListener('keydown', kd);
   window.addEventListener('keyup', ku);
   return {
@@ -209,7 +210,7 @@ function freeMode(root, params) {
           el('button.btn.small', { title: 'Repartir d’un son neutre (comme « Init Preset » dans Serum 2)', onclick: () => { presetId = null; p = normalizeParams(INIT); renderControls(); renderSerum(); } }, '↺ Init'), loopBtn),
           kb.node,
           el('div.ctrl-row', el('div.field', el('span', 'Octave'), segmented([{ value: -1, label: '−1' }, { value: 0, label: '0' }, { value: 1, label: '+1' }], 0, (v) => { octave = v; })),
-            el('span.small.muted.lab-pc-only', 'Clavier d’ordinateur : touches A W S E D F T G Y H U J K')),
+            el('span.small.muted.lab-pc-only', `Clavier d’ordinateur (${KB_NAMES[kbLayout()]}) : touches ${keyLabels(PIANO_CODES)}`)),
           explain,
           midiBox),
         card(serumBox),

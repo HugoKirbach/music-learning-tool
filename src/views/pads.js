@@ -1,4 +1,5 @@
 // Pad Rush : finger drumming sur une grille de pads (2×4 ou 4×4) — anneaux qui se referment + séquenceur au-dessus.
+import { keyLabel, keyLabels } from '../keyboard.js';
 import { el, header, segmented, confetti, showBadges, toast, landscapeBtn, plural } from '../ui.js';
 import { getState, update, recordExercise, recordGameReview } from '../store.js';
 import { inputLatency } from '../core/latency.js';
@@ -12,7 +13,7 @@ import { PAD_CHAPTERS, PAD_LEVELS, padLevelById, padChapterOf } from '../data/pa
 import { modeSwitch, gameHero, optionsBox, optToggle, chapterBox, levelButton } from './rush.js';
 
 const GRADE_TXT = { ok: '✓', perfect: 'Parfait', good: 'Bien', miss: 'Raté', wrong: '✗' };
-const KEY_TXT = (code) => code.replace('Key', '').replace('Digit', '');
+const KEY_TXT = (code) => keyLabel(code);
 const VEL = { acc: 1, ghost: 0.32 };
 
 function padsState() {
@@ -711,7 +712,7 @@ export function render(root, params = {}) {
 function inputHint(layout) {
   const parts = [];
   if (midiStatus().state === 'connected') parts.push('🎹 Pads MIDI connectés (réglage par défaut : pad 1 = note 36 ; sinon lance l’assistant).');
-  if (matchMedia('(pointer: fine)').matches) parts.push(layout === '4x4' ? '⌨️ Clavier : 1 2 3 4 / Q W E R / A S D F / Z X C V.' : '⌨️ Clavier : Q W E R (rangée du haut) / A S D F (rangée du bas).');
+  if (matchMedia('(pointer: fine)').matches) parts.push(layout === '4x4' ? `⌨️ Clavier : 1 2 3 4 / ${keyLabels(['KeyQ', 'KeyW', 'KeyE', 'KeyR'])} / ${keyLabels(['KeyA', 'KeyS', 'KeyD', 'KeyF'])} / ${keyLabels(['KeyZ', 'KeyX', 'KeyC', 'KeyV'])}.` : `⌨️ Clavier : ${keyLabels(['KeyQ', 'KeyW', 'KeyE', 'KeyR'])} (rangée du haut) / ${keyLabels(['KeyA', 'KeyS', 'KeyD', 'KeyF'])} (rangée du bas).`);
   parts.push('📱 Tactile : touche directement les pads (plusieurs doigts possibles).');
   return parts.join(' ');
 }

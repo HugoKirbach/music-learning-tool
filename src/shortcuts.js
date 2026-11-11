@@ -1,5 +1,6 @@
 // Raccourcis clavier (PC). Un seul écouteur global ; chaque écran peut ajouter ses touches via viewKeys().
-// Les lettres seules restent au piano (A W S E D…) : la navigation passe donc par Maj + lettre.
+// Les lettres seules restent au piano (par emplacement) : la navigation passe donc par Maj + lettre (caractère tapé).
+import { PIANO_CODES, keyLabels, kbLayout, KB_NAMES } from './keyboard.js';
 import { el, modal } from './ui.js';
 import { getState, update } from './store.js';
 import { transport, ensureAudio } from './core/audio.js';
@@ -46,7 +47,7 @@ export function showShortcutHelp() {
     row(['Ctrl', 'K'], 'Rechercher un atelier, un style, une mission, un niveau (ou « / »)'),
     row(['?'], 'Afficher / cacher cette aide'),
     row(['Échap'], 'Fermer une fenêtre ou le panneau du mini-lecteur'),
-    el('p.small.muted', 'Les lettres seules (A W S E D F T G…) jouent du piano quand un clavier est affiché.'),
+    el('p.small.muted', `Les lettres seules (${keyLabels(PIANO_CODES.slice(0, 8))}…) jouent du piano quand un clavier est affiché. Clavier ${KB_NAMES[kbLayout()]} : à changer dans Réglages › Général › Clavier.`),
   ), { onClose: () => { helpClose = null; } });
 }
 
@@ -80,8 +81,8 @@ function onKey(e) {
   const miniOn = mini?.visible();
 
   // Navigation : Maj + lettre
-  if (e.shiftKey && /^Key[A-Z]$/.test(e.code)) {
-    const target = NAV_KEYS[e.code.slice(3).toLowerCase()];
+  if (e.shiftKey && /^[a-z]$/i.test(e.key)) {
+    const target = NAV_KEYS[e.key.toLowerCase()];
     if (target) { e.preventDefault(); location.hash = '#/' + target[0]; }
     return;
   }

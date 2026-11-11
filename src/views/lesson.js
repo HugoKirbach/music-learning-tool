@@ -1,5 +1,6 @@
 // Lecteur de leçon (façon Duolingo) : une consigne à la fois, « Vérifier », retour vert / rouge avec l'explication,
 // les erreurs reviennent en fin de leçon, cœurs pour les contrôles et les tests de saut, écran de fin avec XP.
+import { keyLabel, fmtKeys } from '../keyboard.js';
 import { el, modal, confetti, showBadges, toast } from '../ui.js';
 import { getState, update, recordExercise } from '../store.js';
 import { buildLesson, buildCheckpoint, buildJump, buildPractice, checkAnswer, completeNode, applyJump, addMisses, markPracticed, xpFor, courseOf, nodeStates, unitById, unitIndex, nodeById } from '../core/course.js';
@@ -23,7 +24,7 @@ const HOWTO = {
   roll: 'Clique une case pour poser une note, re-clique pour l’effacer. Les touches à gauche font entendre chaque note.',
   grid: 'Clique les cases pour poser les coups. Écoute ton beat avant de vérifier.',
   synth: 'Glisse un potard vers le haut ou le bas (ou utilise la réglette), écoute, compare, recommence.',
-  keys: 'Joue sur le clavier à l’écran, au clavier MIDI, ou avec les touches A S D F… de ton ordinateur (Z / X : octave).',
+  keys: 'Joue sur le clavier à l’écran, au clavier MIDI, ou avec les touches {KeyA} {KeyS} {KeyD} {KeyF}… de ton ordinateur ({KeyZ} / {KeyX} : octave).',
   knob: 'Glisse le potard vers le haut ou le bas, ou tourne un potard de ton contrôleur MIDI.',
   velocity: 'Plus tu touches haut sur le pad, plus c’est fort. Au clavier MIDI : la force de frappe.',
   tap: 'Lance, écoute le décompte, puis tape en rythme (pad, barre d’espace ou clavier MIDI).',
@@ -139,8 +140,8 @@ export function render(root, params = {}) {
     body.replaceChildren(el('div.ex.t-' + it.t + (queue[pos].retry ? '.retry' : '') + (two ? '.two' : '') + (it.t === 'card' && (it.visual || it.demo) ? '.cardsplit' : ''),
       el('div.ex-head', el('div.ex-headrow', el('span.ex-type', queue[pos].retry ? '🔁 On y revient' : typeLabel(it)),
         el('button.ex-report', { type: 'button', title: 'Signaler une erreur dans cet exercice', onclick: () => report(it) }, '⚑ Signaler')),
-      it.t !== 'card' ? el('h2.ex-q', it.q) : null,
-      two && HOWTO[it.t] ? el('p.ex-howto', el('span', { 'aria-hidden': 'true' }, '👉 '), HOWTO[it.t]) : null,
+      it.t !== 'card' ? el('h2.ex-q', fmtKeys(it.q)) : null,
+      two && HOWTO[it.t] ? el('p.ex-howto', el('span', { 'aria-hidden': 'true' }, '👉 '), fmtKeys(HOWTO[it.t])) : null,
       el('div.ex-explain', { hidden: true })),
       el('div.ex-content', banner?.node, cur.node)));
     paintHint(it);
@@ -161,7 +162,7 @@ export function render(root, params = {}) {
     const parts = [];
     const n = it.t === 'mcq' || it.t === 'shortcut' ? it.choices.length : 0;
     if (n) parts.push(el('span', kbd('1'), '–', kbd(String(Math.min(9, n))), ' choisir'));
-    if (it.t === 'keys') parts.push(el('span', kbd('A', 'S', 'D', 'F'), '… jouer'), el('span', kbd('Z', 'X'), ' octave'));
+    if (it.t === 'keys') parts.push(el('span', kbd(...['KeyA', 'KeyS', 'KeyD', 'KeyF'].map((c) => keyLabel(c))), '… jouer'), el('span', kbd(keyLabel('KeyZ'), keyLabel('KeyX')), ' octave'));
     if (it.t === 'tap') parts.push(el('span', kbd('Espace'), ' lancer, puis taper'));
     else if (it.play || it.plays || it.demo || ['grid', 'roll'].includes(it.t)) parts.push(el('span', kbd('Espace'), ' écouter'));
     if (it.t === 'shortcut' && it.capture !== false) parts.push(el('span', kbd(isMac() ? '⌘' : 'Ctrl'), '… ou tape le raccourci'));

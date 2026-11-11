@@ -1,6 +1,7 @@
 // 🪩 Nuit au club : le jeu du téléphone. Des mini-jeux de quelques secondes (façon WarioWare), la salle s'échauffe,
 // le tempo monte… et l'oreille, le rythme et la théorie progressent en arrière-plan.
 // Mode « 🔇 Sans le son » : mini-jeux à lire et à toucher, aucun son joué (vibrations et animations seulement).
+import { PIANO_CODES, pianoIndex, keyLabels } from '../keyboard.js';
 import { el, card, header, toast, confetti, showBadges } from '../ui.js';
 import { getState, update, recordExercise } from '../store.js';
 import { ensureAudio, now, playSynth, playDrum, playClick, playRiser, outputLatency, kitForGenre, muteFxTails, restoreFx } from '../core/audio.js';
@@ -89,7 +90,7 @@ export function render(root, params = {}) {
           ? 'Chaque manche dure quelques secondes : lis la consigne, regarde, touche. Si tu te trompes, la bonne réponse s’affiche. 3 erreurs et la soirée s’arrête. Toutes les 4 manches, ça se corse et le temps pour répondre diminue.'
           : 'Chaque manche dure quelques secondes : lis la consigne, écoute, réponds. 3 erreurs et la soirée s’arrête. Toutes les 4 manches, la salle s’échauffe : le tempo monte et le temps pour répondre diminue.'),
         el('ul.clean.small', games.map((id) => GAMES[id]).map((g) => el('li', el('b', `${g.emoji} ${g.title}`), ` — ${g.concept} (${SKILLS[g.skill].name})`))),
-        el('p.small.muted', silent ? 'Sur PC : touches 1 à 6 pour répondre ou placer les blocs, clic sur la grille, touches A W S E D F T G Y H U J K pour le piano.' : 'Sur PC : touches 1 à 4 pour répondre, Espace pour taper le temps.'))),
+        el('p.small.muted', silent ? 'Sur PC : touches 1 à 6 pour répondre ou placer les blocs, clic sur la grille, touches ' + keyLabels(PIANO_CODES) + ' pour le piano.' : 'Sur PC : touches 1 à 4 pour répondre, Espace pour taper le temps.'))),
     );
   }
 
@@ -663,10 +664,9 @@ function piano({ labels = false, lit = [], root = null, onKey = null } = {}) {
     if (!black) whites.push(k);
     node.append(k);
   }
-  const map = 'awsedftgyhujk';
   const kd = (e) => {
     if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-    const i = map.indexOf(e.key.toLowerCase());
+    const i = pianoIndex(e);
     if (i >= 0) { e.preventDefault(); onKey(60 + i); }
   };
   if (onKey) window.addEventListener('keydown', kd);

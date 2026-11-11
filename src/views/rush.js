@@ -1,4 +1,5 @@
 // Piano Rush : les notes tombent, on les joue en rythme (touches, clavier PC, MPC). Chaque niveau = théorie + pratique.
+import { keyLabel, keyLabels } from '../keyboard.js';
 import { el, header, segmented, confetti, showBadges, landscapeBtn, plural } from '../ui.js';
 import { getState, update, recordExercise, recordGameReview } from '../store.js';
 import { inputLatency } from '../core/latency.js';
@@ -11,7 +12,6 @@ import { CHAPTERS, LEVELS, levelById, chapterOf } from '../data/rush.js';
 
 const HOME_ROW = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote'];
 const UPPER_ROW = ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU', 'KeyI', 'KeyO', 'KeyP', 'BracketLeft', 'BracketRight'];
-const QWERTY = { Semicolon: ';', Quote: '\'', BracketLeft: '[', BracketRight: ']' };
 const COLORS = { ok: '#4ade80', tap: '#5ce1e6', hold: '#b388ff', chord: '#ffb84d', perfect: '#4ade80', good: '#ffe066', miss: '#ff5d73' };
 const GRADE_TXT = { ok: '✓', perfect: 'Parfait !', good: 'Bien', miss: 'Raté', wrong: 'Fausse note' };
 
@@ -205,8 +205,7 @@ export function render(root, params = {}) {
       if (HOME_ROW[i]) pcKeys.set(HOME_ROW[i], m);
       if (isBlack(m + 1) && m + 1 <= range.hi && UPPER_ROW[i + 1]) pcKeys.set(UPPER_ROW[i + 1], m + 1);
     });
-    for (const [code, m] of pcKeys) pcLabel.set(m, QWERTY[code] || code.replace('Key', ''));
-    navigator.keyboard?.getLayoutMap?.().then((map) => { for (const [code, m] of pcKeys) { const c = map.get(code); if (c) pcLabel.set(m, c.toUpperCase()); } }).catch(() => {});
+    for (const [code, m] of pcKeys) pcLabel.set(m, keyLabel(code));
     const finePointer = matchMedia('(pointer: fine)').matches;
 
     const scoreEl = el('b', '0');
@@ -766,7 +765,7 @@ function inputHint() {
   const midi = midiStatus().state === 'connected';
   const parts = [];
   if (midi) parts.push('🎹 Clavier MIDI connecté : joue directement (l’octave est libre).');
-  if (matchMedia('(pointer: fine)').matches) parts.push('⌨️ Clavier : rangée A S D F… = touches blanches, Q W E R… = noires (lettres affichées sur le piano). Espace = pause.');
+  if (matchMedia('(pointer: fine)').matches) parts.push(`⌨️ Clavier : rangée ${keyLabels(['KeyA', 'KeyS', 'KeyD', 'KeyF'])}… = touches blanches, ${keyLabels(['KeyQ', 'KeyW', 'KeyE', 'KeyR'])}… = noires (lettres affichées sur le piano). Espace = pause.`);
   parts.push('📱 Tactile : touche le piano ou directement la colonne de la note.');
   return parts.join(' ');
 }
