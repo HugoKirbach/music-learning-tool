@@ -441,4 +441,19 @@ export const tests = {
     await page.store("s.settings.kbLayout = 'azerty';");
     t.assert.equal(await page.evaluate(() => import('/src/keyboard.js').then((m) => [m.keyLabel('KeyA'), m.keyLabel('KeyQ'), m.keyLabel('KeyW'), m.keyLabel('KeyZ'), m.keyLabel('Semicolon'), m.fmtKeys('Do = {KeyA}')].join())), 'Q,A,Z,W,M,Do = Q');
   },
+
+  'parcours : la bulle du contrôle (dernier nœud d’une unité ou d’une partie) reste visible et cliquable': async (t) => {
+    for (const device of ['pc', 'mobile']) {
+      const page = await t.open({ route: '#/learn', device });
+      await unlockTo(page, 'u3-cp');
+      await page.go('#/learn', 500);
+      for (const id of ['u3-cp', 'u1-cp']) {
+        await page.locator(`.pnode[data-node="${id}"]`).click(); await page.waitForTimeout(500);
+        const hit = await page.locator('.ppop .btn3d').first().evaluate((b) => { const r = b.getBoundingClientRect(); return b.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); });
+        t.assert.ok(hit, `bouton de la bulle recouvert (${id}, ${device})`);
+      }
+      await page.locator('.ppop a').first().click(); await page.waitForTimeout(400);
+      t.assert.match(page.url(), /#\/lesson\?id=u1-cp/);
+    }
+  },
 };

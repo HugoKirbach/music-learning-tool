@@ -70,7 +70,8 @@ export function render(root, params = {}) {
   const cur = current ? nodeById(current) : null;
   const curUnit = cur ? UNITS[cur.ui] : null;
   let pop = null;
-  const closePop = () => { pop?.remove(); pop = null; document.querySelectorAll('.pnode.active').forEach((x) => x.classList.remove('active')); };
+  let popHost = null;
+  const closePop = () => { pop?.remove(); pop = null; if (popHost) { popHost.style.marginBottom = ''; popHost = null; } document.querySelectorAll('.pnode.active').forEach((x) => x.classList.remove('active')); };
 
   // ---------- En-tête : aujourd'hui (objectif, série, révisions) et la prochaine leçon ----------
   const hasDone = NODES.some((n) => n.type === 'lesson' && course.done?.[n.id]);
@@ -229,6 +230,10 @@ export function render(root, params = {}) {
     }
     pop = el('div.ppop', { 'data-node': n.id, style: { top: `${y + 46}px`, '--ax': `${x - 20}px`, '--uc': unit.color }, onclick: (e) => e.stopPropagation() }, kids, actions);
     path.append(pop);
+    // La bulle du dernier nœud (le contrôle) dépasse du chemin : on lui fait de la place, sinon l'unité ou la partie
+    // suivante la recouvre et on ne peut pas la lancer
+    const over = pop.offsetTop + pop.offsetHeight + 14 - path.offsetHeight;
+    if (over > 0) { popHost = path; path.style.marginBottom = `${over + 4}px`; }
     pop.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   }
 
