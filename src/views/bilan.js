@@ -139,7 +139,7 @@ function renderImage(cur, coach, start) {
   const grad = g.createLinearGradient(0, 0, 1080, 1350);
   grad.addColorStop(0, '#0d0d16'); grad.addColorStop(1, '#1f1a33');
   g.fillStyle = grad; g.fillRect(0, 0, 1080, 1350);
-  g.fillStyle = '#b388ff'; g.font = 'bold 64px system-ui'; g.fillText('◆ BeatForge', 70, 120);
+  g.fillStyle = '#b388ff'; g.font = 'bold 64px system-ui'; g.fillText('BeatForge', 70, 120);
   g.fillStyle = '#ececf6'; g.font = '40px system-ui'; g.fillText(`Bilan · semaine du ${dayFr(start)}`, 70, 185);
   const tiles = [[`${cur.xp}`, 'XP'], [`${cur.activeDays}/7`, 'jours'], [`${cur.sessions}`, 'sessions'], [`${cur.ideas.length}`, 'idées']];
   tiles.forEach(([v, l], i) => {

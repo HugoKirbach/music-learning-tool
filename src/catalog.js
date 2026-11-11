@@ -6,8 +6,8 @@
  * carnet, session express) est rangé dans « Extras » : optionnel, en plus du parcours.
  */
 export const TABS = [
-  { id: 'learn', icon: '🎓', label: 'Apprendre', hubs: ['learn'] },
   { id: 'home', icon: '🧩', label: 'Extras', hubs: ['home', 'play', 'create', 'notebook'] },
+  { id: 'learn', icon: '🎓', label: 'Apprendre', hubs: ['learn'], main: true },
   { id: 'profile', icon: '👤', label: 'Profil', hubs: ['profile'] },
 ];
 

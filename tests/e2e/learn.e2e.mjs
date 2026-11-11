@@ -291,7 +291,7 @@ export const tests = {
     await page.locator('.lesson-end a', { hasText: 'Continuer' }).click(); await page.waitForTimeout(400);
     t.assert.equal(await page.locator('.lh-tile.review.due').count(), 0);
     // Navigation : le parcours d'abord, le reste dans Extras
-    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Apprendre', 'Extras', 'Profil', 'Rechercher', 'Raccourcis']);
+    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Extras', 'Apprendre', 'Profil', 'Rechercher', 'Raccourcis']);
     await page.locator('.learn-extras').click(); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/home$/);
     t.assert.deepEqual(await page.locator('.extras-hub b').allInnerTexts(), ['Jeux', 'Ateliers', 'Carnet']);

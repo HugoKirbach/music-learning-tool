@@ -75,7 +75,7 @@ function renderNav(current) {
   const tab = tabOf(current);
   for (const n of TABS) {
     const active = n.id === tab;
-    nav.appendChild(el('a.nav-item' + (active ? '.active' : ''), { href: '#/' + n.id, 'aria-current': active ? 'page' : null },
+    nav.appendChild(el('a.nav-item' + (active ? '.active' : '') + (n.main ? '.main' : ''), { href: '#/' + n.id, 'aria-current': active ? 'page' : null },
       el('span.nav-icon', { 'aria-hidden': 'true' }, n.icon), el('span.nav-label', n.label)));
   }
   nav.appendChild(el('button.nav-item.nav-kbd.nav-search', { type: 'button', title: 'Rechercher (Ctrl+K)', onclick: () => import('./search.js').then((m) => m.openSearch()) },
@@ -91,7 +91,7 @@ function renderStatus() {
   const goal = s.settings.dailyGoal;
   const pct = Math.min(1, t.xp / goal);
   clear(status);
-  status.appendChild(el('a.brand', { href: '#/learn' }, el('span.logo', '◆'), el('span.brand-name', 'BeatForge')));
+  status.appendChild(el('a.brand', { href: '#/learn' }, el('img.logo-bip', { src: 'icons/bip.svg', alt: '', width: 30, height: 30 }), el('span.brand-name', 'BeatForge')));
   status.appendChild(el('div.status-right',
     el('a.chip.streak' + (s.streak.last === dayKey() ? '.lit' : ''), { href: '#/profile', title: `Série de jours${s.streak.freezes ? ` · ${s.streak.freezes > 1 ? `${s.streak.freezes} jokers` : '1 joker'} 🧊 pour sauver un jour manqué` : ''}` },
       '🔥 ', String(s.streak.count || 0), s.streak.freezes ? el('span.chip-freeze', { 'aria-label': s.streak.freezes > 1 ? `${s.streak.freezes} jokers` : '1 joker' }, s.streak.freezes > 1 ? `🧊${s.streak.freezes}` : '🧊') : null),
@@ -218,7 +218,7 @@ function onboarding() {
   if (s.settings.onboarded) return;
   let goal = 150, start = 'u1';
   const close = modal(el('div.onboard',
-    el('div.onboard-logo', '◆'),
+    el('div.onboard-logo', el('img', { src: 'icons/bip.svg', alt: 'Bip, la mascotte de BeatForge', width: 84, height: 84 })),
     el('h2', 'Bienvenue dans BeatForge'),
     el('p', 'Un parcours pas à pas pour apprendre Ableton Live, le sound design au synthé et ton clavier MIDI : des bases du rythme jusqu’à ton premier morceau exporté.'),
     el('ol.onboard-steps',

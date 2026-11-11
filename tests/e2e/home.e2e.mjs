@@ -29,7 +29,7 @@ export const tests = {
     t.assert.ok(await page.locator('text=⚡ Lancer une session').count());
     await page.click('text=Tous les ateliers →'); await page.waitForTimeout(400);
     t.assert.match(page.url(), /#\/create$/);
-    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Apprendre', 'Extras', 'Profil', 'Rechercher', 'Raccourcis']);
+    t.assert.deepEqual(await page.locator('.nav-item .nav-label').allInnerTexts(), ['Extras', 'Apprendre', 'Profil', 'Rechercher', 'Raccourcis']);
   },
 
   'onglets : Jouer, Créer, Profil et Réglages bien rangés': async (t) => {

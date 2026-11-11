@@ -27,7 +27,7 @@ export function drawCert(L, s = getState()) {
   }
   const center = (txt, y, font, color) => { g.font = font; g.fillStyle = color; g.textAlign = 'center'; g.fillText(txt, W / 2, y); };
   const sans = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-  center('◆ BeatForge', 140, `700 34px ${sans}`, '#b388ff');
+  center('BeatForge', 140, `700 34px ${sans}`, '#b388ff');
   center('CERTIFICAT DE NIVEAU', 200, `600 26px ${sans}`, '#9a9ab8');
   const who = getMyProfile()?.pseudo || 'Producteur·rice';
   center(who, 300, `800 64px ${sans}`, '#ececf6');
